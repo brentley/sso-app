@@ -26,14 +26,12 @@ RUN useradd -m -u 1000 appuser
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    xmlsec1 \
-    libxml2-dev \
-    libxmlsec1-dev \
-    libxmlsec1-openssl \
-    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/data /app/instance && chown -R appuser:appuser /app
 
 # Copy from builder
 COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
@@ -49,4 +47,4 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]
+CMD ["python", "app.py"]

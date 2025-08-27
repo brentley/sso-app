@@ -1,8 +1,7 @@
-version: '3.8'
 
 services:
   sso-app:
-    image: ghcr.io/visiquate/sso-app:latest
+    build: .
     container_name: sso-app
     restart: unless-stopped
     environment:
