@@ -440,6 +440,26 @@ def scim_create_user():
     
     return jsonify(scim_user), 201
 
+# Authentication routes
+@app.route('/saml/login')
+def saml_login():
+    """SAML authentication endpoint"""
+    # For now, redirect back to login with a message
+    flash('SAML authentication not yet configured. Please configure SAML settings in admin panel.')
+    return redirect(url_for('login'))
+
+@app.route('/oauth/login/<provider>')
+def oauth_login(provider):
+    """OIDC/OAuth authentication endpoint"""
+    # For now, redirect back to login with a message
+    valid_providers = ['google', 'microsoft', 'authentik']
+    if provider not in valid_providers:
+        flash('Invalid OAuth provider')
+        return redirect(url_for('login'))
+    
+    flash(f'{provider.title()} OAuth authentication not yet configured. Please configure OAuth settings in admin panel.')
+    return redirect(url_for('login'))
+
 @app.route('/logout')
 @login_required
 def logout():

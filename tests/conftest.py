@@ -31,6 +31,8 @@ def admin_user(client):
         # Check if user already exists
         existing_admin = User.query.filter_by(email='brent.langston@visiquate.com').first()
         if existing_admin:
+            # Refresh the object to make sure it's attached to current session
+            db.session.refresh(existing_admin)
             return existing_admin
             
         admin = User(
@@ -40,6 +42,8 @@ def admin_user(client):
         )
         db.session.add(admin)
         db.session.commit()
+        # Refresh to ensure it's properly attached
+        db.session.refresh(admin)
         return admin
 
 
@@ -52,6 +56,8 @@ def regular_user(client):
         # Check if user already exists
         existing_user = User.query.filter_by(email='user@example.com').first()
         if existing_user:
+            # Refresh the object to make sure it's attached to current session
+            db.session.refresh(existing_user)
             return existing_user
             
         user = User(
@@ -61,4 +67,6 @@ def regular_user(client):
         )
         db.session.add(user)
         db.session.commit()
+        # Refresh to ensure it's properly attached
+        db.session.refresh(user)
         return user
