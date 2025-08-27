@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}SSO Authentication Test - Register{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center mb-0">Register New Account</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                        <div class="form-text">Use your work email address for proper admin access</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <p>Already have an account?</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-secondary">Login Instead</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3">
+            <strong>Admin Access:</strong> Users with email addresses 
+            <code>brent.langston@visiquate.com</code> or <code>yuliia.lutai@visiquate.com</code> 
+            will automatically receive admin privileges.
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}SSO Authentication Test - Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">SSO Authentication Testing</h1>
+            <p class="lead">Test and validate various authentication methods with detailed transaction logging</p>
+        </div>
+
+        {% if current_user.is_authenticated %}
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Welcome, {{ current_user.name }}!</h5>
+                    <p class="card-text">You are currently authenticated. Use the buttons below to test different authentication methods.</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">Authentication Status</h6>
+                                    <ul class="list-unstyled">
+                                        <li>
+                                            <span class="badge {{ 'bg-success' if current_user.saml_tested else 'bg-secondary' }} me-2">
+                                                {{ 'Tested' if current_user.saml_tested else 'Not Tested' }}
+                                            </span>
+                                            SAML Authentication
+                                        </li>
+                                        <li class="mt-1">
+                                            <span class="badge {{ 'bg-success' if current_user.oidc_tested else 'bg-secondary' }} me-2">
+                                                {{ 'Tested' if current_user.oidc_tested else 'Not Tested' }}
+                                            </span>
+                                            OIDC Authentication
+                                        </li>
+                                        <li class="mt-1">
+                                            <span class="badge {{ 'bg-success' if current_user.password_tested else 'bg-secondary' }} me-2">
+                                                {{ 'Tested' if current_user.password_tested else 'Not Tested' }}
+                                            </span>
+                                            Password Authentication
+                                        </li>
+                                        <li class="mt-1">
+                                            <span class="badge {{ 'bg-success' if current_user.passkey_tested else 'bg-secondary' }} me-2">
+                                                {{ 'Tested' if current_user.passkey_tested else 'Not Tested' }}
+                                            </span>
+                                            Passkey Authentication
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">Quick Actions</h6>
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Test Authentication</a>
+                                        {% if current_user.is_admin %}
+                                            <a href="{{ url_for('admin') }}" class="btn btn-secondary btn-sm">Admin Dashboard</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Authentication Testing Platform</h5>
+                    <p class="card-text">Please log in to test various authentication methods and view detailed transaction logs.</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">Get Started</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-outline-secondary ms-2">Register</a>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="row mt-5">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">SAML Testing</h5>
+                        <p class="card-text">Test SAML 2.0 authentication with detailed assertion analysis and attribute mapping validation.</p>
+                        <ul class="list-unstyled small text-muted">
+                            <li>✓ SAML Response validation</li>
+                            <li>✓ Attribute extraction</li>
+                            <li>✓ Signature verification</li>
+                            <li>✓ Error analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">OIDC Testing</h5>
+                        <p class="card-text">Test OpenID Connect authentication with comprehensive token inspection and claim analysis.</p>
+                        <ul class="list-unstyled small text-muted">
+                            <li>✓ JWT token validation</li>
+                            <li>✓ Claims extraction</li>
+                            <li>✓ Provider compatibility</li>
+                            <li>✓ Flow analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Password Authentication</h5>
+                        <p class="card-text">Test traditional password-based authentication with security analysis and best practices validation.</p>
+                        <ul class="list-unstyled small text-muted">
+                            <li>✓ Password validation</li>
+                            <li>✓ Security headers</li>
+                            <li>✓ Session management</li>
+                            <li>✓ Rate limiting</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Passkey (WebAuthn)</h5>
+                        <p class="card-text">Test passwordless authentication using WebAuthn/FIDO2 with biometric and hardware token support.</p>
+                        <ul class="list-unstyled small text-muted">
+                            <li>✓ Biometric authentication</li>
+                            <li>✓ Hardware token support</li>
+                            <li>✓ Cross-platform compatibility</li>
+                            <li>✓ Security validation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

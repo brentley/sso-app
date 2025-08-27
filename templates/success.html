@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}SSO Authentication Test - Success{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="alert alert-success" role="alert">
+            <h4 class="alert-heading">Authentication Successful!</h4>
+            <p>You have successfully authenticated. Below you can view the detailed transaction data for troubleshooting purposes.</p>
+        </div>
+
+        {% if auth_data %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Transaction Details</h5>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#transactionDetails" aria-expanded="false">
+                    <span class="collapse-toggle-text">Show Details</span>
+                </button>
+            </div>
+            <div class="collapse" id="transactionDetails">
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Authentication Method:</strong>
+                            <span class="badge bg-primary ms-2">{{ auth_data.get('method', 'Unknown').upper() }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Timestamp:</strong>
+                            <span class="text-muted">{{ auth_data.get('timestamp', 'Unknown') }}</span>
+                        </div>
+                    </div>
+
+                    {% if auth_data.get('method') == 'saml' %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6>SAML Response Details</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>NameID:</strong></td>
+                                            <td><code>{{ auth_data.get('nameid', 'Not provided') }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Session Index:</strong></td>
+                                            <td><code>{{ auth_data.get('session_index', 'Not provided') }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Relay State:</strong></td>
+                                            <td><code>{{ auth_data.get('relay_state', 'Not provided') }}</code></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if auth_data.get('attributes') %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6>SAML Attributes</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Attribute Name</th>
+                                            <th>Value(s)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for attr_name, attr_values in auth_data.attributes.items() %}
+                                        <tr>
+                                            <td><code>{{ attr_name }}</code></td>
+                                            <td>
+                                                {% for value in attr_values %}
+                                                    <span class="badge bg-light text-dark me-1">{{ value }}</span>
+                                                {% endfor %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if auth_data.get('method') == 'oidc' %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6>OIDC Token Response</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Provider:</strong></td>
+                                            <td><span class="badge bg-info">{{ auth_data.get('provider', 'Unknown') }}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Token Type:</strong></td>
+                                            <td><code>{{ auth_data.get('token_response', {}).get('token_type', 'Unknown') }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Expires In:</strong></td>
+                                            <td><code>{{ auth_data.get('token_response', {}).get('expires_in', 'Unknown') }} seconds</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Scope:</strong></td>
+                                            <td><code>{{ auth_data.get('token_response', {}).get('scope', 'Unknown') }}</code></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if auth_data.get('user_info') %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6>User Claims</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Claim</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for claim, value in auth_data.user_info.items() %}
+                                        <tr>
+                                            <td><code>{{ claim }}</code></td>
+                                            <td><span class="badge bg-light text-dark">{{ value }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if auth_data.get('method') == 'passkey' %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6>WebAuthn Details</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Credential ID:</strong></td>
+                                            <td><code>{{ auth_data.get('credential_id', 'Not provided')[:20] }}...</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>New Sign Count:</strong></td>
+                                            <td><code>{{ auth_data.get('new_sign_count', 'Unknown') }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>User Verification:</strong></td>
+                                            <td><span class="badge bg-success">Required</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6>Technical Information</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>IP Address:</strong></td>
+                                            <td><code>{{ auth_data.get('ip_address', 'Unknown') }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>User Agent:</strong></td>
+                                            <td><small class="text-muted">{{ auth_data.get('user_agent', 'Unknown') }}</small></td>
+                                        </tr>
+                                        {% if auth_data.get('user_id') %}
+                                        <tr>
+                                            <td><strong>User ID:</strong></td>
+                                            <td><code>{{ auth_data.get('user_id') }}</code></td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Raw Transaction Data</h6>
+                            <pre class="bg-light p-3 border rounded"><code>{{ auth_data | tojson(indent=2) }}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <a href="{{ url_for('login') }}" class="btn btn-primary me-2">Test Another Method</a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin') }}" class="btn btn-outline-primary ms-2">Admin Dashboard</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseButton = document.querySelector('[data-bs-toggle="collapse"]');
+    const collapseTarget = document.querySelector('#transactionDetails');
+    const toggleText = collapseButton.querySelector('.collapse-toggle-text');
+    
+    collapseTarget.addEventListener('show.bs.collapse', function() {
+        toggleText.textContent = 'Hide Details';
+    });
+    
+    collapseTarget.addEventListener('hide.bs.collapse', function() {
+        toggleText.textContent = 'Show Details';
+    });
+});
+</script>
+{% endblock %}

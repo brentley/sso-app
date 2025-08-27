@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}SSO Authentication Test - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Admin Dashboard</h2>
+            <a href="{{ url_for('admin_config') }}" class="btn btn-primary">Configuration Settings</a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">User Authentication Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>SCIM Provisioned</th>
+                                <th>SAML</th>
+                                <th>OIDC</th>
+                                <th>Password</th>
+                                <th>Passkey</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr class="{{ 'table-warning' if not user.active else '' }}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <div class="fw-bold">{{ user.name }}</div>
+                                            {% if user.is_admin %}
+                                                <small class="badge bg-danger">Admin</small>
+                                            {% endif %}
+                                            {% if not user.active %}
+                                                <small class="badge bg-warning">Inactive</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <code>{{ user.email }}</code>
+                                    {% if user.external_id %}
+                                        <br><small class="text-muted">External ID: {{ user.external_id[:10] }}...</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.scim_provisioned else 'bg-secondary' }}">
+                                        {{ 'Yes' if user.scim_provisioned else 'No' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.saml_tested else 'bg-secondary' }}">
+                                        {{ 'Tested' if user.saml_tested else 'Not Tested' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.oidc_tested else 'bg-secondary' }}">
+                                        {{ 'Tested' if user.oidc_tested else 'Not Tested' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.password_tested else 'bg-secondary' }}">
+                                        {{ 'Tested' if user.password_tested else 'Not Tested' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.passkey_tested else 'bg-secondary' }}">
+                                        {{ 'Tested' if user.passkey_tested else 'Not Tested' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewUserLogs({{ user.id }})">
+                                        View Logs
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Users</h5>
+                        <h2 class="text-primary">{{ users|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">SAML Tested</h5>
+                        <h2 class="text-success">{{ users|selectattr("saml_tested")|list|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">OIDC Tested</h5>
+                        <h2 class="text-success">{{ users|selectattr("oidc_tested")|list|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">All Methods Tested</h5>
+                        <h2 class="text-success">
+                            {{ users|selectattr("saml_tested")|selectattr("oidc_tested")|selectattr("password_tested")|selectattr("passkey_tested")|list|length }}
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Logs Modal -->
+<div class="modal fade" id="userLogsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Authentication Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userLogsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function viewUserLogs(userId) {
+    const modal = new bootstrap.Modal(document.getElementById('userLogsModal'));
+    const content = document.getElementById('userLogsContent');
+    
+    // Show loading state
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading authentication logs...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    try {
+        const response = await fetch(`/admin/user/${userId}/logs`);
+        const logs = await response.json();
+        
+        if (logs.length === 0) {
+            content.innerHTML = '<p class="text-muted text-center">No authentication logs found for this user.</p>';
+            return;
+        }
+        
+        let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr>';
+        html += '<th>Date</th><th>Method</th><th>Status</th><th>IP Address</th><th>Details</th>';
+        html += '</tr></thead><tbody>';
+        
+        logs.forEach(log => {
+            const date = new Date(log.timestamp).toLocaleString();
+            const statusBadge = log.success 
+                ? '<span class="badge bg-success">Success</span>'
+                : '<span class="badge bg-danger">Failed</span>';
+            
+            html += `<tr>
+                <td><small>${date}</small></td>
+                <td><span class="badge bg-primary">${log.auth_method.toUpperCase()}</span></td>
+                <td>${statusBadge}</td>
+                <td><code>${log.ip_address}</code></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showLogDetails(${log.id}, ${JSON.stringify(log.transaction_data).replace(/"/g, '&quot;')})">
+                        View
+                    </button>
+                </td>
+            </tr>`;
+        });
+        
+        html += '</tbody></table></div>';
+        content.innerHTML = html;
+        
+    } catch (error) {
+        content.innerHTML = '<div class="alert alert-danger">Error loading logs: ' + error.message + '</div>';
+    }
+}
+
+function showLogDetails(logId, transactionData) {
+    const detailsModal = document.createElement('div');
+    detailsModal.className = 'modal fade';
+    detailsModal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Log Details #${logId}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre class="bg-light p-3 border rounded" style="max-height: 500px; overflow-y: auto;"><code>${JSON.stringify(transactionData, null, 2)}</code></pre>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(detailsModal);
+    const modal = new bootstrap.Modal(detailsModal);
+    modal.show();
+    
+    detailsModal.addEventListener('hidden.bs.modal', function() {
+        document.body.removeChild(detailsModal);
+    });
+}
+</script>
+{% endblock %}

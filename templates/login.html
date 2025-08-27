@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}SSO Authentication Test - Login{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="text-center mb-4">
+            <h2>Authentication Testing</h2>
+            <p class="text-muted">Test different authentication methods and view detailed transaction data</p>
+        </div>
+
+        <div class="row">
+            <!-- SAML Authentication -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">SAML Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Test SAML 2.0 authentication with your configured identity provider.</p>
+                        <a href="{{ url_for('saml_login') }}" class="btn btn-primary w-100">Test SAML Authentication</a>
+                        <small class="text-muted d-block mt-2">
+                            Will redirect to configured SAML IdP for authentication
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OIDC Authentication -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">OIDC Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Test OpenID Connect authentication with supported providers.</p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('oauth_login', provider='google') }}" class="btn btn-danger">
+                                Test Google OIDC
+                            </a>
+                            <a href="{{ url_for('oauth_login', provider='microsoft') }}" class="btn btn-primary">
+                                Test Microsoft OIDC
+                            </a>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            OAuth 2.0 / OpenID Connect flow with detailed logging
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password Authentication -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">Password Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('password_auth') }}" method="post" id="password-form">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Test Password Authentication</button>
+                        </form>
+                        <small class="text-muted d-block mt-2">
+                            Traditional username/password authentication
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passkey Authentication -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">Passkey Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="passkey-auth-section">
+                            <div class="mb-3">
+                                <label for="passkey-email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="passkey-email" required>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-warning" id="authenticate-passkey">
+                                    Test Passkey Authentication
+                                </button>
+                                {% if current_user.is_authenticated %}
+                                <button type="button" class="btn btn-outline-warning" id="register-passkey">
+                                    Register New Passkey
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            WebAuthn/FIDO2 passwordless authentication
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Don't have an account?</h5>
+            </div>
+            <div class="card-body">
+                <p>Create a new account to test all authentication methods.</p>
+                <a href="{{ url_for('register') }}" class="btn btn-secondary">Register New Account</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Passkey Status Modal -->
+<div class="modal fade" id="passkeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="passkeyModalTitle">Passkey Authentication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="passkeyModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Initializing passkey authentication...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/passkey.js') }}?v={{ git_commit[:7] if git_commit else 'dev' }}"></script>
+{% endblock %}

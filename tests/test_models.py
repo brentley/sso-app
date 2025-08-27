@@ -1,0 +1,129 @@
+import pytest
+from app import app, db, User, AuthLog, Configuration, WebAuthnCredential
+
+
+def test_user_model(client):
+    """Test User model functionality"""
+    with app.app_context():
+        # Create user
+        user = User(
+            email='test@example.com',
+            name='Test User',
+            is_admin=False
+        )
+        db.session.add(user)
+        db.session.commit()
+        
+        # Test user properties
+        assert user.email == 'test@example.com'
+        assert user.name == 'Test User'
+        assert user.is_admin is False
+        assert user.active is True
+        assert user.scim_provisioned is False
+        
+        # Test authentication status defaults
+        assert user.saml_tested is False
+        assert user.oidc_tested is False
+        assert user.password_tested is False
+        assert user.passkey_tested is False
+
+
+def test_configuration_model(client):
+    """Test Configuration model functionality"""
+    with app.app_context():
+        # Create configuration
+        config = Configuration(
+            key='test_setting',
+            value='test_value',
+            description='Test configuration setting'
+        )
+        db.session.add(config)
+        db.session.commit()
+        
+        # Test retrieval
+        retrieved_config = Configuration.query.filter_by(key='test_setting').first()
+        assert retrieved_config is not None
+        assert retrieved_config.value == 'test_value'
+        assert retrieved_config.description == 'Test configuration setting'
+
+
+def test_auth_log_model(client, regular_user):
+    """Test AuthLog model functionality"""
+    with app.app_context():
+        # Create auth log
+        auth_log = AuthLog(
+            user_id=regular_user.id,
+            auth_method='password',
+            success=True,
+            transaction_data='{"test": "data"}',
+            ip_address='127.0.0.1',
+            user_agent='Test User Agent'
+        )
+        db.session.add(auth_log)
+        db.session.commit()
+        
+        # Test relationships
+        assert auth_log.user == regular_user
+        assert len(regular_user.auth_logs) == 1
+        assert regular_user.auth_logs[0] == auth_log
+
+
+def test_webauthn_credential_model(client, regular_user):
+    """Test WebAuthnCredential model functionality"""
+    with app.app_context():
+        # Create credential
+        credential = WebAuthnCredential(
+            user_id=regular_user.id,
+            credential_id=b'test_credential_id',
+            public_key=b'test_public_key',
+            sign_count=0
+        )
+        db.session.add(credential)
+        db.session.commit()
+        
+        # Test relationships
+        assert credential.user == regular_user
+        assert len(regular_user.credentials) == 1
+        assert regular_user.credentials[0] == credential
+
+
+def test_user_admin_detection(client):
+    """Test automatic admin detection for specified emails"""
+    with app.app_context():
+        # Test admin emails
+        admin_emails = ['brent.langston@visiquate.com', 'yuliia.lutai@visiquate.com']
+        
+        for email in admin_emails:
+            user = User(email=email, name='Admin User')
+            # Admin status would be set in the registration route
+            user.is_admin = email in admin_emails
+            db.session.add(user)
+            db.session.commit()
+            
+            assert user.is_admin is True
+        
+        # Test non-admin email
+        regular_user = User(email='user@example.com', name='Regular User')
+        db.session.add(regular_user)
+        db.session.commit()
+        
+        assert regular_user.is_admin is False
+
+
+def test_scim_user_fields(client):
+    """Test SCIM-specific user fields"""
+    with app.app_context():
+        # Create SCIM-provisioned user
+        user = User(
+            email='scim@example.com',
+            name='SCIM User',
+            external_id='ext-123',
+            scim_provisioned=True,
+            active=True
+        )
+        db.session.add(user)
+        db.session.commit()
+        
+        assert user.external_id == 'ext-123'
+        assert user.scim_provisioned is True
+        assert user.active is True

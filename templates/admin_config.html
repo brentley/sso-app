@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}SSO Authentication Test - Configuration{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Configuration Settings</h2>
+            <a href="{{ url_for('admin') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+
+        <form id="configForm">
+            <!-- SAML Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">SAML Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="saml_idp_entity_id" class="form-label">IdP Entity ID</label>
+                            <input type="text" class="form-control" id="saml_idp_entity_id" name="saml_idp_entity_id" 
+                                   value="{{ configs.get('saml_idp_entity_id').value if configs.get('saml_idp_entity_id') else '' }}">
+                            <div class="form-text">The unique identifier for your SAML identity provider</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="saml_idp_sso_url" class="form-label">IdP SSO URL</label>
+                            <input type="url" class="form-control" id="saml_idp_sso_url" name="saml_idp_sso_url"
+                                   value="{{ configs.get('saml_idp_sso_url').value if configs.get('saml_idp_sso_url') else '' }}">
+                            <div class="form-text">The single sign-on URL endpoint</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="saml_idp_slo_url" class="form-label">IdP SLO URL</label>
+                            <input type="url" class="form-control" id="saml_idp_slo_url" name="saml_idp_slo_url"
+                                   value="{{ configs.get('saml_idp_slo_url').value if configs.get('saml_idp_slo_url') else '' }}">
+                            <div class="form-text">The single logout URL endpoint</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="saml_nameid_format" class="form-label">NameID Format</label>
+                            <select class="form-select" id="saml_nameid_format" name="saml_nameid_format">
+                                <option value="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" 
+                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress' else '' }}>
+                                    Email Address
+                                </option>
+                                <option value="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' else '' }}>
+                                    Persistent
+                                </option>
+                                <option value="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
+                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient' else '' }}>
+                                    Transient
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="saml_idp_cert" class="form-label">IdP X.509 Certificate</label>
+                        <textarea class="form-control" id="saml_idp_cert" name="saml_idp_cert" rows="8" 
+                                  placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----">{{ configs.get('saml_idp_cert').value if configs.get('saml_idp_cert') else '' }}</textarea>
+                        <div class="form-text">The X.509 certificate from your identity provider (without headers)</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="saml_sp_cert" class="form-label">SP X.509 Certificate (Optional)</label>
+                            <textarea class="form-control" id="saml_sp_cert" name="saml_sp_cert" rows="4"
+                                      placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----">{{ configs.get('saml_sp_cert').value if configs.get('saml_sp_cert') else '' }}</textarea>
+                            <div class="form-text">Service Provider certificate for signed requests</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="saml_sp_private_key" class="form-label">SP Private Key (Optional)</label>
+                            <textarea class="form-control" id="saml_sp_private_key" name="saml_sp_private_key" rows="4"
+                                      placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----">{{ configs.get('saml_sp_private_key').value if configs.get('saml_sp_private_key') else '' }}</textarea>
+                            <div class="form-text">Private key for SP certificate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OIDC Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">OIDC Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="oidc_google_client_id" class="form-label">Google Client ID</label>
+                            <input type="text" class="form-control" id="oidc_google_client_id" name="oidc_google_client_id"
+                                   value="{{ configs.get('oidc_google_client_id').value if configs.get('oidc_google_client_id') else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="oidc_google_client_secret" class="form-label">Google Client Secret</label>
+                            <input type="password" class="form-control" id="oidc_google_client_secret" name="oidc_google_client_secret"
+                                   value="{{ configs.get('oidc_google_client_secret').value if configs.get('oidc_google_client_secret') else '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="oidc_microsoft_client_id" class="form-label">Microsoft Client ID</label>
+                            <input type="text" class="form-control" id="oidc_microsoft_client_id" name="oidc_microsoft_client_id"
+                                   value="{{ configs.get('oidc_microsoft_client_id').value if configs.get('oidc_microsoft_client_id') else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="oidc_microsoft_client_secret" class="form-label">Microsoft Client Secret</label>
+                            <input type="password" class="form-control" id="oidc_microsoft_client_secret" name="oidc_microsoft_client_secret"
+                                   value="{{ configs.get('oidc_microsoft_client_secret').value if configs.get('oidc_microsoft_client_secret') else '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="oidc_authentik_url" class="form-label">Authentik Server URL</label>
+                            <input type="url" class="form-control" id="oidc_authentik_url" name="oidc_authentik_url"
+                                   value="{{ configs.get('oidc_authentik_url').value if configs.get('oidc_authentik_url') else '' }}"
+                                   placeholder="https://auth.example.com">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="oidc_authentik_client_id" class="form-label">Authentik Client ID</label>
+                            <input type="text" class="form-control" id="oidc_authentik_client_id" name="oidc_authentik_client_id"
+                                   value="{{ configs.get('oidc_authentik_client_id').value if configs.get('oidc_authentik_client_id') else '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="oidc_authentik_client_secret" class="form-label">Authentik Client Secret</label>
+                            <input type="password" class="form-control" id="oidc_authentik_client_secret" name="oidc_authentik_client_secret"
+                                   value="{{ configs.get('oidc_authentik_client_secret').value if configs.get('oidc_authentik_client_secret') else '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCIM Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">SCIM Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="scim_enabled" name="scim_enabled"
+                                       {{ 'checked' if configs.get('scim_enabled') and configs.get('scim_enabled').value == 'true' else '' }}>
+                                <label class="form-check-label" for="scim_enabled">Enable SCIM Provisioning</label>
+                            </div>
+                            <div class="form-text">Allow Authentik to provision users automatically</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="scim_bearer_token" class="form-label">SCIM Bearer Token</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="scim_bearer_token" name="scim_bearer_token"
+                                       value="{{ configs.get('scim_bearer_token').value if configs.get('scim_bearer_token') else '' }}">
+                                <button class="btn btn-outline-secondary" type="button" onclick="generateScimToken()">Generate</button>
+                            </div>
+                            <div class="form-text">Used to authenticate SCIM requests from Authentik</div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>SCIM Endpoint:</strong> <code id="scim-endpoint">{{ request.url_root }}scim/v2/Users</code><br>
+                        <strong>Service Provider Config:</strong> <code>{{ request.url_root }}scim/v2/ServiceProviderConfig</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Application Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="app_origin" class="form-label">Application Origin</label>
+                            <input type="url" class="form-control" id="app_origin" name="app_origin"
+                                   value="{{ configs.get('app_origin').value if configs.get('app_origin') else request.url_root.rstrip('/') }}"
+                                   placeholder="https://sso-test.example.com">
+                            <div class="form-text">The base URL for this application</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="session_timeout" class="form-label">Session Timeout (minutes)</label>
+                            <input type="number" class="form-control" id="session_timeout" name="session_timeout"
+                                   value="{{ configs.get('session_timeout').value if configs.get('session_timeout') else '60' }}"
+                                   min="5" max="1440">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end">
+                <button type="button" class="btn btn-secondary me-2" onclick="resetForm()">Reset</button>
+                <button type="submit" class="btn btn-primary">Save Configuration</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration Saved</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Configuration has been successfully saved. Changes will take effect immediately.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('configForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const configData = {};
+    
+    // Convert form data to object
+    for (let [key, value] = formData.entries()) {
+        configData[key] = value;
+    }
+    
+    // Handle checkboxes
+    configData['scim_enabled'] = document.getElementById('scim_enabled').checked ? 'true' : 'false';
+    
+    try {
+        const response = await fetch('/admin/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(configData)
+        });
+        
+        if (response.ok) {
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
+        } else {
+            alert('Error saving configuration');
+        }
+    } catch (error) {
+        alert('Error saving configuration: ' + error.message);
+    }
+});
+
+function generateScimToken() {
+    const token = 'scim_' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+    document.getElementById('scim_bearer_token').value = token;
+}
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset all changes?')) {
+        location.reload();
+    }
+}
+
+// Update SCIM endpoint URL when app origin changes
+document.getElementById('app_origin').addEventListener('input', function() {
+    const origin = this.value.endsWith('/') ? this.value.slice(0, -1) : this.value;
+    document.getElementById('scim-endpoint').textContent = origin + '/scim/v2/Users';
+});
+</script>
+{% endblock %}

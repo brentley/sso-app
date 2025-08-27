@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SSO Authentication Test{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ git_commit[:7] if git_commit else 'dev' }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body data-theme="light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">SSO Test App</a>
+            
+            <div class="navbar-nav ms-auto">
+                {% if current_user.is_authenticated %}
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            {{ current_user.name }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% if current_user.is_admin %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin') }}">Admin Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_config') }}">Configuration</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                {% endif %}
+                
+                <button class="btn btn-sm btn-outline-light ms-2" id="theme-toggle">
+                    <span id="theme-icon">🌙</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert-container">
+                    {% for message in messages %}
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Version info for cache busting and display
+        window.GIT_COMMIT = '{{ git_commit or "unknown" }}';
+        window.BUILD_DATE = '{{ build_date or "unknown" }}';
+        window.VERSION = '{{ version or "1.0.0" }}';
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v={{ git_commit[:7] if git_commit else 'dev' }}"></script>
+    {% block extra_scripts %}{% endblock %}
+    
+    {% if git_commit %}
+    <footer class="footer text-center text-muted mt-5">
+        <div class="container">
+            <small class="version-info">
+                Version: <code>{{ git_commit[:7] }}</code> | 
+                Built: {{ build_date or 'Unknown' }}
+            </small>
+        </div>
+    </footer>
+    {% endif %}
+</body>
+</html>
