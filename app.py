@@ -281,6 +281,165 @@ def user_logs(user_id):
     
     return jsonify(logs_data)
 
+# SCIM 2.0 endpoints
+@app.route('/scim/v2/ServiceProviderConfig')
+def scim_service_provider_config():
+    """SCIM endpoint for service provider configuration"""
+    config = {
+        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig'],
+        'patch': {
+            'supported': True
+        },
+        'bulk': {
+            'supported': False,
+            'maxOperations': 0,
+            'maxPayloadSize': 0
+        },
+        'filter': {
+            'supported': True,
+            'maxResults': 200
+        },
+        'changePassword': {
+            'supported': False
+        },
+        'sort': {
+            'supported': False
+        },
+        'etag': {
+            'supported': False
+        },
+        'authenticationSchemes': [{
+            'name': 'HTTP Bearer',
+            'description': 'Authentication via bearer token',
+            'specUri': 'http://www.rfc-editor.org/info/rfc6750',
+            'type': 'httpbearer'
+        }],
+        'meta': {
+            'location': '/scim/v2/ServiceProviderConfig',
+            'resourceType': 'ServiceProviderConfig'
+        }
+    }
+    
+    return jsonify(config)
+
+@app.route('/scim/v2/Users', methods=['GET'])
+def scim_list_users():
+    """SCIM endpoint to list users"""
+    auth_header = request.headers.get('Authorization', '')
+    scim_bearer_token = get_config('scim_bearer_token', '')
+    
+    if not auth_header.startswith('Bearer ') or auth_header[7:] != scim_bearer_token:
+        return jsonify({'detail': 'Authentication failed', 'status': 401}), 401
+    
+    users = User.query.all()
+    
+    # Parse SCIM filters if provided
+    start_index = int(request.args.get('startIndex', 1))
+    count = int(request.args.get('count', 20))
+    
+    scim_users = []
+    for user in users[start_index-1:start_index-1+count]:
+        scim_user = {
+            'id': str(user.id),
+            'externalId': user.external_id,
+            'userName': user.email,
+            'name': {
+                'formatted': user.name,
+                'givenName': user.name.split()[0] if user.name else '',
+                'familyName': ' '.join(user.name.split()[1:]) if len(user.name.split()) > 1 else ''
+            },
+            'emails': [{
+                'value': user.email,
+                'primary': True
+            }],
+            'active': user.active,
+            'meta': {
+                'resourceType': 'User',
+                'created': user.created_at.isoformat() + 'Z',
+                'location': f'/scim/v2/Users/{user.id}'
+            }
+        }
+        scim_users.append(scim_user)
+    
+    response = {
+        'schemas': ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
+        'totalResults': len(users),
+        'startIndex': start_index,
+        'itemsPerPage': len(scim_users),
+        'Resources': scim_users
+    }
+    
+    return jsonify(response)
+
+@app.route('/scim/v2/Users', methods=['POST'])
+def scim_create_user():
+    """SCIM endpoint to create a user"""
+    auth_header = request.headers.get('Authorization', '')
+    scim_bearer_token = get_config('scim_bearer_token', '')
+    
+    if not auth_header.startswith('Bearer ') or auth_header[7:] != scim_bearer_token:
+        return jsonify({'detail': 'Authentication failed', 'status': 401}), 401
+    
+    data = request.get_json()
+    
+    # Extract user information from SCIM payload
+    username = data.get('userName')
+    external_id = data.get('externalId')
+    name_data = data.get('name', {})
+    formatted_name = name_data.get('formatted', username)
+    emails = data.get('emails', [])
+    email = emails[0]['value'] if emails else username
+    active = data.get('active', True)
+    
+    # Check if user already exists
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({
+            'detail': 'User already exists',
+            'status': 409
+        }), 409
+    
+    # Check if user should be admin
+    is_admin = email in ['brent.langston@visiquate.com', 'yuliia.lutai@visiquate.com']
+    
+    # Create user
+    user = User(
+        email=email,
+        name=formatted_name,
+        external_id=external_id,
+        active=active,
+        scim_provisioned=True,
+        is_admin=is_admin
+    )
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    # Return SCIM user representation
+    scim_user = {
+        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
+        'id': str(user.id),
+        'externalId': user.external_id,
+        'userName': user.email,
+        'name': {
+            'formatted': user.name,
+            'givenName': user.name.split()[0] if user.name else '',
+            'familyName': ' '.join(user.name.split()[1:]) if len(user.name.split()) > 1 else ''
+        },
+        'emails': [{
+            'value': user.email,
+            'primary': True
+        }],
+        'active': user.active,
+        'meta': {
+            'resourceType': 'User',
+            'created': user.created_at.isoformat() + 'Z',
+            'location': f'/scim/v2/Users/{user.id}'
+        }
+    }
+    
+    return jsonify(scim_user), 201
+
 @app.route('/logout')
 @login_required
 def logout():
