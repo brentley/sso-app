@@ -28,6 +28,11 @@ def admin_user(client):
     from app import User
     
     with app.app_context():
+        # Check if user already exists
+        existing_admin = User.query.filter_by(email='brent.langston@visiquate.com').first()
+        if existing_admin:
+            return existing_admin
+            
         admin = User(
             email='brent.langston@visiquate.com',
             name='Brent Langston',
@@ -44,6 +49,11 @@ def regular_user(client):
     from app import User
     
     with app.app_context():
+        # Check if user already exists
+        existing_user = User.query.filter_by(email='user@example.com').first()
+        if existing_user:
+            return existing_user
+            
         user = User(
             email='user@example.com',
             name='Test User',
