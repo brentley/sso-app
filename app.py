@@ -5,9 +5,9 @@ import secrets
 import uuid
 import time
 from datetime import datetime, timedelta
-from flask import Flask
-from sqlalchemy import text
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -148,6 +148,7 @@ def health():
     }
     
     try:
+        # Check database connection
         db.session.execute(text('SELECT 1'))
         health_status['checks']['database'] = 'healthy'
     except Exception as e:
@@ -286,15 +287,12 @@ def inject_version_info():
         version=os.getenv('VERSION', '1.0.0')
     )
 
-# Database initialization will happen automatically
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
 # Initialize database on first request
 @app.before_request
 def create_tables():
     if not hasattr(create_tables, 'done'):
         db.create_all()
         create_tables.done = True
-app.run(host="0.0.0.0", port=5000, debug=False)
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000, debug=False)
