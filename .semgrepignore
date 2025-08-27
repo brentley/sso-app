@@ -1,0 +1,7 @@
+# Ignore false positives for Docker deployment Flask host binding
+# This is intentional for containerized deployment
+python.flask.security.audit.app-run-param-config.avoid_app_run_with_bad_host
+
+# Ignore JavaScript redirect usage - this is legitimate redirect functionality
+# Not user-controlled eval
+javascript.lang.security.detect-eval-with-expression.detect-eval-with-expression

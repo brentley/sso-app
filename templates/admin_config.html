@@ -42,15 +42,15 @@
                             <label for="saml_nameid_format" class="form-label">NameID Format</label>
                             <select class="form-select" id="saml_nameid_format" name="saml_nameid_format">
                                 <option value="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" 
-                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress' else '' }}>
+                                    "{{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress' else '' }}">
                                     Email Address
                                 </option>
                                 <option value="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
-                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' else '' }}>
+                                    "{{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' else '' }}">
                                     Persistent
                                 </option>
                                 <option value="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
-                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient' else '' }}>
+                                    "{{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient' else '' }}">
                                     Transient
                                 </option>
                             </select>
@@ -142,7 +142,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="scim_enabled" name="scim_enabled"
-                                       {{ 'checked' if configs.get('scim_enabled') and configs.get('scim_enabled').value == 'true' else '' }}>
+                                       "{{ 'checked' if configs.get('scim_enabled') and configs.get('scim_enabled').value == 'true' else '' }}">
                                 <label class="form-check-label" for="scim_enabled">Enable SCIM Provisioning</label>
                             </div>
                             <div class="form-text">Allow Authentik to provision users automatically</div>

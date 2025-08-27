@@ -65,6 +65,7 @@ class User(UserMixin, db.Model):
     
     # Relationships
     auth_logs = db.relationship('AuthLog', backref='user', lazy=True)
+    credentials = db.relationship('WebAuthnCredential', backref='user', lazy=True)
 
 class Configuration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -84,6 +85,14 @@ class AuthLog(db.Model):
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(500))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class WebAuthnCredential(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    credential_id = db.Column(db.LargeBinary, nullable=False, unique=True)
+    public_key = db.Column(db.LargeBinary, nullable=False)
+    sign_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 @login_manager.user_loader
 def load_user(user_id):
