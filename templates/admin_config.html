@@ -289,9 +289,36 @@ document.getElementById('configForm').addEventListener('submit', async function(
 });
 
 function generateScimToken() {
-    const token = 'scim_' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-    document.getElementById('scim_bearer_token').value = token;
+    try {
+        // Try using crypto.getRandomValues if available
+        if (window.crypto && window.crypto.getRandomValues) {
+            const token = 'scim_' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+            document.getElementById('scim_bearer_token').value = token;
+        } else {
+            // Fallback to Math.random() if crypto API not available
+            const token = 'scim_' + Array.from({length: 32}, () => 
+                Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('');
+            document.getElementById('scim_bearer_token').value = token;
+        }
+        
+        // Show visual feedback
+        const button = document.querySelector('button[onclick="generateScimToken()"]');
+        const originalText = button.textContent;
+        button.textContent = 'Generated!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-secondary');
+        
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error generating SCIM token:', error);
+        alert('Error generating token: ' + error.message);
+    }
 }
 
 function resetForm() {
