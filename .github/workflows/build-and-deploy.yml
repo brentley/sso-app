@@ -116,25 +116,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Trigger Watchtower Update
-        run: |
-          # Extract project name from repository
-          PROJECT_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
-          
-          # Trigger Watchtower via Cloudflare tunnel with Access service token
-          curl -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}" \
-               -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
-               -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
-               -X POST \
-               "https://${PROJECT_NAME}.visiquate.com/api/watchtower/v1/update" \
-               --fail \
-               --retry 3 \
-               --retry-delay 10
 
   scheduled-test:
     runs-on: ubuntu-latest
