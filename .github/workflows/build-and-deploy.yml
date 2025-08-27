@@ -77,6 +77,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Create build info file
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          cat > build-info.json << EOF
+          {
+            "git_commit": "${{ github.sha }}",
+            "git_commit_short": "${SHORT_SHA}",
+            "build_date": "${{ github.event.head_commit.timestamp }}",
+            "version": "${{ github.ref_name }}",
+            "build_number": "${{ github.run_number }}"
+          }
+          EOF
+          
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       
@@ -109,10 +122,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_COMMIT=${{ github.sha }}
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
-            VERSION=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

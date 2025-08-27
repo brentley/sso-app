@@ -7,16 +7,8 @@ RUN pip install --user --no-cache-dir -r requirements.txt
 
 FROM python:3.11-slim
 
-# Add build arguments
-ARG GIT_COMMIT=unknown
-ARG BUILD_DATE=unknown
-ARG VERSION=1.0.0
-
-# Set as environment variables
-ENV GIT_COMMIT=$GIT_COMMIT \
-    BUILD_DATE=$BUILD_DATE \
-    VERSION=$VERSION \
-    PYTHONUNBUFFERED=1 \
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     FLASK_ENV=production
 

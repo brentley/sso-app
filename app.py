@@ -18,6 +18,23 @@ load_dotenv()
 
 app = Flask(__name__)
 START_TIME = time.time()
+
+def get_build_info():
+    """Read build information from build-info.json file."""
+    try:
+        with open('build-info.json', 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {
+            'git_commit': os.getenv('GIT_COMMIT', 'unknown'),
+            'git_commit_short': os.getenv('GIT_COMMIT', 'unknown')[:7] if os.getenv('GIT_COMMIT') else 'unknown',
+            'build_date': os.getenv('BUILD_DATE', 'unknown'),
+            'version': os.getenv('VERSION', '1.0.0'),
+            'build_number': 'unknown'
+        }
+
+# Get build information once at startup
+BUILD_INFO = get_build_info()
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///sso_test.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -148,9 +165,10 @@ def health():
     health_status = {
         'status': 'healthy',
         'service': os.getenv('SERVICE_NAME', 'sso-authentication-test'),
-        'version': os.getenv('VERSION', '1.0.0'),
-        'commit': os.getenv('GIT_COMMIT', 'unknown')[:7],
-        'build_date': os.getenv('BUILD_DATE', 'unknown'),
+        'version': BUILD_INFO['version'],
+        'commit': BUILD_INFO['git_commit_short'],
+        'build_date': BUILD_INFO['build_date'],
+        'build_number': BUILD_INFO['build_number'],
         'uptime': int(time.time() - START_TIME),
         'environment': os.getenv('ENVIRONMENT', 'production'),
         'checks': {}
@@ -470,9 +488,10 @@ def logout():
 @app.context_processor
 def inject_version_info():
     return dict(
-        git_commit=os.getenv('GIT_COMMIT', ''),
-        build_date=os.getenv('BUILD_DATE', ''),
-        version=os.getenv('VERSION', '1.0.0')
+        git_commit=BUILD_INFO['git_commit_short'],
+        build_date=BUILD_INFO['build_date'],
+        version=BUILD_INFO['version'],
+        build_number=BUILD_INFO['build_number']
     )
 
 # Initialize database on first request
