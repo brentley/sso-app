@@ -117,14 +117,14 @@ def test_admin_access_control(client, admin_user, regular_user):
     """Test admin access control"""
     # Test regular user cannot access admin pages
     with client.session_transaction() as sess:
-        sess['user_id'] = str(regular_user.id)
+        sess['user_id'] = str(regular_user.user_id)
     
     response = client.get('/admin')
     assert response.status_code == 302  # Redirect due to no admin access
     
     # Test admin user can access admin pages
     with client.session_transaction() as sess:
-        sess['user_id'] = str(admin_user.id)
+        sess['user_id'] = str(admin_user.admin_id)
     
     response = client.get('/admin')
     assert response.status_code == 200

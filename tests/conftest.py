@@ -43,6 +43,10 @@ def admin_user(client):
         )
         db.session.add(admin)
         db.session.commit()
+        
+        # Access the id while still in session to avoid DetachedInstanceError
+        admin_id = admin.id
+        admin.admin_id = admin_id  # Store id as attribute
         return admin
 
 
@@ -62,4 +66,8 @@ def regular_user(client):
         )
         db.session.add(user)
         db.session.commit()
+        
+        # Access the id while still in session to avoid DetachedInstanceError
+        user_id = user.id
+        user.user_id = user_id  # Store id as attribute
         return user
