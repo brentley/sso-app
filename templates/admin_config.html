@@ -14,53 +14,82 @@
             <!-- SAML Configuration -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">SAML Configuration</h5>
+                    <h5 class="mb-0">SAML 2.0 Configuration</h5>
                 </div>
                 <div class="card-body">
+                    <!-- Service Provider Information -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading"><strong>📋 Service Provider Information</strong></h6>
+                        <p class="mb-2"><strong>Use these values when configuring this app in Authentik:</strong></p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Entity ID (SP Entity ID):</strong><br>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}</code>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>ACS URL (Assertion Consumer Service):</strong><br>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}/saml/acs</code>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>SLS URL (Single Logout Service):</strong><br>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}/saml/sls</code>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>NameID Format:</strong><br>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Identity Provider Configuration -->
+                    <h6 class="mb-3"><strong>🔗 Identity Provider Settings</strong></h6>
+                    <p class="text-muted mb-3">Enter the values from your Authentik SAML provider configuration:</p>
+                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="saml_idp_entity_id" class="form-label">IdP Entity ID</label>
+                            <label for="saml_idp_entity_id" class="form-label"><strong>Authentik Entity ID</strong></label>
                             <input type="text" class="form-control" id="saml_idp_entity_id" name="saml_idp_entity_id" 
-                                   value="{{ configs.get('saml_idp_entity_id').value if configs.get('saml_idp_entity_id') else '' }}">
-                            <div class="form-text">The unique identifier for your SAML identity provider</div>
+                                   value="{{ configs.get('saml_idp_entity_id').value if configs.get('saml_idp_entity_id') else '' }}"
+                                   placeholder="https://auth.visiquate.com/api/v3/providers/saml/[id]/metadata/">
+                            <div class="form-text">From Authentik: Applications → [Your App] → Provider → Issuer</div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="saml_idp_sso_url" class="form-label">IdP SSO URL</label>
+                            <label for="saml_idp_sso_url" class="form-label"><strong>Authentik SSO URL</strong></label>
                             <input type="url" class="form-control" id="saml_idp_sso_url" name="saml_idp_sso_url"
-                                   value="{{ configs.get('saml_idp_sso_url').value if configs.get('saml_idp_sso_url') else '' }}">
-                            <div class="form-text">The single sign-on URL endpoint</div>
+                                   value="{{ configs.get('saml_idp_sso_url').value if configs.get('saml_idp_sso_url') else '' }}"
+                                   placeholder="https://auth.visiquate.com/api/v3/providers/saml/[id]/sso/binding/redirect/">
+                            <div class="form-text">From Authentik: Applications → [Your App] → Provider → SSO URL</div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="saml_idp_slo_url" class="form-label">IdP SLO URL</label>
+                            <label for="saml_idp_slo_url" class="form-label">Authentik SLO URL (Optional)</label>
                             <input type="url" class="form-control" id="saml_idp_slo_url" name="saml_idp_slo_url"
-                                   value="{{ configs.get('saml_idp_slo_url').value if configs.get('saml_idp_slo_url') else '' }}">
-                            <div class="form-text">The single logout URL endpoint</div>
+                                   value="{{ configs.get('saml_idp_slo_url').value if configs.get('saml_idp_slo_url') else '' }}"
+                                   placeholder="https://auth.visiquate.com/api/v3/providers/saml/[id]/slo/binding/redirect/">
+                            <div class="form-text">From Authentik: Applications → [Your App] → Provider → SLO URL</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="saml_nameid_format" class="form-label">NameID Format</label>
                             <select class="form-select" id="saml_nameid_format" name="saml_nameid_format">
                                 <option value="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" 
-                                    "{{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress' else '' }}">
-                                    Email Address
+                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress' else 'selected' }}>
+                                    Email Address (Recommended)
                                 </option>
                                 <option value="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
-                                    "{{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' else '' }}">
+                                    {{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' else '' }}>
                                     Persistent
-                                </option>
-                                <option value="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
-                                    "{{ 'selected' if configs.get('saml_nameid_format') and configs.get('saml_nameid_format').value == 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient' else '' }}">
-                                    Transient
                                 </option>
                             </select>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="saml_idp_cert" class="form-label">IdP X.509 Certificate</label>
+                        <label for="saml_idp_cert" class="form-label"><strong>Authentik Signing Certificate</strong></label>
                         <textarea class="form-control" id="saml_idp_cert" name="saml_idp_cert" rows="8" 
-                                  placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----">{{ configs.get('saml_idp_cert').value if configs.get('saml_idp_cert') else '' }}</textarea>
-                        <div class="form-text">The X.509 certificate from your identity provider (without headers)</div>
+                                  placeholder="-----BEGIN CERTIFICATE-----&#10;MIICXjCCAUYCCQ...&#10;-----END CERTIFICATE-----">{{ configs.get('saml_idp_cert').value if configs.get('saml_idp_cert') else '' }}</textarea>
+                        <div class="form-text">From Authentik: Applications → [Your App] → Provider → Download Certificate. Include the BEGIN/END lines.</div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -82,51 +111,59 @@
             <!-- OIDC Configuration -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">OIDC Configuration</h5>
+                    <h5 class="mb-0">OpenID Connect (OIDC) Configuration</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="oidc_google_client_id" class="form-label">Google Client ID</label>
-                            <input type="text" class="form-control" id="oidc_google_client_id" name="oidc_google_client_id"
-                                   value="{{ configs.get('oidc_google_client_id').value if configs.get('oidc_google_client_id') else '' }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="oidc_google_client_secret" class="form-label">Google Client Secret</label>
-                            <input type="password" class="form-control" id="oidc_google_client_secret" name="oidc_google_client_secret"
-                                   value="{{ configs.get('oidc_google_client_secret').value if configs.get('oidc_google_client_secret') else '' }}">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="oidc_microsoft_client_id" class="form-label">Microsoft Client ID</label>
-                            <input type="text" class="form-control" id="oidc_microsoft_client_id" name="oidc_microsoft_client_id"
-                                   value="{{ configs.get('oidc_microsoft_client_id').value if configs.get('oidc_microsoft_client_id') else '' }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="oidc_microsoft_client_secret" class="form-label">Microsoft Client Secret</label>
-                            <input type="password" class="form-control" id="oidc_microsoft_client_secret" name="oidc_microsoft_client_secret"
-                                   value="{{ configs.get('oidc_microsoft_client_secret').value if configs.get('oidc_microsoft_client_secret') else '' }}">
+                    <!-- OIDC Redirect URI Information -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading"><strong>🔗 OIDC Configuration Info</strong></h6>
+                        <p class="mb-2"><strong>Use this redirect URI when configuring the OIDC provider in Authentik:</strong></p>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <strong>Redirect URI:</strong><br>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}/oauth/callback/authentik</code>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Scopes:</strong><br>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">openid email profile</code>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Authentik OIDC Settings -->
+                    <h6 class="mb-3"><strong>🔐 Authentik OIDC Provider Settings</strong></h6>
+                    <p class="text-muted mb-3">Configure your Authentik OIDC provider credentials:</p>
+                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="oidc_authentik_url" class="form-label">Authentik Server URL</label>
+                            <label for="oidc_authentik_url" class="form-label"><strong>Authentik Server URL</strong></label>
                             <input type="url" class="form-control" id="oidc_authentik_url" name="oidc_authentik_url"
                                    value="{{ configs.get('oidc_authentik_url').value if configs.get('oidc_authentik_url') else '' }}"
-                                   placeholder="https://auth.example.com">
+                                   placeholder="https://auth.visiquate.com">
+                            <div class="form-text">Your Authentik instance base URL (without trailing slash)</div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="oidc_authentik_client_id" class="form-label">Authentik Client ID</label>
+                            <label for="oidc_authentik_client_id" class="form-label"><strong>Client ID</strong></label>
                             <input type="text" class="form-control" id="oidc_authentik_client_id" name="oidc_authentik_client_id"
-                                   value="{{ configs.get('oidc_authentik_client_id').value if configs.get('oidc_authentik_client_id') else '' }}">
+                                   value="{{ configs.get('oidc_authentik_client_id').value if configs.get('oidc_authentik_client_id') else '' }}"
+                                   placeholder="Generated by Authentik">
+                            <div class="form-text">From Authentik: Applications → [Your App] → Provider → Client ID</div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="oidc_authentik_client_secret" class="form-label">Authentik Client Secret</label>
+                            <label for="oidc_authentik_client_secret" class="form-label"><strong>Client Secret</strong></label>
                             <input type="password" class="form-control" id="oidc_authentik_client_secret" name="oidc_authentik_client_secret"
-                                   value="{{ configs.get('oidc_authentik_client_secret').value if configs.get('oidc_authentik_client_secret') else '' }}">
+                                   value="{{ configs.get('oidc_authentik_client_secret').value if configs.get('oidc_authentik_client_secret') else '' }}"
+                                   placeholder="Generated by Authentik">
+                            <div class="form-text">From Authentik: Applications → [Your App] → Provider → Client Secret</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><strong>Provider Type</strong></label>
+                            <select class="form-select" disabled>
+                                <option selected>OAuth2/OpenID Provider</option>
+                            </select>
+                            <div class="form-text">Use OAuth2/OpenID Provider type in Authentik</div>
                         </div>
                     </div>
                 </div>
@@ -142,7 +179,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="scim_enabled" name="scim_enabled"
-                                       "{{ 'checked' if configs.get('scim_enabled') and configs.get('scim_enabled').value == 'true' else '' }}">
+                                       {{ 'checked' if configs.get('scim_enabled') and configs.get('scim_enabled').value == 'true' else '' }}>
                                 <label class="form-check-label" for="scim_enabled">Enable SCIM Provisioning</label>
                             </div>
                             <div class="form-text">Allow Authentik to provision users automatically</div>
