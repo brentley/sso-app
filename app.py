@@ -95,7 +95,7 @@ class Configuration(db.Model):
 
 class AuthLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Allow NULL for failed attempts on non-existent users
     auth_method = db.Column(db.String(20), nullable=False)
     success = db.Column(db.Boolean, nullable=False)
     transaction_data = db.Column(db.Text)
