@@ -277,6 +277,24 @@ def admin():
     users = User.query.all()
     return render_template('admin.html', users=users)
 
+@app.route('/admin/config', methods=['GET', 'POST'])
+@login_required
+def admin_config():
+    """Admin configuration panel for SSO settings"""
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        # Handle configuration updates (for future implementation)
+        return jsonify({'status': 'success'})
+    
+    # Get current configuration values as objects for template access
+    configs = Configuration.query.all()
+    config_dict = {config.key: config for config in configs}
+    
+    return render_template('admin_config.html', configs=config_dict)
+
 @app.route('/admin/user/<int:user_id>/logs')
 @login_required
 def user_logs(user_id):
