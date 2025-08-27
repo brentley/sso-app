@@ -1,6 +1,7 @@
 import pytest
 import os
 import tempfile
+import time
 from app import app, db
 
 
@@ -17,6 +18,10 @@ def client():
         with app.app_context():
             db.create_all()
         yield client
+        # Clean up database session after each test
+        with app.app_context():
+            db.session.remove()
+            db.drop_all()
 
     os.close(db_fd)
     os.unlink(app.config['DATABASE'])
@@ -28,22 +33,16 @@ def admin_user(client):
     from app import User
     
     with app.app_context():
-        # Check if user already exists
-        existing_admin = User.query.filter_by(email='brent.langston@visiquate.com').first()
-        if existing_admin:
-            # Refresh the object to make sure it's attached to current session
-            db.session.refresh(existing_admin)
-            return existing_admin
-            
+        # Use unique email with timestamp to avoid conflicts
+        unique_email = f'admin-{int(time.time() * 1000)}@test.com'
+        
         admin = User(
-            email='brent.langston@visiquate.com',
-            name='Brent Langston',
+            email=unique_email,
+            name='Test Admin',
             is_admin=True
         )
         db.session.add(admin)
         db.session.commit()
-        # Refresh to ensure it's properly attached
-        db.session.refresh(admin)
         return admin
 
 
@@ -53,20 +52,14 @@ def regular_user(client):
     from app import User
     
     with app.app_context():
-        # Check if user already exists
-        existing_user = User.query.filter_by(email='user@example.com').first()
-        if existing_user:
-            # Refresh the object to make sure it's attached to current session
-            db.session.refresh(existing_user)
-            return existing_user
-            
+        # Use unique email with timestamp to avoid conflicts
+        unique_email = f'user-{int(time.time() * 1000)}@test.com'
+        
         user = User(
-            email='user@example.com',
+            email=unique_email,
             name='Test User',
             is_admin=False
         )
         db.session.add(user)
         db.session.commit()
-        # Refresh to ensure it's properly attached
-        db.session.refresh(user)
         return user
