@@ -34,13 +34,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - WATCHTOWER_HTTP_API_UPDATE=true
-      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_TOKEN}
+      - WATCHTOWER_POLL_INTERVAL=30
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_INCLUDE_STOPPED=false
       - WATCHTOWER_SCOPE=sso-app
-      - WATCHTOWER_HTTP_API_METRICS=true
-    command: --interval 30 --scope sso-app
     networks:
       - app_network
     labels:
