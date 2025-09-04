@@ -995,7 +995,8 @@ def get_saml_settings():
     host = request.headers.get('Host', request.host)
     base_url = f"{scheme}://{host}"
     
-    entity_id = get_config('saml_entity_id', base_url)
+    # Always use HTTPS for Entity ID (required for production behind Cloudflare)
+    entity_id = f"https://{host}"
     acs_url = f"{base_url}/saml/acs"
     sls_url = f"{base_url}/saml/sls" 
     
