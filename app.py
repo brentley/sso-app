@@ -2061,15 +2061,43 @@ def inject_version_info():
     return context
 
 # Initialize database on first request
+def run_migrations():
+    """Run database migrations to add new columns"""
+    try:
+        # Check if is_auditor column exists
+        result = db.session.execute(text("PRAGMA table_info(user)"))
+        columns = [row[1] for row in result.fetchall()]
+        
+        if 'is_auditor' not in columns:
+            logger.info("Adding is_auditor column to user table")
+            db.session.execute(text("ALTER TABLE user ADD COLUMN is_auditor BOOLEAN DEFAULT 0"))
+            db.session.commit()
+            
+        # Check if updated_user_id column exists in scim_log table  
+        result = db.session.execute(text("PRAGMA table_info(scim_log)"))
+        columns = [row[1] for row in result.fetchall()]
+        
+        if 'updated_user_id' not in columns:
+            logger.info("Adding updated_user_id column to scim_log table")
+            db.session.execute(text("ALTER TABLE scim_log ADD COLUMN updated_user_id INTEGER REFERENCES user(id)"))
+            db.session.commit()
+            
+    except Exception as e:
+        logger.error(f"Migration error: {str(e)}")
+        db.session.rollback()
+
 @app.before_request
 def create_tables():
     if not hasattr(create_tables, 'done'):
         db.create_all()
         
+        # Run migrations for new columns
+        run_migrations()
+        
         # Load configuration from file into database
         update_config_from_file()
         
-        # Create super admin user if none exists
+        # Create super admin user if none exists (now safe to query after migrations)
         if not User.query.filter_by(is_super_admin=True).first():
             admin = User.query.filter_by(email='admin@visiquate.com').first()
             if admin:
