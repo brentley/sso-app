@@ -1049,6 +1049,18 @@ def saml_acs():
             # Login user
             login_user(user, remember=True)
             
+            # Set session data for success page
+            auth_data = {
+                'method': 'saml',
+                'email': email,
+                'success': True,
+                'user_id': user.id,
+                'timestamp': datetime.utcnow().isoformat(),
+                'ip_address': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent')
+            }
+            session['last_auth_data'] = auth_data
+            
             # Log successful authentication
             log_authentication(
                 user.id, 'saml', True, {
@@ -1193,6 +1205,19 @@ def oauth_callback(provider):
         
         # Login user
         login_user(user, remember=True)
+        
+        # Set session data for success page
+        auth_data = {
+            'method': 'oidc',
+            'email': email,
+            'provider': provider,
+            'success': True,
+            'user_id': user.id,
+            'timestamp': datetime.utcnow().isoformat(),
+            'ip_address': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent')
+        }
+        session['last_auth_data'] = auth_data
         
         # Log successful authentication
         log_authentication(
