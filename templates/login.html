@@ -34,13 +34,10 @@
                         <h5 class="card-title mb-0">OIDC Authentication</h5>
                     </div>
                     <div class="card-body">
-                        <p class="card-text">Test OpenID Connect authentication with supported providers.</p>
+                        <p class="card-text">Test OpenID Connect authentication with VisiQuate's identity provider.</p>
                         <div class="d-grid gap-2">
-                            <a href="{{ url_for('oauth_login', provider='google') }}" class="btn btn-danger">
-                                Test Google OIDC
-                            </a>
-                            <a href="{{ url_for('oauth_login', provider='microsoft') }}" class="btn btn-primary">
-                                Test Microsoft OIDC
+                            <a href="{{ url_for('oauth_login', provider='authentik') }}" class="btn btn-primary">
+                                <i class="fas fa-shield-alt me-2"></i>Login with VisiQuate OIDC
                             </a>
                         </div>
                         <small class="text-muted d-block mt-2">
