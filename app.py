@@ -161,6 +161,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(80), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    is_auditor = db.Column(db.Boolean, default=False)
     is_super_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -229,6 +230,7 @@ class SCIMLog(db.Model):
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.Text)
     created_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Link to created user if successful
+    updated_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Link to updated user if successful
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -241,7 +243,7 @@ def get_config(key, default=None):
     return default
 
 def log_scim_activity(method, endpoint, user_identifier=None, status_code=200, success=True, 
-                      request_data=None, response_data=None, error_message=None, created_user_id=None):
+                      request_data=None, response_data=None, error_message=None, created_user_id=None, updated_user_id=None):
     """Log SCIM API activity"""
     try:
         scim_log = SCIMLog(
@@ -255,7 +257,8 @@ def log_scim_activity(method, endpoint, user_identifier=None, status_code=200, s
             error_message=error_message,
             ip_address=get_real_ip(),
             user_agent=request.headers.get('User-Agent'),
-            created_user_id=created_user_id
+            created_user_id=created_user_id,
+            updated_user_id=updated_user_id
         )
         db.session.add(scim_log)
         db.session.commit()
@@ -508,7 +511,7 @@ def success():
 @app.route('/admin')
 @login_required
 def admin():
-    if not current_user.is_admin:
+    if not (current_user.is_admin or current_user.is_auditor):
         flash('Access denied')
         return redirect(url_for('index'))
     
@@ -691,7 +694,7 @@ def import_oidc_discovery():
 @app.route('/admin/user/<int:user_id>/logs')
 @login_required
 def user_logs(user_id):
-    if not current_user.is_admin:
+    if not (current_user.is_admin or current_user.is_auditor):
         return jsonify({'error': 'Access denied'}), 403
     
     logs = AuthLog.query.filter_by(user_id=user_id).order_by(AuthLog.timestamp.desc()).all()
@@ -714,7 +717,7 @@ def user_logs(user_id):
 @login_required 
 def admin_scim_logs():
     """Display SCIM activity logs"""
-    if not current_user.is_admin:
+    if not (current_user.is_admin or current_user.is_auditor):
         flash('Access denied')
         return redirect(url_for('login'))
     
@@ -982,18 +985,55 @@ def scim_create_user():
     # Check if user already exists
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
-        error_msg = f'User already exists: {email}'
-        log_scim_activity('POST', '/scim/v2/Users', user_identifier=email, 
-                         status_code=409, success=False, request_data=data, 
-                         error_message=error_msg)
-        return jsonify({
-            'detail': 'User already exists',
-            'status': 409
-        }), 409
+        # Update existing user instead of returning error
+        app.logger.info(f"SCIM: Updating existing user {email}")
+        
+        # Update user fields from SCIM data
+        existing_user.name = formatted_name
+        existing_user.external_id = external_id
+        existing_user.active = active
+        existing_user.scim_provisioned = True
+        
+        # Check if user should be admin or auditor  
+        if email == 'brent.langston@visiquate.com':
+            existing_user.is_admin = True
+        elif email == 'yuliia.lutai@visiquate.com':
+            existing_user.is_auditor = True
+            existing_user.is_admin = False  # Move from admin to auditor
+        
+        db.session.commit()
+        
+        # Log successful update
+        log_scim_activity('POST', '/scim/v2/Users', user_identifier=email,
+                         status_code=200, success=True, request_data=data,
+                         updated_user_id=existing_user.id)
+        
+        # Return SCIM user representation  
+        scim_user = {
+            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
+            'id': str(existing_user.id),
+            'externalId': existing_user.external_id,
+            'userName': existing_user.email,
+            'name': {
+                'formatted': existing_user.name,
+                'givenName': existing_user.name.split()[0] if existing_user.name else '',
+                'familyName': ' '.join(existing_user.name.split()[1:]) if len(existing_user.name.split()) > 1 else ''
+            },
+            'emails': [{'value': existing_user.email, 'primary': True}],
+            'active': existing_user.active,
+            'meta': {
+                'resourceType': 'User',
+                'created': existing_user.created_at.isoformat() + 'Z',
+                'lastModified': datetime.utcnow().isoformat() + 'Z'
+            }
+        }
+        
+        return jsonify(scim_user), 200
     
     try:
-        # Check if user should be admin
-        is_admin = email in ['brent.langston@visiquate.com', 'yuliia.lutai@visiquate.com']
+        # Check if user should be admin or auditor
+        is_admin = (email == 'brent.langston@visiquate.com')
+        is_auditor = (email == 'yuliia.lutai@visiquate.com')
         
         # Create user
         user = User(
@@ -1002,7 +1042,8 @@ def scim_create_user():
             external_id=external_id,
             active=active,
             scim_provisioned=True,
-            is_admin=is_admin
+            is_admin=is_admin,
+            is_auditor=is_auditor
         )
         
         db.session.add(user)
@@ -1276,8 +1317,33 @@ def saml_login():
         # Store session ID for later validation
         session['saml_session_id'] = session_id
         
-        # Redirect to IdP
-        return redirect(result['headers'][0][1])
+        # Debug the result structure
+        app.logger.info(f"SAML prepare_for_authenticate result: {result}")
+        app.logger.info(f"SAML result type: {type(result)}")
+        
+        # Extract redirect URL more safely
+        redirect_url = None
+        if isinstance(result, dict):
+            # Check for headers structure
+            if 'headers' in result and result['headers']:
+                if isinstance(result['headers'], list) and len(result['headers']) > 0:
+                    header = result['headers'][0]
+                    if isinstance(header, (list, tuple)) and len(header) > 1:
+                        redirect_url = header[1]
+                    else:
+                        app.logger.error(f"Unexpected header structure: {header}")
+                else:
+                    app.logger.error(f"No headers in result: {result}")
+            elif 'url' in result:
+                redirect_url = result['url']
+        elif isinstance(result, str):
+            redirect_url = result
+        
+        if not redirect_url:
+            raise ValueError(f"No redirect URL found in SAML result: {result}")
+        
+        app.logger.info(f"SAML redirecting to: {redirect_url}")
+        return redirect(redirect_url)
         
     except ValueError as e:
         flash('SAML authentication not yet configured. Please configure SAML settings in admin panel.')

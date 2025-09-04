@@ -1,7 +1,7 @@
 {
-  "git_commit": "dev",
-  "git_commit_short": "dev",
-  "build_date": "development",
-  "version": "dev",
-  "build_number": "local"
+  "git_commit": "c8aad4a0858da62334c31f1096180649c25aaeee",
+  "git_commit_short": "c8aad4a",
+  "build_date": "2025-09-04T22:21:33Z",
+  "version": "main",
+  "build_number": "local-1757024493"
 }
