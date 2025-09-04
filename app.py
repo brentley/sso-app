@@ -1491,32 +1491,66 @@ def saml_login():
 def saml_acs():
     """SAML Assertion Consumer Service - pysaml2 version"""
     try:
+        app.logger.info("SAML ACS: Starting SAML response processing")
         client = get_saml_client()
         
         # Get the SAML response from form data
         saml_response = request.form.get('SAMLResponse')
         if not saml_response:
+            app.logger.error("SAML ACS: No SAMLResponse in request")
             raise ValueError("No SAMLResponse in request")
+        
+        app.logger.info(f"SAML ACS: Received SAMLResponse (length: {len(saml_response)})")
         
         # Get the stored session ID if available
         session_id = session.get('saml_session_id')
+        app.logger.info(f"SAML ACS: Session ID: {session_id}")
         
         # Process the SAML response
-        authn_response = client.parse_authn_request_response(
-            saml_response, 
-            BINDING_HTTP_POST,
-            outstanding={session_id} if session_id else None
-        )
+        app.logger.info("SAML ACS: Calling parse_authn_request_response")
+        try:
+            authn_response = client.parse_authn_request_response(
+                saml_response, 
+                BINDING_HTTP_POST,
+                outstanding={session_id} if session_id else None
+            )
+            app.logger.info("SAML ACS: Successfully parsed SAML response")
+        except Exception as parse_error:
+            app.logger.error(f"SAML ACS: Failed to parse SAML response: {str(parse_error)}")
+            app.logger.error(f"SAML ACS: Parse error type: {type(parse_error)}")
+            import traceback
+            app.logger.error(f"SAML ACS: Parse error traceback: {traceback.format_exc()}")
+            raise
         
         # Get user information from SAML response  
-        identity = authn_response.get_identity()
-        subject = authn_response.get_subject()
-        email = subject.text  # NameID
+        app.logger.info("SAML ACS: Extracting identity and subject")
+        try:
+            identity = authn_response.get_identity()
+            app.logger.info(f"SAML ACS: Identity type: {type(identity)}, content: {identity}")
+        except Exception as identity_error:
+            app.logger.error(f"SAML ACS: Failed to get identity: {str(identity_error)}")
+            raise
+            
+        try:
+            subject = authn_response.get_subject()
+            app.logger.info(f"SAML ACS: Subject type: {type(subject)}, content: {subject}")
+            email = subject.text  # NameID
+            app.logger.info(f"SAML ACS: Extracted email: {email}")
+        except Exception as subject_error:
+            app.logger.error(f"SAML ACS: Failed to get subject: {str(subject_error)}")
+            raise
         
         # Extract attributes
+        app.logger.info("SAML ACS: Extracting attributes")
         attributes = {}
-        for attr_name, attr_values in identity.items():
-            attributes[attr_name] = attr_values
+        try:
+            for attr_name, attr_values in identity.items():
+                attributes[attr_name] = attr_values
+            app.logger.info(f"SAML ACS: Extracted attributes: {attributes}")
+        except Exception as attr_error:
+            app.logger.error(f"SAML ACS: Failed to extract attributes: {str(attr_error)}")
+            app.logger.error(f"SAML ACS: Identity type: {type(identity)}")
+            raise
         
         # Get display name
         name = email  # fallback
