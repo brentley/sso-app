@@ -2,53 +2,57 @@
 // Using ES5 syntax for maximum compatibility
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Form submission handler
-    var configForm = document.getElementById('configForm');
-    if (configForm) {
-        configForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            var formData = new FormData(this);
-            var configData = {};
-            
-            // Convert form data to object - use traditional iteration for compatibility
-            var formDataEntries = formData.entries();
-            var entry = formDataEntries.next();
-            while (!entry.done) {
-                configData[entry.value[0]] = entry.value[1];
-                entry = formDataEntries.next();
-            }
-            
-            // Handle checkboxes
-            var scimEnabled = document.getElementById('scim_enabled');
-            if (scimEnabled) {
-                configData['scim_enabled'] = scimEnabled.checked ? 'true' : 'false';
-            }
-            
-            fetch('/admin/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(configData)
-            }).then(function(response) {
-                if (response.ok) {
-                    // Show success modal using Bootstrap
-                    var successModal = document.getElementById('successModal');
-                    if (successModal && typeof bootstrap !== 'undefined') {
-                        var modal = new bootstrap.Modal(successModal);
-                        modal.show();
-                    } else {
-                        alert('Configuration saved successfully!');
-                    }
-                } else {
-                    alert('Error saving configuration');
+    // Form submission handlers for each configuration section
+    var forms = ['samlForm', 'oidcForm', 'scimForm', 'appForm'];
+    
+    forms.forEach(function(formId) {
+        var form = document.getElementById(formId);
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                var formData = new FormData(this);
+                var configData = {};
+                
+                // Convert form data to object - use traditional iteration for compatibility
+                var formDataEntries = formData.entries();
+                var entry = formDataEntries.next();
+                while (!entry.done) {
+                    configData[entry.value[0]] = entry.value[1];
+                    entry = formDataEntries.next();
                 }
-            }).catch(function(error) {
-                alert('Error saving configuration: ' + error.message);
+                
+                // Handle SCIM checkbox specifically for SCIM form
+                if (formId === 'scimForm') {
+                    var scimEnabled = document.getElementById('scim_enabled');
+                    if (scimEnabled) {
+                        configData['scim_enabled'] = scimEnabled.checked ? 'true' : 'false';
+                    }
+                }
+                
+                // Get form title for success message
+                var formTitle = form.querySelector('.card-header h5').textContent || 'Configuration';
+                
+                fetch('/admin/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configData)
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    if (data.status === 'success') {
+                        alert(formTitle + ' saved successfully!');
+                    } else {
+                        alert('Error saving ' + formTitle + ': ' + (data.message || 'Unknown error'));
+                    }
+                }).catch(function(error) {
+                    alert('Error saving ' + formTitle + ': ' + error.message);
+                });
             });
-        });
-    }
+        }
+    });
 
     // Update SCIM endpoint URL when app origin changes
     var appOriginField = document.getElementById('app_origin');
@@ -119,11 +123,7 @@ function generateScimToken() {
     }
 }
 
-function resetForm() {
-    if (confirm('Are you sure you want to reset all changes?')) {
-        location.reload();
-    }
-}
+// Reset form function removed - now using separate forms for each section
 
 function importSamlMetadata() {
     var urlField = document.getElementById('saml_metadata_url');
@@ -243,6 +243,5 @@ function importOidcDiscovery() {
 
 // Make functions globally available
 window.generateScimToken = generateScimToken;
-window.resetForm = resetForm;
 window.importSamlMetadata = importSamlMetadata;
 window.importOidcDiscovery = importOidcDiscovery;

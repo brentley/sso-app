@@ -10,8 +10,8 @@
             <a href="{{ url_for('admin') }}" class="btn btn-secondary">Back to Dashboard</a>
         </div>
 
-        <form id="configForm">
-            <!-- SAML Configuration -->
+        <!-- SAML Configuration -->
+        <form id="samlForm">
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">SAML 2.0 Configuration</h5>
@@ -123,10 +123,18 @@
                             <div class="form-text">Private key for SP certificate</div>
                         </div>
                     </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save SAML Configuration
+                        </button>
+                    </div>
                 </div>
             </div>
+        </form>
 
-            <!-- OIDC Configuration -->
+        <!-- OIDC Configuration -->
+        <form id="oidcForm">
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">OpenID Connect (OIDC) Configuration</h5>
@@ -202,10 +210,18 @@
                             <div class="form-text">Use OAuth2/OpenID Provider type in Authentik</div>
                         </div>
                     </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save OIDC Configuration
+                        </button>
+                    </div>
                 </div>
             </div>
+        </form>
 
-            <!-- SCIM Configuration -->
+        <!-- SCIM Configuration -->
+        <form id="scimForm">
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">SCIM Configuration</h5>
@@ -234,10 +250,18 @@
                         <strong>SCIM Endpoint:</strong> <code id="scim-endpoint">{{ request.url_root }}scim/v2/Users</code><br>
                         <strong>Service Provider Config:</strong> <code>{{ request.url_root }}scim/v2/ServiceProviderConfig</code>
                     </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save SCIM Configuration
+                        </button>
+                    </div>
                 </div>
             </div>
+        </form>
 
-            <!-- Application Settings -->
+        <!-- Application Settings -->
+        <form id="appForm">
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">Application Settings</h5>
@@ -258,12 +282,13 @@
                                    min="5" max="1440">
                         </div>
                     </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Application Settings
+                        </button>
+                    </div>
                 </div>
-            </div>
-
-            <div class="text-end">
-                <button type="button" class="btn btn-secondary me-2" onclick="resetForm()">Reset</button>
-                <button type="submit" class="btn btn-primary">Save Configuration</button>
             </div>
         </form>
     </div>
