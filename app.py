@@ -966,11 +966,19 @@ def init_saml_auth(req):
 
 def prepare_flask_request(request):
     """Prepare Flask request for SAML"""
-    url_data = urlsplit(request.url)
+    # Detect if we're behind HTTPS proxy (like Cloudflare)
+    if request.headers.get('X-Forwarded-Proto') == 'https' or request.headers.get('X-Forwarded-Ssl') == 'on':
+        is_https = True
+        server_port = 443
+    else:
+        is_https = request.scheme == 'https'
+        url_data = urlsplit(request.url)
+        server_port = url_data.port or (443 if is_https else 80)
+    
     return {
-        'https': 'on' if request.scheme == 'https' else 'off',
+        'https': 'on' if is_https else 'off',
         'http_host': request.headers.get('Host', request.host),
-        'server_port': url_data.port or (443 if request.scheme == 'https' else 80),
+        'server_port': server_port,
         'script_name': request.path,
         'get_data': request.args.copy(),
         'post_data': request.form.copy()
@@ -1030,6 +1038,25 @@ def get_saml_settings():
             "x509cert": idp_cert
         }
     }
+
+@app.route('/debug/headers')
+@login_required  
+def debug_headers():
+    """Debug endpoint to check request headers"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    headers_dict = {}
+    for key, value in request.headers:
+        headers_dict[key] = value
+    
+    return jsonify({
+        'headers': headers_dict,
+        'scheme': request.scheme,
+        'host': request.host,
+        'url': request.url,
+        'is_https_detected': request.headers.get('X-Forwarded-Proto') == 'https' or request.headers.get('X-Forwarded-Ssl') == 'on'
+    })
 
 @app.route('/debug/saml-config')
 @login_required
