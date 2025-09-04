@@ -1,6 +1,15 @@
 # Multi-stage build for Python apps
 FROM python:3.11-slim as builder
 
+# Install build dependencies for pysaml2
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libxmlsec1-openssl \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
@@ -15,9 +24,12 @@ ENV PYTHONUNBUFFERED=1 \
 # Create non-root user
 RUN useradd -m -u 1000 appuser
 
-# Install system dependencies
+# Install runtime dependencies for pysaml2
 RUN apt-get update && apt-get install -y \
     curl \
+    xmlsec1 \
+    libxml2 \
+    libxmlsec1-openssl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

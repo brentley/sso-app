@@ -1878,17 +1878,34 @@ def webauthn_authenticate_complete():
             # Log the user in
             login_user(user, remember=True)
             
-            # Log successful authentication
-            auth_log = AuthLog(
-                user_id=user.id,
-                email=user.email,
-                method='passkey',
-                success=True,
-                ip_address=get_real_ip(),
-                user_agent=request.headers.get('User-Agent')
-            )
-            db.session.add(auth_log)
+            # Update passkey tested flag
+            user.passkey_tested = True
             db.session.commit()
+            
+            # Set session data for success page
+            auth_data = {
+                'method': 'passkey',
+                'email': user.email,
+                'name': user.name,
+                'success': True,
+                'user_id': user.id,
+                'timestamp': datetime.utcnow().isoformat(),
+                'ip_address': get_real_ip(),
+                'user_agent': request.headers.get('User-Agent'),
+                'credential_id': credential_json['id'][:20] + '...' if len(credential_json['id']) > 20 else credential_json['id'],
+                'new_sign_count': verification.new_sign_count
+            }
+            session['last_auth_data'] = auth_data
+            
+            # Log successful authentication
+            log_authentication(
+                user.id, 'passkey', True, {
+                    'email': user.email,
+                    'credential_id': credential_json['id'],
+                    'new_sign_count': verification.new_sign_count
+                },
+                get_real_ip(), request.headers.get('User-Agent')
+            )
             
             # Clear session data
             session.pop('webauthn_challenge', None)
@@ -1899,9 +1916,24 @@ def webauthn_authenticate_complete():
                 "redirect": url_for('success')
             })
         else:
+            # Log failed authentication
+            log_authentication(
+                user_id, 'passkey', False, {
+                    'error': 'Authentication verification failed',
+                    'email': user.email if user else 'unknown'
+                },
+                get_real_ip(), request.headers.get('User-Agent')
+            )
             return jsonify({"error": "Authentication verification failed"}), 400
             
     except Exception as e:
+        # Log failed authentication
+        log_authentication(
+            session.get('webauthn_user_id'), 'passkey', False, {
+                'error': str(e)
+            },
+            get_real_ip(), request.headers.get('User-Agent')
+        )
         return jsonify({"error": str(e)}), 500
 
 @app.route('/logout')
