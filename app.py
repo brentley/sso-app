@@ -1349,7 +1349,7 @@ def webauthn_register_begin():
             "attestation": options.attestation.value
         }
         
-        return jsonify(options_json)
+        return jsonify({"options": options_json})
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1447,7 +1447,7 @@ def webauthn_authenticate_begin():
             "userVerification": options.user_verification.value
         }
         
-        return jsonify(options_json)
+        return jsonify({"options": options_json})
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
