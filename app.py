@@ -20,9 +20,8 @@ from webauthn import generate_registration_options, verify_registration_response
 from webauthn.helpers.structs import (
     AuthenticatorSelectionCriteria,
     UserVerificationRequirement,
-    RegistrationCredential,
-    AuthenticationCredential,
 )
+from webauthn.helpers import parse_registration_credential_json, parse_authentication_credential_json
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
@@ -958,14 +957,25 @@ def prepare_flask_request(request):
 
 def get_saml_settings():
     """Get SAML settings from database configuration"""
-    entity_id = get_config('saml_entity_id', request.url_root.rstrip('/'))
-    acs_url = f"{request.url_root.rstrip('/')}/saml/acs"
-    sls_url = f"{request.url_root.rstrip('/')}/saml/sls" 
+    # Detect if we're behind HTTPS proxy (like Cloudflare)
+    if request.headers.get('X-Forwarded-Proto') == 'https' or request.headers.get('X-Forwarded-Ssl') == 'on':
+        scheme = 'https'
+    else:
+        scheme = request.scheme
+    
+    host = request.headers.get('Host', request.host)
+    base_url = f"{scheme}://{host}"
+    
+    entity_id = get_config('saml_entity_id', base_url)
+    acs_url = f"{base_url}/saml/acs"
+    sls_url = f"{base_url}/saml/sls" 
     
     idp_entity_id = get_config('saml_idp_entity_id', '')
     idp_sso_url = get_config('saml_idp_sso_url', '')
     idp_slo_url = get_config('saml_idp_slo_url', '')
     idp_cert = get_config('saml_idp_cert', '')
+    sp_cert = get_config('saml_sp_cert', '')
+    sp_private_key = get_config('saml_sp_private_key', '')
     nameid_format = get_config('saml_nameid_format', 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress')
     
     if not all([idp_entity_id, idp_sso_url, idp_cert]):
@@ -983,8 +993,8 @@ def get_saml_settings():
                 "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
             },
             "NameIDFormat": nameid_format,
-            "x509cert": "",
-            "privateKey": ""
+            "x509cert": sp_cert,
+            "privateKey": sp_private_key
         },
         "idp": {
             "entityId": idp_entity_id,
@@ -1104,16 +1114,20 @@ def oauth_login(provider):
         server_url = get_config('oidc_authentik_url', '')
         client_id = get_config('oidc_authentik_client_id', '')
         client_secret = get_config('oidc_authentik_client_secret', '')
+        discovery_url = get_config('oidc_discovery_url', '')
         
         if not all([server_url, client_id, client_secret]):
             raise ValueError("OIDC not fully configured")
+        
+        # Use configured discovery URL or fall back to standard format
+        metadata_url = discovery_url if discovery_url else f'{server_url}/.well-known/openid-configuration'
         
         # Configure OAuth client dynamically
         authentik = oauth.register(
             name='authentik',
             client_id=client_id,
             client_secret=client_secret,
-            server_metadata_url=f'{server_url}/.well-known/openid-configuration',
+            server_metadata_url=metadata_url,
             client_kwargs={
                 'scope': 'openid email profile'
             }
@@ -1137,16 +1151,20 @@ def oauth_callback(provider):
         server_url = get_config('oidc_authentik_url', '')
         client_id = get_config('oidc_authentik_client_id', '')
         client_secret = get_config('oidc_authentik_client_secret', '')
+        discovery_url = get_config('oidc_discovery_url', '')
         
         if not all([server_url, client_id, client_secret]):
             raise ValueError("OIDC not fully configured")
+        
+        # Use configured discovery URL or fall back to standard format
+        metadata_url = discovery_url if discovery_url else f'{server_url}/.well-known/openid-configuration'
         
         # Configure OAuth client dynamically (same as above)
         authentik = oauth.register(
             name='authentik',
             client_id=client_id,
             client_secret=client_secret,
-            server_metadata_url=f'{server_url}/.well-known/openid-configuration',
+            server_metadata_url=metadata_url,
             client_kwargs={
                 'scope': 'openid email profile'
             }
@@ -1383,8 +1401,8 @@ def webauthn_register_complete():
             
         challenge = base64.urlsafe_b64decode(session['webauthn_challenge'].encode('utf-8'))
         
-        # Create RegistrationCredential object
-        credential = RegistrationCredential.parse_raw(json.dumps(credential_json))
+        # Parse registration credential from JSON
+        credential = parse_registration_credential_json(credential_json)
         
         # Verify the registration
         verification = verify_registration_response(
@@ -1495,8 +1513,8 @@ def webauthn_authenticate_complete():
         if not db_credential:
             return jsonify({"error": "Credential not found"}), 404
             
-        # Create AuthenticationCredential object
-        credential = AuthenticationCredential.parse_raw(json.dumps(credential_json))
+        # Parse authentication credential from JSON
+        credential = parse_authentication_credential_json(credential_json)
         
         # Verify the authentication
         verification = verify_authentication_response(

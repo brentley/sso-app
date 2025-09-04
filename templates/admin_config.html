@@ -163,7 +163,8 @@
                         <div class="row">
                             <div class="col-md-8 mb-2">
                                 <input type="url" class="form-control" id="oidc_discovery_url" name="oidc_discovery_url"
-                                       placeholder="https://auth.visiquate.com/application/o/[slug]/.well-known/openid_configuration">
+                                       value="{{ configs.get('oidc_discovery_url').value if configs.get('oidc_discovery_url') else '' }}"
+                                       placeholder="https://id.visiquate.com/application/o/[slug]/.well-known/openid_configuration">
                                 <div class="form-text">From Authentik: Applications → [Your App] → Provider → OpenID Configuration URL</div>
                             </div>
                             <div class="col-md-4 mb-2">
