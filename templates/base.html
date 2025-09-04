@@ -98,7 +98,8 @@
         <div class="container">
             <small class="version-info">
                 Version: <code>{{ git_commit[:7] }}</code> | 
-                Built: {{ build_date or 'Unknown' }}
+                Built: {{ build_date | format_build_time }} | 
+                Made with <span style="color: #e74c3c;">♥</span> by Brent
             </small>
         </div>
     </footer>

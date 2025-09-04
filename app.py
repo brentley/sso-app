@@ -1677,6 +1677,28 @@ def logout():
     flash('Logged out successfully')
     return redirect(url_for('login'))
 
+@app.template_filter('format_build_time')
+def format_build_time(build_date_str):
+    """Format build date to show time and timezone"""
+    if not build_date_str or build_date_str in ['unknown', 'development']:
+        return 'dev'
+    
+    try:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        
+        # Parse ISO datetime (from GitHub Actions)
+        if 'T' in build_date_str:
+            dt = datetime.fromisoformat(build_date_str.replace('Z', '+00:00'))
+            # Convert to Pacific Time
+            dt_pt = dt.astimezone(ZoneInfo('America/Los_Angeles'))
+            return dt_pt.strftime('%H:%M %Z')
+        else:
+            return build_date_str
+    except Exception:
+        # Fallback for older Python or if zoneinfo fails
+        return build_date_str.split('T')[-1][:5] if 'T' in build_date_str else build_date_str
+
 @app.context_processor
 def inject_version_info():
     context = dict(

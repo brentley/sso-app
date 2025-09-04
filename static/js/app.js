@@ -442,21 +442,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
-    // Version info in footer
-    if (window.GIT_COMMIT) {
-        const footer = document.createElement('div');
-        footer.className = 'footer text-center text-muted mt-5';
-        footer.innerHTML = `
-            <div class="container">
-                <small class="version-info">
-                    Version: ${window.GIT_COMMIT.substring(0, 7)} | 
-                    Built: ${window.BUILD_DATE || 'Unknown'}
-                </small>
-            </div>
-        `;
-        document.body.appendChild(footer);
-    }
 });
 
 // Utility functions
