@@ -13,6 +13,13 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
+from webauthn import generate_registration_options, verify_registration_response, generate_authentication_options, verify_authentication_response
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    UserVerificationRequirement,
+    RegistrationCredential,
+    AuthenticationCredential,
+)
 
 load_dotenv()
 
@@ -39,11 +46,15 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///sso_test.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# OAuth Configuration
-app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
-app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
-app.config['MICROSOFT_CLIENT_ID'] = os.getenv('MICROSOFT_CLIENT_ID')
-app.config['MICROSOFT_CLIENT_SECRET'] = os.getenv('MICROSOFT_CLIENT_SECRET')
+# OAuth Configuration - VisiQuate OIDC (Authentik)
+app.config['AUTHENTIK_CLIENT_ID'] = os.getenv('AUTHENTIK_CLIENT_ID')
+app.config['AUTHENTIK_CLIENT_SECRET'] = os.getenv('AUTHENTIK_CLIENT_SECRET')
+app.config['AUTHENTIK_SERVER_URL'] = os.getenv('AUTHENTIK_SERVER_URL', 'https://auth.visiquate.com')
+
+# WebAuthn Configuration
+app.config['WEBAUTHN_RP_ID'] = os.getenv('WEBAUTHN_RP_ID', 'sso-app.visiquate.com')
+app.config['WEBAUTHN_RP_NAME'] = os.getenv('WEBAUTHN_RP_NAME', 'SSO Test App')
+app.config['WEBAUTHN_ORIGIN'] = os.getenv('WEBAUTHN_ORIGIN', 'https://sso-app.visiquate.com')
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -488,13 +499,234 @@ def saml_login():
 def oauth_login(provider):
     """OIDC/OAuth authentication endpoint"""
     # For now, redirect back to login with a message
-    valid_providers = ['google', 'microsoft', 'authentik']
+    valid_providers = ['authentik']
     if provider not in valid_providers:
         flash('Invalid OAuth provider')
         return redirect(url_for('login'))
     
     flash(f'{provider.title()} OAuth authentication not yet configured. Please configure OAuth settings in admin panel.')
     return redirect(url_for('login'))
+
+# WebAuthn Routes
+@app.route('/webauthn/register/begin', methods=['POST'])
+@login_required
+def webauthn_register_begin():
+    """Begin WebAuthn registration process"""
+    try:
+        user_id = str(current_user.id).encode('utf-8')
+        user_name = current_user.email
+        user_display_name = current_user.email
+        
+        # Generate registration options
+        options = generate_registration_options(
+            rp_id=app.config['WEBAUTHN_RP_ID'],
+            rp_name=app.config['WEBAUTHN_RP_NAME'],
+            user_id=user_id,
+            user_name=user_name,
+            user_display_name=user_display_name,
+            authenticator_selection=AuthenticatorSelectionCriteria(
+                user_verification=UserVerificationRequirement.PREFERRED
+            )
+        )
+        
+        # Store challenge in session
+        session['webauthn_challenge'] = base64.urlsafe_b64encode(options.challenge).decode('utf-8')
+        
+        # Convert options to JSON-serializable format
+        options_json = {
+            "challenge": base64.urlsafe_b64encode(options.challenge).decode('utf-8'),
+            "rp": {
+                "name": options.rp.name,
+                "id": options.rp.id
+            },
+            "user": {
+                "id": base64.urlsafe_b64encode(options.user.id).decode('utf-8'),
+                "name": options.user.name,
+                "displayName": options.user.display_name
+            },
+            "pubKeyCredParams": [{"alg": param.alg, "type": param.type} for param in options.pub_key_cred_params],
+            "authenticatorSelection": {
+                "userVerification": options.authenticator_selection.user_verification.value
+            },
+            "timeout": options.timeout,
+            "attestation": options.attestation.value
+        }
+        
+        return jsonify(options_json)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/webauthn/register/complete', methods=['POST'])
+@login_required
+def webauthn_register_complete():
+    """Complete WebAuthn registration process"""
+    try:
+        credential_json = request.get_json()
+        
+        if not credential_json or 'webauthn_challenge' not in session:
+            return jsonify({"error": "Invalid request"}), 400
+            
+        challenge = base64.urlsafe_b64decode(session['webauthn_challenge'].encode('utf-8'))
+        
+        # Create RegistrationCredential object
+        credential = RegistrationCredential.parse_raw(json.dumps(credential_json))
+        
+        # Verify the registration
+        verification = verify_registration_response(
+            credential=credential,
+            expected_challenge=challenge,
+            expected_origin=app.config['WEBAUTHN_ORIGIN'],
+            expected_rp_id=app.config['WEBAUTHN_RP_ID']
+        )
+        
+        if verification.verified:
+            # Save credential to database
+            new_credential = WebAuthnCredential(
+                user_id=current_user.id,
+                credential_id=verification.credential_id,
+                public_key=verification.credential_public_key,
+                sign_count=verification.sign_count
+            )
+            db.session.add(new_credential)
+            db.session.commit()
+            
+            # Clear challenge from session
+            session.pop('webauthn_challenge', None)
+            
+            return jsonify({"verified": True})
+        else:
+            return jsonify({"error": "Registration verification failed"}), 400
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/webauthn/authenticate/begin', methods=['POST'])
+def webauthn_authenticate_begin():
+    """Begin WebAuthn authentication process"""
+    try:
+        data = request.get_json()
+        email = data.get('email') if data else None
+        
+        if not email:
+            return jsonify({"error": "Email required"}), 400
+        
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Get user's credentials
+        credentials = WebAuthnCredential.query.filter_by(user_id=user.id).all()
+        if not credentials:
+            return jsonify({"error": "No credentials found"}), 404
+            
+        # Generate authentication options
+        credential_descriptors = [{
+            "id": base64.urlsafe_b64encode(cred.credential_id).decode('utf-8'),
+            "type": "public-key"
+        } for cred in credentials]
+        
+        options = generate_authentication_options(
+            rp_id=app.config['WEBAUTHN_RP_ID'],
+            allow_credentials=credential_descriptors,
+            user_verification=UserVerificationRequirement.PREFERRED
+        )
+        
+        # Store challenge and user ID in session
+        session['webauthn_challenge'] = base64.urlsafe_b64encode(options.challenge).decode('utf-8')
+        session['webauthn_user_id'] = user.id
+        
+        # Convert options to JSON-serializable format
+        options_json = {
+            "challenge": base64.urlsafe_b64encode(options.challenge).decode('utf-8'),
+            "allowCredentials": [
+                {
+                    "id": base64.urlsafe_b64encode(cred.credential_id).decode('utf-8'),
+                    "type": "public-key"
+                } for cred in credentials
+            ],
+            "timeout": options.timeout,
+            "rpId": options.rp_id,
+            "userVerification": options.user_verification.value
+        }
+        
+        return jsonify(options_json)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/webauthn/authenticate/complete', methods=['POST'])
+def webauthn_authenticate_complete():
+    """Complete WebAuthn authentication process"""
+    try:
+        credential_json = request.get_json()
+        
+        if not credential_json or 'webauthn_challenge' not in session or 'webauthn_user_id' not in session:
+            return jsonify({"error": "Invalid request"}), 400
+            
+        user_id = session['webauthn_user_id']
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        challenge = base64.urlsafe_b64decode(session['webauthn_challenge'].encode('utf-8'))
+        
+        # Find the credential
+        credential_id = base64.urlsafe_b64decode(credential_json['id'].encode('utf-8'))
+        db_credential = WebAuthnCredential.query.filter_by(
+            user_id=user_id,
+            credential_id=credential_id
+        ).first()
+        
+        if not db_credential:
+            return jsonify({"error": "Credential not found"}), 404
+            
+        # Create AuthenticationCredential object
+        credential = AuthenticationCredential.parse_raw(json.dumps(credential_json))
+        
+        # Verify the authentication
+        verification = verify_authentication_response(
+            credential=credential,
+            expected_challenge=challenge,
+            expected_origin=app.config['WEBAUTHN_ORIGIN'],
+            expected_rp_id=app.config['WEBAUTHN_RP_ID'],
+            credential_public_key=db_credential.public_key,
+            credential_current_sign_count=db_credential.sign_count
+        )
+        
+        if verification.verified:
+            # Update sign count
+            db_credential.sign_count = verification.new_sign_count
+            db.session.commit()
+            
+            # Log the user in
+            login_user(user, remember=True)
+            
+            # Log successful authentication
+            auth_log = AuthLog(
+                user_id=user.id,
+                email=user.email,
+                method='passkey',
+                success=True,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+            db.session.add(auth_log)
+            db.session.commit()
+            
+            # Clear session data
+            session.pop('webauthn_challenge', None)
+            session.pop('webauthn_user_id', None)
+            
+            return jsonify({
+                "verified": True,
+                "redirect": url_for('success')
+            })
+        else:
+            return jsonify({"error": "Authentication verification failed"}), 400
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/logout')
 @login_required
