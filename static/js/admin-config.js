@@ -125,6 +125,124 @@ function resetForm() {
     }
 }
 
+function importSamlMetadata() {
+    var urlField = document.getElementById('saml_metadata_url');
+    if (!urlField || !urlField.value.trim()) {
+        alert('Please enter a SAML metadata URL');
+        return;
+    }
+    
+    var url = urlField.value.trim();
+    if (!url.startsWith('https://')) {
+        alert('Metadata URL must use HTTPS');
+        return;
+    }
+    
+    var button = document.querySelector('button[onclick="importSamlMetadata()"]');
+    var originalText = button ? (button.textContent || button.innerText) : '';
+    
+    if (button) {
+        button.textContent = 'Importing...';
+        button.disabled = true;
+    }
+    
+    fetch('/admin/import_saml_metadata', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({metadata_url: url})
+    }).then(function(response) {
+        return response.json();
+    }).then(function(data) {
+        if (data.success) {
+            // Populate fields with imported data
+            if (data.entity_id) {
+                var entityIdField = document.getElementById('saml_idp_entity_id');
+                if (entityIdField) entityIdField.value = data.entity_id;
+            }
+            if (data.sso_url) {
+                var ssoUrlField = document.getElementById('saml_idp_sso_url');
+                if (ssoUrlField) ssoUrlField.value = data.sso_url;
+            }
+            if (data.slo_url) {
+                var sloUrlField = document.getElementById('saml_idp_slo_url');
+                if (sloUrlField) sloUrlField.value = data.slo_url;
+            }
+            if (data.certificate) {
+                var certField = document.getElementById('saml_idp_cert');
+                if (certField) certField.value = data.certificate;
+            }
+            alert('SAML metadata imported successfully!');
+        } else {
+            alert('Error importing metadata: ' + (data.error || 'Unknown error'));
+        }
+    }).catch(function(error) {
+        alert('Error importing metadata: ' + error.message);
+    }).finally(function() {
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
+function importOidcDiscovery() {
+    var urlField = document.getElementById('oidc_discovery_url');
+    if (!urlField || !urlField.value.trim()) {
+        alert('Please enter an OIDC discovery URL');
+        return;
+    }
+    
+    var url = urlField.value.trim();
+    if (!url.startsWith('https://')) {
+        alert('Discovery URL must use HTTPS');
+        return;
+    }
+    
+    var button = document.querySelector('button[onclick="importOidcDiscovery()"]');
+    var originalText = button ? (button.textContent || button.innerText) : '';
+    
+    if (button) {
+        button.textContent = 'Importing...';
+        button.disabled = true;
+    }
+    
+    fetch('/admin/import_oidc_discovery', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({discovery_url: url})
+    }).then(function(response) {
+        return response.json();
+    }).then(function(data) {
+        if (data.success) {
+            // Extract base URL from issuer or discovery URL
+            if (data.issuer) {
+                var authentikUrlField = document.getElementById('oidc_authentik_url');
+                if (authentikUrlField) {
+                    // Extract base URL from issuer (remove /application/o/slug part)
+                    var baseUrl = data.issuer.split('/application/')[0];
+                    authentikUrlField.value = baseUrl;
+                }
+            }
+            alert('OIDC discovery imported successfully! Please enter your Client ID and Client Secret.');
+        } else {
+            alert('Error importing discovery: ' + (data.error || 'Unknown error'));
+        }
+    }).catch(function(error) {
+        alert('Error importing discovery: ' + error.message);
+    }).finally(function() {
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
 // Make functions globally available
 window.generateScimToken = generateScimToken;
 window.resetForm = resetForm;
+window.importSamlMetadata = importSamlMetadata;
+window.importOidcDiscovery = importOidcDiscovery;

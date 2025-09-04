@@ -43,9 +43,27 @@
                         </div>
                     </div>
 
+                    <!-- Metadata Import -->
+                    <div class="alert alert-primary mb-4">
+                        <h6 class="alert-heading"><strong>📥 Import from Authentik Metadata</strong></h6>
+                        <p class="mb-3">Automatically configure SAML settings by importing from Authentik metadata URL:</p>
+                        <div class="row">
+                            <div class="col-md-8 mb-2">
+                                <input type="url" class="form-control" id="saml_metadata_url" name="saml_metadata_url"
+                                       placeholder="https://auth.visiquate.com/api/v3/providers/saml/[id]/metadata/">
+                                <div class="form-text">From Authentik: Applications → [Your App] → Provider → Metadata URL</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button type="button" class="btn btn-primary w-100" onclick="importSamlMetadata()">
+                                    <i class="fas fa-download me-2"></i>Import Metadata
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Identity Provider Configuration -->
                     <h6 class="mb-3"><strong>🔗 Identity Provider Settings</strong></h6>
-                    <p class="text-muted mb-3">Enter the values from your Authentik SAML provider configuration:</p>
+                    <p class="text-muted mb-3">Enter the values from your Authentik SAML provider configuration or import from metadata above:</p>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -130,9 +148,27 @@
                         </div>
                     </div>
 
+                    <!-- OIDC Discovery Import -->
+                    <div class="alert alert-primary mb-4">
+                        <h6 class="alert-heading"><strong>📥 Import from OIDC Discovery</strong></h6>
+                        <p class="mb-3">Automatically configure OIDC settings by importing from Authentik discovery URL:</p>
+                        <div class="row">
+                            <div class="col-md-8 mb-2">
+                                <input type="url" class="form-control" id="oidc_discovery_url" name="oidc_discovery_url"
+                                       placeholder="https://auth.visiquate.com/application/o/[slug]/.well-known/openid_configuration">
+                                <div class="form-text">From Authentik: Applications → [Your App] → Provider → OpenID Configuration URL</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button type="button" class="btn btn-primary w-100" onclick="importOidcDiscovery()">
+                                    <i class="fas fa-download me-2"></i>Import Discovery
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Authentik OIDC Settings -->
                     <h6 class="mb-3"><strong>🔐 Authentik OIDC Provider Settings</strong></h6>
-                    <p class="text-muted mb-3">Configure your Authentik OIDC provider credentials:</p>
+                    <p class="text-muted mb-3">Configure your Authentik OIDC provider credentials or import from discovery above:</p>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">

@@ -491,6 +491,135 @@ def admin_config():
     
     return render_template('admin_config.html', configs=config_dict)
 
+@app.route('/admin/import_saml_metadata', methods=['POST'])
+@login_required
+def import_saml_metadata():
+    """Import SAML configuration from Authentik metadata URL"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data or not data.get('metadata_url'):
+            return jsonify({'success': False, 'error': 'Metadata URL required'})
+        
+        metadata_url = data['metadata_url']
+        if not metadata_url.startswith('https://'):
+            return jsonify({'success': False, 'error': 'Metadata URL must use HTTPS'})
+        
+        # Download and parse SAML metadata
+        import requests
+        import xml.etree.ElementTree as ET
+        
+        response = requests.get(metadata_url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse XML metadata
+        root = ET.fromstring(response.content)
+        
+        # Define namespaces
+        namespaces = {
+            'md': 'urn:oasis:names:tc:SAML:2.0:metadata',
+            'ds': 'http://www.w3.org/2000/09/xmldsig#'
+        }
+        
+        result = {'success': True}
+        
+        # Extract Entity ID
+        entity_id = root.get('entityID')
+        if entity_id:
+            result['entity_id'] = entity_id
+        
+        # Find SSO Service
+        sso_service = root.find('.//md:SingleSignOnService[@Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"]', namespaces)
+        if sso_service is not None:
+            result['sso_url'] = sso_service.get('Location')
+        
+        # Find SLO Service  
+        slo_service = root.find('.//md:SingleLogoutService[@Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"]', namespaces)
+        if slo_service is not None:
+            result['slo_url'] = slo_service.get('Location')
+        
+        # Extract X.509 Certificate
+        cert_element = root.find('.//ds:X509Certificate', namespaces)
+        if cert_element is not None:
+            cert_data = cert_element.text.strip()
+            # Format certificate properly
+            formatted_cert = '-----BEGIN CERTIFICATE-----\n'
+            # Split into 64-character lines
+            for i in range(0, len(cert_data), 64):
+                formatted_cert += cert_data[i:i+64] + '\n'
+            formatted_cert += '-----END CERTIFICATE-----'
+            result['certificate'] = formatted_cert
+        
+        app.logger.info(f'SAML metadata imported successfully from {metadata_url}')
+        return jsonify(result)
+        
+    except requests.RequestException as e:
+        app.logger.error(f'Error fetching SAML metadata: {str(e)}')
+        return jsonify({'success': False, 'error': f'Failed to fetch metadata: {str(e)}'})
+    except ET.ParseError as e:
+        app.logger.error(f'Error parsing SAML metadata XML: {str(e)}')
+        return jsonify({'success': False, 'error': 'Invalid SAML metadata XML'})
+    except Exception as e:
+        app.logger.error(f'Error importing SAML metadata: {str(e)}')
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/admin/import_oidc_discovery', methods=['POST'])
+@login_required
+def import_oidc_discovery():
+    """Import OIDC configuration from Authentik discovery document"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data or not data.get('discovery_url'):
+            return jsonify({'success': False, 'error': 'Discovery URL required'})
+        
+        discovery_url = data['discovery_url']
+        if not discovery_url.startswith('https://'):
+            return jsonify({'success': False, 'error': 'Discovery URL must use HTTPS'})
+        
+        # Download and parse OIDC discovery document
+        import requests
+        
+        response = requests.get(discovery_url, timeout=10)
+        response.raise_for_status()
+        
+        discovery_doc = response.json()
+        
+        result = {'success': True}
+        
+        # Extract key values
+        if 'issuer' in discovery_doc:
+            result['issuer'] = discovery_doc['issuer']
+        
+        if 'authorization_endpoint' in discovery_doc:
+            result['authorization_endpoint'] = discovery_doc['authorization_endpoint']
+        
+        if 'token_endpoint' in discovery_doc:
+            result['token_endpoint'] = discovery_doc['token_endpoint']
+        
+        if 'userinfo_endpoint' in discovery_doc:
+            result['userinfo_endpoint'] = discovery_doc['userinfo_endpoint']
+        
+        if 'jwks_uri' in discovery_doc:
+            result['jwks_uri'] = discovery_doc['jwks_uri']
+        
+        app.logger.info(f'OIDC discovery imported successfully from {discovery_url}')
+        return jsonify(result)
+        
+    except requests.RequestException as e:
+        app.logger.error(f'Error fetching OIDC discovery: {str(e)}')
+        return jsonify({'success': False, 'error': f'Failed to fetch discovery document: {str(e)}'})
+    except ValueError as e:
+        app.logger.error(f'Error parsing OIDC discovery JSON: {str(e)}')
+        return jsonify({'success': False, 'error': 'Invalid discovery document JSON'})
+    except Exception as e:
+        app.logger.error(f'Error importing OIDC discovery: {str(e)}')
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/admin/user/<int:user_id>/logs')
 @login_required
 def user_logs(user_id):
