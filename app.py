@@ -21,8 +21,9 @@ from webauthn.helpers.structs import (
     UserVerificationRequirement,
 )
 from webauthn.helpers import parse_registration_credential_json, parse_authentication_credential_json
-from onelogin.saml2.auth import OneLogin_Saml2_Auth
-from onelogin.saml2.utils import OneLogin_Saml2_Utils
+from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.config import Config as Saml2Config
 
 load_dotenv()
 
@@ -1049,58 +1050,20 @@ def scim_create_user():
         }), 500
 
 # Authentication routes
-def init_saml_auth(req):
-    """Initialize SAML Auth object"""
-    saml_settings = get_saml_settings()
-    auth = OneLogin_Saml2_Auth(req, saml_settings)
-    return auth
-
-def prepare_flask_request(request):
-    """Prepare Flask request for SAML"""
-    # Detect if we're behind HTTPS proxy (like Cloudflare)
-    if request.headers.get('X-Forwarded-Proto') == 'https' or request.headers.get('X-Forwarded-Ssl') == 'on':
-        is_https = True
-        server_port = 443
-    else:
-        is_https = request.scheme == 'https'
-        url_data = urlsplit(request.url)
-        server_port = url_data.port or (443 if is_https else 80)
-    
-    # IMPORTANT: Force HTTPS for production domains behind Cloudflare
+def get_saml_client():
+    """Get configured SAML client using pysaml2"""
+    # Force HTTPS for all visiquate.com domains
     host = request.headers.get('Host', request.host)
-    if 'visiquate.com' in host:
-        is_https = True
-        server_port = 443
-    
-    return {
-        'https': 'on' if is_https else 'off',
-        'http_host': host,
-        'server_port': server_port,
-        'script_name': request.path,
-        'get_data': request.args.copy(),
-        'post_data': request.form.copy()
-    }
-
-def get_saml_settings():
-    """Get SAML settings from database configuration"""
-    # Detect if we're behind HTTPS proxy (like Cloudflare)
-    if request.headers.get('X-Forwarded-Proto') == 'https' or request.headers.get('X-Forwarded-Ssl') == 'on':
+    if 'visiquate.com' in host or request.headers.get('X-Forwarded-Proto') == 'https':
         scheme = 'https'
+        port = 443
     else:
         scheme = request.scheme
-    
-    host = request.headers.get('Host', request.host)
-    
-    # IMPORTANT: Always use HTTPS for ALL URLs in production behind Cloudflare
-    # This ensures consistency between Entity ID, ACS URL, and SLS URL
-    if 'visiquate.com' in host:
-        scheme = 'https'
+        port = request.environ.get('SERVER_PORT', 80)
     
     base_url = f"{scheme}://{host}"
-    entity_id = f"{scheme}://{host}"
-    acs_url = f"{base_url}/saml/acs"
-    sls_url = f"{base_url}/saml/sls" 
     
+    # Get configuration from database
     idp_entity_id = get_config('saml_idp_entity_id', '')
     idp_sso_url = get_config('saml_idp_sso_url', '')
     idp_slo_url = get_config('saml_idp_slo_url', '')
@@ -1112,34 +1075,99 @@ def get_saml_settings():
     if not all([idp_entity_id, idp_sso_url, idp_cert]):
         raise ValueError("SAML not fully configured")
     
-    return {
-        "sp": {
-            "entityId": entity_id,
-            "assertionConsumerService": {
-                "url": acs_url,
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
-            },
-            "singleLogoutService": {
-                "url": sls_url,
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
-            },
-            "NameIDFormat": nameid_format,
-            "x509cert": sp_cert,
-            "privateKey": sp_private_key
+    # pysaml2 configuration
+    config = {
+        "entityid": f"{base_url}",
+        "service": {
+            "sp": {
+                "name": "SSO Test Application",
+                "endpoints": {
+                    "assertion_consumer_service": [
+                        (f"{base_url}/saml/acs", BINDING_HTTP_POST),
+                    ],
+                    "single_logout_service": [
+                        (f"{base_url}/saml/sls", BINDING_HTTP_REDIRECT),
+                    ],
+                },
+                "name_id_format": [nameid_format],
+                "want_response_signed": False,
+                "want_assertions_signed": True,
+                "allow_unsolicited": True,
+            }
         },
-        "idp": {
-            "entityId": idp_entity_id,
-            "singleSignOnService": {
-                "url": idp_sso_url,
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
-            },
-            "singleLogoutService": {
-                "url": idp_slo_url,
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
-            } if idp_slo_url else None,
-            "x509cert": idp_cert
-        }
+        "metadata": {
+            "remote": []
+        },
+        "key_file": None,  # Will set if private key provided
+        "cert_file": None,  # Will set if certificate provided
     }
+    
+    # Add IdP configuration
+    if idp_entity_id and idp_sso_url and idp_cert:
+        config["metadata"]["remote"].append({
+            "url": None,  # We're providing manual config
+            "cert": idp_cert,
+        })
+        
+        # Manual IdP configuration
+        config["metadata"]["inline"] = [{
+            "entityid": idp_entity_id,
+            "service": {
+                "idp": {
+                    "name": "Identity Provider",
+                    "endpoints": {
+                        "single_sign_on_service": [
+                            (idp_sso_url, BINDING_HTTP_REDIRECT),
+                        ],
+                        "single_logout_service": [
+                            (idp_slo_url, BINDING_HTTP_REDIRECT),
+                        ] if idp_slo_url else [],
+                    },
+                    "name_id_format": [nameid_format],
+                }
+            },
+            "signing": {
+                "cert": idp_cert,
+            }
+        }]
+    
+    # Configure SP certificate if provided
+    if sp_cert and sp_private_key:
+        # Save temp files for pysaml2 (it requires file paths)
+        import tempfile
+        import os
+        
+        cert_fd, cert_path = tempfile.mkstemp(suffix='.crt')
+        key_fd, key_path = tempfile.mkstemp(suffix='.key')
+        
+        try:
+            with os.fdopen(cert_fd, 'w') as cert_file:
+                cert_file.write(sp_cert)
+            with os.fdopen(key_fd, 'w') as key_file:
+                key_file.write(sp_private_key)
+                
+            config["cert_file"] = cert_path
+            config["key_file"] = key_path
+            
+            saml_config = Saml2Config()
+            saml_config.load(config)
+            client = Saml2Client(config=saml_config)
+            
+            return client
+            
+        finally:
+            # Clean up temp files
+            try:
+                os.unlink(cert_path)
+                os.unlink(key_path)
+            except:
+                pass
+    else:
+        saml_config = Saml2Config()
+        saml_config.load(config)
+        return Saml2Client(config=saml_config)
+
+# SAML functions removed - now using pysaml2 via get_saml_client()
 
 @app.route('/debug/headers')
 @login_required  
@@ -1163,7 +1191,7 @@ def debug_headers():
 @app.route('/debug/saml-config')
 @login_required
 def debug_saml_config():
-    """Debug endpoint to check SAML configuration"""
+    """Debug endpoint to check SAML configuration - pysaml2 version"""
     if not current_user.is_admin:
         return jsonify({'error': 'Access denied'}), 403
     
@@ -1182,16 +1210,25 @@ def debug_saml_config():
             'url': request.url
         }
         
-        # Show what prepare_flask_request generates
-        prepared_req = prepare_flask_request(request)
-        
-        # Show SAML settings that would be generated
+        # Show SAML client configuration
         try:
-            saml_settings = get_saml_settings()
+            client = get_saml_client()
+            
+            # Force HTTPS for all visiquate.com domains
+            host = request.headers.get('Host', request.host)
+            if 'visiquate.com' in host or request.headers.get('X-Forwarded-Proto') == 'https':
+                scheme = 'https'
+            else:
+                scheme = request.scheme
+            
+            base_url = f"{scheme}://{host}"
+            
             saml_sp_info = {
-                'entityId': saml_settings['sp']['entityId'],
-                'assertionConsumerService_url': saml_settings['sp']['assertionConsumerService']['url'],
-                'singleLogoutService_url': saml_settings['sp']['singleLogoutService']['url']
+                'entityId': f"{base_url}",
+                'assertionConsumerService_url': f"{base_url}/saml/acs",
+                'singleLogoutService_url': f"{base_url}/saml/sls",
+                'library': 'pysaml2',
+                'scheme_detection': f'Using {scheme} (forced HTTPS for visiquate.com domains)'
             }
         except Exception as e:
             saml_sp_info = {'error': str(e)}
@@ -1211,141 +1248,169 @@ def debug_saml_config():
         
         return jsonify({
             'request_info': req_info,
-            'prepared_request': prepared_req,
             'saml_sp_info': saml_sp_info,
-            'config_values': saml_configs
+            'config_values': saml_configs,
+            'note': 'Now using pysaml2 library with better HTTPS proxy support'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/saml/login')
 def saml_login():
-    """SAML authentication endpoint"""
+    """SAML authentication endpoint - pysaml2 version"""
     try:
-        req = prepare_flask_request(request)
-        auth = init_saml_auth(req)
-        return redirect(auth.login())
+        client = get_saml_client()
+        
+        # Get IdP entity ID
+        idp_entity_id = get_config('saml_idp_entity_id', '')
+        if not idp_entity_id:
+            raise ValueError("SAML IdP not configured")
+            
+        # Create authentication request
+        session_id, result = client.prepare_for_authenticate(
+            entityid=idp_entity_id,
+            relay_state=url_for('saml_acs', _external=True),
+            binding=BINDING_HTTP_REDIRECT
+        )
+        
+        # Store session ID for later validation
+        session['saml_session_id'] = session_id
+        
+        # Redirect to IdP
+        return redirect(result['headers'][0][1])
+        
     except ValueError as e:
         flash('SAML authentication not yet configured. Please configure SAML settings in admin panel.')
         return redirect(url_for('login'))
     except Exception as e:
+        app.logger.error(f"SAML login error: {str(e)}")
         flash(f'SAML error: {str(e)}')
         return redirect(url_for('login'))
 
 @app.route('/saml/acs', methods=['POST'])
 def saml_acs():
-    """SAML Assertion Consumer Service"""
+    """SAML Assertion Consumer Service - pysaml2 version"""
     try:
-        req = prepare_flask_request(request)
-        auth = init_saml_auth(req)
+        client = get_saml_client()
         
-        # Debug logging
-        app.logger.info(f"SAML ACS - Prepared request: {req}")
-        app.logger.info(f"SAML ACS - Settings SP EntityId: {auth.get_settings().get_sp_data().get('entityId')}")
+        # Get the SAML response from form data
+        saml_response = request.form.get('SAMLResponse')
+        if not saml_response:
+            raise ValueError("No SAMLResponse in request")
         
-        auth.process_response()
+        # Get the stored session ID if available
+        session_id = session.get('saml_session_id')
         
-        errors = auth.get_errors()
-        if not errors:
-            # Get user attributes from SAML response
-            attributes = auth.get_attributes()
-            email = auth.get_nameid()
-            name = attributes.get('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name', [email])[0]
-            
-            # Extract group membership from SAML attributes
-            groups = []
-            # Common SAML group attribute names
-            for group_attr in [
-                'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/groups',
-                'http://schemas.microsoft.com/ws/2008/06/identity/claims/groups', 
-                'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role',
-                'groups',
-                'memberOf',
-                'roles'
-            ]:
-                if group_attr in attributes:
-                    groups.extend(attributes[group_attr])
-                    break
-            
-            # Find or create user
-            user = User.query.filter_by(email=email).first()
-            if not user:
-                user = User(email=email, name=name)
-                db.session.add(user)
-                db.session.commit()
-            
-            # Login user
-            login_user(user, remember=True)
-            
-            # Set session data for success page
-            auth_data = {
-                'method': 'saml',
+        # Process the SAML response
+        authn_response = client.parse_authn_request_response(
+            saml_response, 
+            BINDING_HTTP_POST,
+            outstanding={session_id} if session_id else None
+        )
+        
+        # Get user information from SAML response  
+        identity = authn_response.get_identity()
+        subject = authn_response.get_subject()
+        email = subject.text  # NameID
+        
+        # Extract attributes
+        attributes = {}
+        for attr_name, attr_values in identity.items():
+            attributes[attr_name] = attr_values
+        
+        # Get display name
+        name = email  # fallback
+        for name_attr in ['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name', 
+                         'displayName', 'name', 'cn']:
+            if name_attr in attributes and attributes[name_attr]:
+                name = attributes[name_attr][0]
+                break
+        
+        # Extract group membership from SAML attributes
+        groups = []
+        for group_attr in [
+            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/groups',
+            'http://schemas.microsoft.com/ws/2008/06/identity/claims/groups', 
+            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role',
+            'groups',
+            'memberOf',
+            'roles'
+        ]:
+            if group_attr in attributes:
+                groups.extend(attributes[group_attr])
+                break
+        
+        # Find or create user
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(email=email, name=name)
+            db.session.add(user)
+            db.session.commit()
+        
+        # Update SAML tested flag
+        user.saml_tested = True
+        db.session.commit()
+        
+        # Login user
+        login_user(user, remember=True)
+        
+        # Set session data for success page
+        auth_data = {
+            'method': 'saml',
+            'email': email,
+            'name': name,
+            'groups': groups,
+            'success': True,
+            'user_id': user.id,
+            'timestamp': datetime.utcnow().isoformat(),
+            'ip_address': get_real_ip(),
+            'user_agent': request.headers.get('User-Agent'),
+            'attributes': attributes,  # Store all attributes for debugging
+            'nameid': email,
+            'session_index': authn_response.session_id() if hasattr(authn_response, 'session_id') else None
+        }
+        session['last_auth_data'] = auth_data
+        
+        # Log successful authentication
+        log_authentication(
+            user.id, 'saml', True, {
                 'email': email,
-                'name': name,
-                'groups': groups,
-                'success': True,
-                'user_id': user.id,
-                'timestamp': datetime.utcnow().isoformat(),
-                'ip_address': get_real_ip(),
-                'user_agent': request.headers.get('User-Agent'),
-                'attributes': dict(attributes)  # Store all attributes for debugging
-            }
-            session['last_auth_data'] = auth_data
-            
-            # Log successful authentication
-            log_authentication(
-                user.id, 'saml', True, {
-                    'email': email,
-                    'attributes': attributes,
-                    'nameid': auth.get_nameid()
-                },
-                get_real_ip(), request.headers.get('User-Agent')
-            )
-            
-            return redirect(url_for('success'))
-        else:
-            error_msg = f"SAML Error: {', '.join(errors)}"
-            last_error = auth.get_last_error_reason()
-            
-            # Enhanced logging for debugging
-            app.logger.error(f"SAML processing failed: {error_msg}")
-            app.logger.error(f"SAML last error reason: {last_error}")
-            
-            flash(f"SAML processing error: {last_error if last_error else error_msg}")
-            
-            # Log failed authentication
-            log_authentication(
-                None, 'saml', False, {
-                    'errors': errors,
-                    'last_error_reason': last_error
-                },
-                get_real_ip(), request.headers.get('User-Agent')
-            )
-            
-            return redirect(url_for('login'))
-            
+                'attributes': attributes,
+                'nameid': email
+            },
+            get_real_ip(), request.headers.get('User-Agent')
+        )
+        
+        app.logger.info(f"SAML authentication successful for {email}")
+        return redirect(url_for('success'))
+        
     except Exception as e:
-        flash(f'SAML processing error: {str(e)}')
+        error_msg = str(e)
+        
+        # Enhanced logging for debugging
+        app.logger.error(f"SAML processing failed: {error_msg}")
+        app.logger.error(f"SAML ERROR: {error_msg}")
+        
+        flash(f"SAML processing error: {error_msg}")
+        
+        # Log failed authentication
+        log_authentication(
+            None, 'saml', False, {
+                'error': error_msg
+            },
+            get_real_ip(), request.headers.get('User-Agent')
+        )
+        
         return redirect(url_for('login'))
 
 @app.route('/saml/sls', methods=['GET'])
 def saml_sls():
-    """SAML Single Logout Service"""
+    """SAML Single Logout Service - pysaml2 version"""
     try:
-        req = prepare_flask_request(request)
-        auth = init_saml_auth(req)
-        url = auth.process_slo(delete_session_cb=lambda: logout_user())
-        errors = auth.get_errors()
-        
-        if not errors:
-            if url:
-                return redirect(url)
-            else:
-                return redirect(url_for('login'))
-        else:
-            flash(f'SAML SLO Error: {", ".join(errors)}')
-            return redirect(url_for('login'))
-            
+        # Simply logout the user and redirect
+        logout_user()
+        flash('Logged out successfully')
+        return redirect(url_for('login'))
     except Exception as e:
         flash(f'SAML SLO error: {str(e)}')
         return redirect(url_for('login'))
@@ -1867,6 +1932,18 @@ def format_build_time(build_date_str):
     except Exception:
         # Fallback for older Python or if zoneinfo fails
         return build_date_str.split('T')[-1][:5] if 'T' in build_date_str else build_date_str
+
+
+@app.template_filter('from_json')
+def from_json_filter(json_string):
+    """Parse JSON string to Python object for template rendering"""
+    if not json_string:
+        return {}
+    try:
+        return json.loads(json_string)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {}
+
 
 @app.context_processor
 def inject_version_info():
