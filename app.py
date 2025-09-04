@@ -4,6 +4,8 @@ import base64
 import secrets
 import uuid
 import time
+import yaml
+import logging
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
@@ -20,11 +22,24 @@ from webauthn.helpers.structs import (
     RegistrationCredential,
     AuthenticationCredential,
 )
+from onelogin.saml2.auth import OneLogin_Saml2_Auth
+from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
 load_dotenv()
 
 app = Flask(__name__)
 START_TIME = time.time()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('data/auth.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 def get_build_info():
     """Read build information from build-info.json file."""
@@ -42,6 +57,48 @@ def get_build_info():
 
 # Get build information once at startup
 BUILD_INFO = get_build_info()
+
+# Configuration file management
+CONFIG_FILE_PATH = 'data/auth_config.yaml'
+
+def load_config_file():
+    """Load configuration from YAML file"""
+    try:
+        if os.path.exists(CONFIG_FILE_PATH):
+            with open(CONFIG_FILE_PATH, 'r') as f:
+                config = yaml.safe_load(f) or {}
+                logger.info(f"Loaded configuration from {CONFIG_FILE_PATH}")
+                return config
+    except Exception as e:
+        logger.error(f"Failed to load config file: {e}")
+    return {}
+
+def save_config_file(config):
+    """Save configuration to YAML file"""
+    try:
+        os.makedirs(os.path.dirname(CONFIG_FILE_PATH), exist_ok=True)
+        with open(CONFIG_FILE_PATH, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False, sort_keys=True)
+        logger.info(f"Saved configuration to {CONFIG_FILE_PATH}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save config file: {e}")
+        return False
+
+def update_config_from_file():
+    """Update database configuration from file on startup"""
+    file_config = load_config_file()
+    if not file_config:
+        return
+    
+    for key, value in file_config.items():
+        if isinstance(value, (str, int, bool, float)):
+            set_config(key, str(value))
+            logger.info(f"Updated config {key} from file")
+
+# Load file-based configuration
+FILE_CONFIG = load_config_file()
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///sso_test.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -154,9 +211,37 @@ def set_config(key, value, description=None, user_id=None):
     
     db.session.add(config)
     db.session.commit()
+    
+    # Also save to configuration file
+    try:
+        file_config = load_config_file()
+        file_config[key] = value
+        save_config_file(file_config)
+        logger.info(f"Updated config {key} in database and file")
+    except Exception as e:
+        logger.error(f"Failed to update config file for {key}: {e}")
+    
     return config
 
 def log_authentication(user_id, auth_method, success, transaction_data, ip_address, user_agent):
+    email = transaction_data.get('email', 'unknown')
+    
+    # Enhanced logging to file for troubleshooting
+    if success:
+        logger.info(f"AUTH SUCCESS: {auth_method} authentication for {email} from {ip_address}")
+        logger.debug(f"AUTH SUCCESS DETAILS: user_id={user_id}, data={json.dumps(transaction_data, default=str)}")
+    else:
+        logger.warning(f"AUTH FAILURE: {auth_method} authentication failed for {email} from {ip_address}")
+        logger.error(f"AUTH FAILURE DETAILS: error={transaction_data.get('error', 'Unknown')}, data={json.dumps(transaction_data, default=str)}")
+        
+        # Log specific failure reasons for different auth methods
+        if auth_method == 'saml':
+            logger.error(f"SAML ERROR: errors={transaction_data.get('errors', [])}, reason={transaction_data.get('last_error_reason', 'Unknown')}")
+        elif auth_method == 'oidc':
+            logger.error(f"OIDC ERROR: {transaction_data.get('error', 'Unknown OIDC error')}")
+        elif auth_method == 'password':
+            logger.error(f"PASSWORD ERROR: Invalid credentials for {email}")
+
     auth_log = AuthLog(
         user_id=user_id,
         auth_method=auth_method,
@@ -670,24 +755,388 @@ def scim_create_user():
     return jsonify(scim_user), 201
 
 # Authentication routes
+def init_saml_auth(req):
+    """Initialize SAML Auth object"""
+    saml_settings = get_saml_settings()
+    auth = OneLogin_Saml2_Auth(req, saml_settings)
+    return auth
+
+def prepare_flask_request(request):
+    """Prepare Flask request for SAML"""
+    url_data = request.urlsplit(request.url)
+    return {
+        'https': 'on' if request.scheme == 'https' else 'off',
+        'http_host': request.headers.get('Host', request.host),
+        'server_port': url_data.port,
+        'script_name': request.path,
+        'get_data': request.args.copy(),
+        'post_data': request.form.copy()
+    }
+
+def get_saml_settings():
+    """Get SAML settings from database configuration"""
+    entity_id = get_config('saml_entity_id', request.url_root.rstrip('/'))
+    acs_url = f"{request.url_root.rstrip('/')}/saml/acs"
+    sls_url = f"{request.url_root.rstrip('/')}/saml/sls" 
+    
+    idp_entity_id = get_config('saml_idp_entity_id', '')
+    idp_sso_url = get_config('saml_idp_sso_url', '')
+    idp_slo_url = get_config('saml_idp_slo_url', '')
+    idp_cert = get_config('saml_idp_cert', '')
+    nameid_format = get_config('saml_nameid_format', 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress')
+    
+    if not all([idp_entity_id, idp_sso_url, idp_cert]):
+        raise ValueError("SAML not fully configured")
+    
+    return {
+        "sp": {
+            "entityId": entity_id,
+            "assertionConsumerService": {
+                "url": acs_url,
+                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+            },
+            "singleLogoutService": {
+                "url": sls_url,
+                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+            },
+            "NameIDFormat": nameid_format,
+            "x509cert": "",
+            "privateKey": ""
+        },
+        "idp": {
+            "entityId": idp_entity_id,
+            "singleSignOnService": {
+                "url": idp_sso_url,
+                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+            },
+            "singleLogoutService": {
+                "url": idp_slo_url,
+                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+            } if idp_slo_url else None,
+            "x509cert": idp_cert
+        }
+    }
+
 @app.route('/saml/login')
 def saml_login():
     """SAML authentication endpoint"""
-    # For now, redirect back to login with a message
-    flash('SAML authentication not yet configured. Please configure SAML settings in admin panel.')
-    return redirect(url_for('login'))
+    try:
+        req = prepare_flask_request(request)
+        auth = init_saml_auth(req)
+        return redirect(auth.login())
+    except ValueError as e:
+        flash('SAML authentication not yet configured. Please configure SAML settings in admin panel.')
+        return redirect(url_for('login'))
+    except Exception as e:
+        flash(f'SAML error: {str(e)}')
+        return redirect(url_for('login'))
+
+@app.route('/saml/acs', methods=['POST'])
+def saml_acs():
+    """SAML Assertion Consumer Service"""
+    try:
+        req = prepare_flask_request(request)
+        auth = init_saml_auth(req)
+        auth.process_response()
+        
+        errors = auth.get_errors()
+        if not errors:
+            # Get user attributes from SAML response
+            attributes = auth.get_attributes()
+            email = auth.get_nameid()
+            name = attributes.get('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name', [email])[0]
+            
+            # Find or create user
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User(email=email, name=name)
+                db.session.add(user)
+                db.session.commit()
+            
+            # Login user
+            login_user(user, remember=True)
+            
+            # Log successful authentication
+            log_authentication(
+                user.id, 'saml', True, {
+                    'email': email,
+                    'attributes': attributes,
+                    'nameid': auth.get_nameid()
+                },
+                request.remote_addr, request.headers.get('User-Agent')
+            )
+            
+            return redirect(url_for('success'))
+        else:
+            error_msg = f"SAML Error: {', '.join(errors)}"
+            flash(error_msg)
+            
+            # Log failed authentication
+            log_authentication(
+                None, 'saml', False, {
+                    'errors': errors,
+                    'last_error_reason': auth.get_last_error_reason()
+                },
+                request.remote_addr, request.headers.get('User-Agent')
+            )
+            
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        flash(f'SAML processing error: {str(e)}')
+        return redirect(url_for('login'))
+
+@app.route('/saml/sls', methods=['GET'])
+def saml_sls():
+    """SAML Single Logout Service"""
+    try:
+        req = prepare_flask_request(request)
+        auth = init_saml_auth(req)
+        url = auth.process_slo(delete_session_cb=lambda: logout_user())
+        errors = auth.get_errors()
+        
+        if not errors:
+            if url:
+                return redirect(url)
+            else:
+                return redirect(url_for('login'))
+        else:
+            flash(f'SAML SLO Error: {", ".join(errors)}')
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        flash(f'SAML SLO error: {str(e)}')
+        return redirect(url_for('login'))
 
 @app.route('/oauth/login/<provider>')
 def oauth_login(provider):
     """OIDC/OAuth authentication endpoint"""
-    # For now, redirect back to login with a message
     valid_providers = ['authentik']
     if provider not in valid_providers:
         flash('Invalid OAuth provider')
         return redirect(url_for('login'))
     
-    flash(f'{provider.title()} OAuth authentication not yet configured. Please configure OAuth settings in admin panel.')
-    return redirect(url_for('login'))
+    try:
+        # Get OIDC configuration from database
+        server_url = get_config('oidc_authentik_url', '')
+        client_id = get_config('oidc_authentik_client_id', '')
+        client_secret = get_config('oidc_authentik_client_secret', '')
+        
+        if not all([server_url, client_id, client_secret]):
+            raise ValueError("OIDC not fully configured")
+        
+        # Configure OAuth client dynamically
+        authentik = oauth.register(
+            name='authentik',
+            client_id=client_id,
+            client_secret=client_secret,
+            server_metadata_url=f'{server_url}/.well-known/openid-configuration',
+            client_kwargs={
+                'scope': 'openid email profile'
+            }
+        )
+        
+        redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
+        return authentik.authorize_redirect(redirect_uri)
+        
+    except ValueError:
+        flash('VisiQuate OIDC authentication not yet configured. Please configure OAuth settings in admin panel.')
+        return redirect(url_for('login'))
+    except Exception as e:
+        flash(f'OIDC error: {str(e)}')
+        return redirect(url_for('login'))
+
+@app.route('/oauth/callback/<provider>')
+def oauth_callback(provider):
+    """OAuth callback handler"""
+    try:
+        # Get OIDC configuration from database
+        server_url = get_config('oidc_authentik_url', '')
+        client_id = get_config('oidc_authentik_client_id', '')
+        client_secret = get_config('oidc_authentik_client_secret', '')
+        
+        if not all([server_url, client_id, client_secret]):
+            raise ValueError("OIDC not fully configured")
+        
+        # Configure OAuth client dynamically (same as above)
+        authentik = oauth.register(
+            name='authentik',
+            client_id=client_id,
+            client_secret=client_secret,
+            server_metadata_url=f'{server_url}/.well-known/openid-configuration',
+            client_kwargs={
+                'scope': 'openid email profile'
+            }
+        )
+        
+        # Exchange authorization code for tokens
+        token = authentik.authorize_access_token()
+        user_info = token.get('userinfo')
+        
+        if not user_info:
+            user_info = authentik.parse_id_token(token)
+        
+        # Extract user information
+        email = user_info.get('email')
+        name = user_info.get('name') or user_info.get('preferred_username') or email
+        
+        if not email:
+            raise ValueError("No email found in OIDC response")
+        
+        # Find or create user
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(email=email, name=name)
+            db.session.add(user)
+            db.session.commit()
+        
+        # Login user
+        login_user(user, remember=True)
+        
+        # Log successful authentication
+        log_authentication(
+            user.id, 'oidc', True, {
+                'email': email,
+                'provider': provider,
+                'user_info': user_info
+            },
+            request.remote_addr, request.headers.get('User-Agent')
+        )
+        
+        return redirect(url_for('success'))
+        
+    except Exception as e:
+        flash(f'OIDC authentication failed: {str(e)}')
+        
+        # Log failed authentication
+        log_authentication(
+            None, 'oidc', False, {
+                'provider': provider,
+                'error': str(e)
+            },
+            request.remote_addr, request.headers.get('User-Agent')
+        )
+        
+        return redirect(url_for('login'))
+
+# Authentik Metadata Download Routes
+@app.route('/admin/download_saml_metadata', methods=['POST'])
+@login_required
+def download_saml_metadata():
+    """Download and configure SAML metadata from Authentik"""
+    if not current_user.is_super_admin:
+        return jsonify({'error': 'Super admin privileges required'}), 403
+    
+    try:
+        provider_id = request.form.get('provider_id')
+        server_url = request.form.get('server_url', get_config('oidc_authentik_url', ''))
+        
+        if not provider_id or not server_url:
+            return jsonify({'error': 'Provider ID and server URL required'}), 400
+        
+        # Download SAML metadata
+        metadata_url = f"{server_url}/api/v3/providers/saml/{provider_id}/metadata/"
+        response = requests.get(metadata_url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse XML metadata
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(response.content)
+        
+        # Extract SAML configuration
+        namespace = {'saml': 'urn:oasis:names:tc:SAML:2.0:metadata'}
+        
+        # Get EntityID
+        entity_id = root.get('entityID')
+        
+        # Get SSO URL
+        sso_element = root.find('.//saml:SingleSignOnService[@Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"]', namespace)
+        sso_url = sso_element.get('Location') if sso_element is not None else None
+        
+        # Get SLO URL
+        slo_element = root.find('.//saml:SingleLogoutService[@Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"]', namespace)
+        slo_url = slo_element.get('Location') if slo_element is not None else None
+        
+        # Get X.509 Certificate
+        cert_element = root.find('.//saml:X509Certificate', namespace)
+        cert = cert_element.text.strip() if cert_element is not None else None
+        
+        if not all([entity_id, sso_url, cert]):
+            return jsonify({'error': 'Could not extract required SAML metadata'}), 400
+        
+        # Save configuration to database
+        set_config('saml_idp_entity_id', entity_id)
+        set_config('saml_idp_sso_url', sso_url)
+        if slo_url:
+            set_config('saml_idp_slo_url', slo_url)
+        set_config('saml_idp_cert', cert)
+        
+        return jsonify({
+            'success': True,
+            'message': 'SAML metadata downloaded and configured successfully',
+            'data': {
+                'entity_id': entity_id,
+                'sso_url': sso_url,
+                'slo_url': slo_url,
+                'cert_length': len(cert)
+            }
+        })
+        
+    except requests.RequestException as e:
+        return jsonify({'error': f'Failed to download metadata: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Failed to process metadata: {str(e)}'}), 500
+
+@app.route('/admin/download_oidc_metadata', methods=['POST'])
+@login_required  
+def download_oidc_metadata():
+    """Download and configure OIDC metadata from Authentik"""
+    if not current_user.is_super_admin:
+        return jsonify({'error': 'Super admin privileges required'}), 403
+    
+    try:
+        server_url = request.form.get('server_url')
+        if not server_url:
+            return jsonify({'error': 'Server URL required'}), 400
+        
+        # Download OIDC discovery document
+        discovery_url = f"{server_url}/.well-known/openid-configuration"
+        response = requests.get(discovery_url, timeout=10)
+        response.raise_for_status()
+        
+        metadata = response.json()
+        
+        # Extract OIDC configuration
+        authorization_endpoint = metadata.get('authorization_endpoint')
+        token_endpoint = metadata.get('token_endpoint') 
+        userinfo_endpoint = metadata.get('userinfo_endpoint')
+        issuer = metadata.get('issuer')
+        
+        if not all([authorization_endpoint, token_endpoint, userinfo_endpoint]):
+            return jsonify({'error': 'Incomplete OIDC metadata'}), 400
+        
+        # Save configuration to database
+        set_config('oidc_authentik_url', server_url)
+        set_config('oidc_authorization_endpoint', authorization_endpoint)
+        set_config('oidc_token_endpoint', token_endpoint)
+        set_config('oidc_userinfo_endpoint', userinfo_endpoint)
+        set_config('oidc_issuer', issuer)
+        
+        return jsonify({
+            'success': True,
+            'message': 'OIDC metadata downloaded and configured successfully',
+            'data': {
+                'issuer': issuer,
+                'authorization_endpoint': authorization_endpoint,
+                'token_endpoint': token_endpoint,
+                'userinfo_endpoint': userinfo_endpoint
+            }
+        })
+        
+    except requests.RequestException as e:
+        return jsonify({'error': f'Failed to download OIDC metadata: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Failed to process OIDC metadata: {str(e)}'}), 500
 
 # WebAuthn Routes
 @app.route('/webauthn/register/begin', methods=['POST'])
@@ -940,12 +1389,16 @@ def create_tables():
     if not hasattr(create_tables, 'done'):
         db.create_all()
         
+        # Load configuration from file into database
+        update_config_from_file()
+        
         # Create super admin user if none exists
         if not User.query.filter_by(is_super_admin=True).first():
             admin = User.query.filter_by(email='admin@visiquate.com').first()
             if admin:
                 admin.is_super_admin = True
                 db.session.commit()
+                logger.info("Upgraded admin@visiquate.com to super admin")
         
         create_tables.done = True
 
@@ -965,6 +1418,36 @@ def create_super_admin():
     
     flash('You are now a super admin with impersonation privileges')
     return redirect(url_for('admin'))
+
+@app.route('/admin/export_config', methods=['POST'])
+@login_required
+def export_config():
+    """Export current configuration to YAML file"""
+    if not current_user.is_super_admin:
+        return jsonify({'error': 'Super admin privileges required'}), 403
+    
+    try:
+        # Get all configuration from database
+        configs = Configuration.query.all()
+        config_dict = {}
+        
+        for config in configs:
+            config_dict[config.key] = config.value
+        
+        # Save to file
+        if save_config_file(config_dict):
+            logger.info(f"Exported {len(config_dict)} configuration items to file")
+            return jsonify({
+                'success': True,
+                'message': f'Exported {len(config_dict)} configuration items to {CONFIG_FILE_PATH}',
+                'config_count': len(config_dict)
+            })
+        else:
+            return jsonify({'error': 'Failed to save configuration file'}), 500
+            
+    except Exception as e:
+        logger.error(f"Failed to export configuration: {e}")
+        return jsonify({'error': f'Export failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=False)
