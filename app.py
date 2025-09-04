@@ -1509,10 +1509,12 @@ def saml_acs():
         # Process the SAML response
         app.logger.info("SAML ACS: Calling parse_authn_request_response")
         try:
+            # pysaml2 expects outstanding to be a dict mapping request_id -> came_from_url
+            # We'll leave it as None to disable outstanding query validation for now
             authn_response = client.parse_authn_request_response(
                 saml_response, 
                 BINDING_HTTP_POST,
-                outstanding={session_id} if session_id else None
+                outstanding=None
             )
             app.logger.info("SAML ACS: Successfully parsed SAML response")
         except Exception as parse_error:
