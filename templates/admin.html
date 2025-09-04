@@ -8,6 +8,11 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Admin Dashboard</h2>
             <a href="{{ url_for('admin_config') }}" class="btn btn-primary">Configuration Settings</a>
+            {% if current_user.is_super_admin %}
+                <a href="{{ url_for('admin_impersonate') }}" class="btn btn-warning">
+                    <i class="fas fa-user-secret me-2"></i>User Impersonation
+                </a>
+            {% endif %}
         </div>
 
         <div class="card">

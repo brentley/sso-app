@@ -78,6 +78,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(80), nullable=False)
     password_hash = db.Column(db.String(120))
     is_admin = db.Column(db.Boolean, default=False)
+    is_super_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # SCIM fields
@@ -121,6 +122,16 @@ class WebAuthnCredential(db.Model):
     public_key = db.Column(db.LargeBinary, nullable=False)
     sign_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class ImpersonationLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    admin_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    impersonated_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(50), nullable=False)  # 'start', 'stop', 'auth_test'
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.Text)
+    notes = db.Column(db.Text)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -170,6 +181,84 @@ def log_authentication(user_id, auth_method, success, transaction_data, ip_addre
                 user.passkey_tested = True
     
     db.session.commit()
+
+# Impersonation helper functions
+def start_impersonation(admin_user, target_user, notes=None):
+    """Start impersonating another user"""
+    if not admin_user.is_super_admin:
+        raise PermissionError("Only super admins can impersonate users")
+    
+    # Store original user info in session
+    session['original_user_id'] = admin_user.id
+    session['impersonated_user_id'] = target_user.id
+    session['impersonation_start'] = datetime.utcnow().isoformat()
+    
+    # Log the impersonation
+    log = ImpersonationLog(
+        admin_user_id=admin_user.id,
+        impersonated_user_id=target_user.id,
+        action='start',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent'),
+        notes=notes
+    )
+    db.session.add(log)
+    db.session.commit()
+    
+    # Login as the target user
+    login_user(target_user, remember=False)
+    return True
+
+def stop_impersonation():
+    """Stop impersonating and return to original admin user"""
+    if 'original_user_id' not in session:
+        return False
+    
+    original_user_id = session['original_user_id']
+    impersonated_user_id = session.get('impersonated_user_id')
+    
+    # Log the end of impersonation
+    if impersonated_user_id:
+        log = ImpersonationLog(
+            admin_user_id=original_user_id,
+            impersonated_user_id=impersonated_user_id,
+            action='stop',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        db.session.add(log)
+        db.session.commit()
+    
+    # Clear impersonation session data
+    session.pop('original_user_id', None)
+    session.pop('impersonated_user_id', None)
+    session.pop('impersonation_start', None)
+    
+    # Login as original admin user
+    original_user = User.query.get(original_user_id)
+    if original_user:
+        login_user(original_user, remember=False)
+        return True
+    return False
+
+def is_impersonating():
+    """Check if current session is impersonating another user"""
+    return 'original_user_id' in session
+
+def get_impersonation_info():
+    """Get information about current impersonation session"""
+    if not is_impersonating():
+        return None
+    
+    original_user = User.query.get(session.get('original_user_id'))
+    impersonated_user = User.query.get(session.get('impersonated_user_id'))
+    start_time = session.get('impersonation_start')
+    
+    return {
+        'original_user': original_user,
+        'impersonated_user': impersonated_user,
+        'start_time': start_time
+    }
 
 @app.route('/health')
 def health():
@@ -327,6 +416,99 @@ def user_logs(user_id):
         })
     
     return jsonify(logs_data)
+
+# User Impersonation Routes (Super Admin Only)
+@app.route('/admin/impersonate')
+@login_required
+def admin_impersonate():
+    """Display user impersonation interface"""
+    if not current_user.is_super_admin:
+        flash('Access denied - Super admin privileges required')
+        return redirect(url_for('admin'))
+    
+    users = User.query.filter(User.id != current_user.id).all()
+    recent_logs = ImpersonationLog.query.filter_by(admin_user_id=current_user.id)\
+                                        .order_by(ImpersonationLog.timestamp.desc())\
+                                        .limit(10).all()
+    
+    impersonation_info = get_impersonation_info()
+    
+    return render_template('admin_impersonate.html', 
+                         users=users, 
+                         recent_logs=recent_logs,
+                         impersonation_info=impersonation_info)
+
+@app.route('/admin/impersonate/start/<int:user_id>', methods=['POST'])
+@login_required
+def start_impersonate(user_id):
+    """Start impersonating a user"""
+    if not current_user.is_super_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    target_user = User.query.get_or_404(user_id)
+    notes = request.form.get('notes', '')
+    
+    try:
+        start_impersonation(current_user, target_user, notes)
+        flash(f'Now impersonating {target_user.email}', 'info')
+        return redirect(url_for('index'))
+    except Exception as e:
+        flash(f'Failed to start impersonation: {str(e)}', 'error')
+        return redirect(url_for('admin_impersonate'))
+
+@app.route('/admin/impersonate/stop', methods=['POST'])
+@login_required
+def stop_impersonate():
+    """Stop impersonating and return to admin user"""
+    if not is_impersonating():
+        flash('Not currently impersonating anyone')
+        return redirect(url_for('admin'))
+    
+    impersonation_info = get_impersonation_info()
+    if stop_impersonation():
+        if impersonation_info:
+            flash(f'Stopped impersonating {impersonation_info["impersonated_user"].email}')
+        else:
+            flash('Returned to admin account')
+        return redirect(url_for('admin'))
+    else:
+        flash('Failed to stop impersonation', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/admin/impersonate/test_auth/<method>')
+@login_required  
+def test_auth_as_user(method):
+    """Test authentication method as impersonated user"""
+    if not is_impersonating():
+        return jsonify({'error': 'Not impersonating any user'}), 400
+    
+    impersonation_info = get_impersonation_info()
+    if not impersonation_info:
+        return jsonify({'error': 'Invalid impersonation session'}), 400
+    
+    # Log the auth test
+    log = ImpersonationLog(
+        admin_user_id=impersonation_info['original_user'].id,
+        impersonated_user_id=impersonation_info['impersonated_user'].id,
+        action='auth_test',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent'),
+        notes=f'Testing {method} authentication'
+    )
+    db.session.add(log)
+    db.session.commit()
+    
+    # Redirect to appropriate auth method
+    if method == 'saml':
+        return redirect(url_for('saml_login'))
+    elif method == 'oidc':
+        return redirect(url_for('oauth_login', provider='authentik'))
+    elif method == 'passkey':
+        flash(f'Test passkey authentication for {current_user.email}', 'info')
+        return redirect(url_for('login'))
+    else:
+        flash('Invalid authentication method', 'error')
+        return redirect(url_for('index'))
 
 # SCIM 2.0 endpoints
 @app.route('/scim/v2/ServiceProviderConfig')
@@ -737,19 +919,52 @@ def logout():
 
 @app.context_processor
 def inject_version_info():
-    return dict(
+    context = dict(
         git_commit=BUILD_INFO['git_commit_short'],
         build_date=BUILD_INFO['build_date'],
         version=BUILD_INFO['version'],
         build_number=BUILD_INFO['build_number']
     )
+    
+    # Add impersonation context
+    if current_user.is_authenticated:
+        context['is_impersonating'] = is_impersonating()
+        context['impersonation_info'] = get_impersonation_info()
+        context['is_super_admin'] = current_user.is_super_admin
+    
+    return context
 
 # Initialize database on first request
 @app.before_request
 def create_tables():
     if not hasattr(create_tables, 'done'):
         db.create_all()
+        
+        # Create super admin user if none exists
+        if not User.query.filter_by(is_super_admin=True).first():
+            admin = User.query.filter_by(email='admin@visiquate.com').first()
+            if admin:
+                admin.is_super_admin = True
+                db.session.commit()
+        
         create_tables.done = True
+
+@app.route('/admin/create_super_admin', methods=['POST'])
+@login_required
+def create_super_admin():
+    """Convert current user to super admin (for initial setup)"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Must be admin'}), 403
+    
+    # Only allow if no super admin exists
+    if User.query.filter_by(is_super_admin=True).first():
+        return jsonify({'error': 'Super admin already exists'}), 400
+    
+    current_user.is_super_admin = True
+    db.session.commit()
+    
+    flash('You are now a super admin with impersonation privileges')
+    return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=False)
