@@ -227,6 +227,27 @@ def get_config(key, default=None):
         return config.value
     return default
 
+def get_real_ip():
+    """Get the real client IP address from headers"""
+    # Check X-Forwarded-For header first (from Cloudflare)
+    forwarded_for = request.headers.get('X-Forwarded-For', '')
+    if forwarded_for:
+        # X-Forwarded-For can contain multiple IPs, take the first one (original client)
+        return forwarded_for.split(',')[0].strip()
+    
+    # Check X-Real-IP header
+    real_ip = request.headers.get('X-Real-IP', '')
+    if real_ip:
+        return real_ip
+    
+    # Check CF-Connecting-IP header (Cloudflare specific)
+    cf_ip = request.headers.get('CF-Connecting-IP', '')
+    if cf_ip:
+        return cf_ip
+    
+    # Fallback to remote_addr (direct connection)
+    return get_real_ip()
+
 def set_config(key, value, description=None, user_id=None):
     config = Configuration.query.filter_by(key=key).first()
     if not config:
@@ -310,7 +331,7 @@ def start_impersonation(admin_user, target_user, notes=None):
         admin_user_id=admin_user.id,
         impersonated_user_id=target_user.id,
         action='start',
-        ip_address=request.remote_addr,
+        ip_address=get_real_ip(),
         user_agent=request.headers.get('User-Agent'),
         notes=notes
     )
@@ -335,7 +356,7 @@ def stop_impersonation():
             admin_user_id=original_user_id,
             impersonated_user_id=impersonated_user_id,
             action='stop',
-            ip_address=request.remote_addr,
+            ip_address=get_real_ip(),
             user_agent=request.headers.get('User-Agent')
         )
         db.session.add(log)
@@ -444,7 +465,7 @@ def password_auth():
         'method': 'password',
         'email': email,
         'timestamp': datetime.utcnow().isoformat(),
-        'ip_address': request.remote_addr,
+        'ip_address': get_real_ip(),
         'user_agent': request.headers.get('User-Agent')
     }
     
@@ -455,7 +476,7 @@ def password_auth():
         
         log_authentication(
             user.id, 'password', True, transaction_data,
-            request.remote_addr, request.headers.get('User-Agent')
+            get_real_ip(), request.headers.get('User-Agent')
         )
         
         session['last_auth_data'] = transaction_data
@@ -467,7 +488,7 @@ def password_auth():
         
         log_authentication(
             user.id if user else None, 'password', False, transaction_data,
-            request.remote_addr, request.headers.get('User-Agent')
+            get_real_ip(), request.headers.get('User-Agent')
         )
         
         flash('Invalid email or password')
@@ -758,7 +779,7 @@ def test_auth_as_user(method):
         admin_user_id=impersonation_info['original_user'].id,
         impersonated_user_id=impersonation_info['impersonated_user'].id,
         action='auth_test',
-        ip_address=request.remote_addr,
+        ip_address=get_real_ip(),
         user_agent=request.headers.get('User-Agent'),
         notes=f'Testing {method} authentication'
     )
@@ -1081,7 +1102,7 @@ def saml_acs():
                 'success': True,
                 'user_id': user.id,
                 'timestamp': datetime.utcnow().isoformat(),
-                'ip_address': request.remote_addr,
+                'ip_address': get_real_ip(),
                 'user_agent': request.headers.get('User-Agent')
             }
             session['last_auth_data'] = auth_data
@@ -1093,7 +1114,7 @@ def saml_acs():
                     'attributes': attributes,
                     'nameid': auth.get_nameid()
                 },
-                request.remote_addr, request.headers.get('User-Agent')
+                get_real_ip(), request.headers.get('User-Agent')
             )
             
             return redirect(url_for('success'))
@@ -1113,7 +1134,7 @@ def saml_acs():
                     'errors': errors,
                     'last_error_reason': last_error
                 },
-                request.remote_addr, request.headers.get('User-Agent')
+                get_real_ip(), request.headers.get('User-Agent')
             )
             
             return redirect(url_for('login'))
@@ -1245,7 +1266,7 @@ def oauth_callback(provider):
             'success': True,
             'user_id': user.id,
             'timestamp': datetime.utcnow().isoformat(),
-            'ip_address': request.remote_addr,
+            'ip_address': get_real_ip(),
             'user_agent': request.headers.get('User-Agent')
         }
         session['last_auth_data'] = auth_data
@@ -1257,7 +1278,7 @@ def oauth_callback(provider):
                 'provider': provider,
                 'user_info': user_info
             },
-            request.remote_addr, request.headers.get('User-Agent')
+            get_real_ip(), request.headers.get('User-Agent')
         )
         
         return redirect(url_for('success'))
@@ -1271,7 +1292,7 @@ def oauth_callback(provider):
                 'provider': provider,
                 'error': str(e)
             },
-            request.remote_addr, request.headers.get('User-Agent')
+            get_real_ip(), request.headers.get('User-Agent')
         )
         
         return redirect(url_for('login'))
@@ -1596,7 +1617,7 @@ def webauthn_authenticate_complete():
                 email=user.email,
                 method='passkey',
                 success=True,
-                ip_address=request.remote_addr,
+                ip_address=get_real_ip(),
                 user_agent=request.headers.get('User-Agent')
             )
             db.session.add(auth_log)

@@ -20,41 +20,99 @@
                         <div class="col-md-6 mb-3">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h6 class="card-title">Authentication Status</h6>
-                                    <ul class="list-unstyled">
-                                        <li>
+                                    <h6 class="card-title">Authentication Validation Status</h6>
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="d-flex align-items-center">
                                             <span class="badge {{ 'bg-success' if current_user.saml_tested else 'bg-secondary' }} me-2">
-                                                {{ 'Tested' if current_user.saml_tested else 'Not Tested' }}
+                                                <i class="fas {{ 'fa-check' if current_user.saml_tested else 'fa-times' }}"></i>
                                             </span>
-                                            SAML Authentication
-                                        </li>
-                                        <li class="mt-1">
+                                            <span class="fw-medium">SAML Authentication</span>
+                                            {% if not current_user.saml_tested %}
+                                                <small class="text-muted ms-2">Not validated</small>
+                                            {% else %}
+                                                <small class="text-success ms-2">✓ Validated</small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex align-items-center">
                                             <span class="badge {{ 'bg-success' if current_user.oidc_tested else 'bg-secondary' }} me-2">
-                                                {{ 'Tested' if current_user.oidc_tested else 'Not Tested' }}
+                                                <i class="fas {{ 'fa-check' if current_user.oidc_tested else 'fa-times' }}"></i>
                                             </span>
-                                            OIDC Authentication
-                                        </li>
-                                        <li class="mt-1">
+                                            <span class="fw-medium">OIDC Authentication</span>
+                                            {% if not current_user.oidc_tested %}
+                                                <small class="text-muted ms-2">Not validated</small>
+                                            {% else %}
+                                                <small class="text-success ms-2">✓ Validated</small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex align-items-center">
                                             <span class="badge {{ 'bg-success' if current_user.password_tested else 'bg-secondary' }} me-2">
-                                                {{ 'Tested' if current_user.password_tested else 'Not Tested' }}
+                                                <i class="fas {{ 'fa-check' if current_user.password_tested else 'fa-times' }}"></i>
                                             </span>
-                                            Password Authentication
-                                        </li>
-                                        <li class="mt-1">
+                                            <span class="fw-medium">Password Authentication</span>
+                                            {% if not current_user.password_tested %}
+                                                <small class="text-muted ms-2">Not validated</small>
+                                            {% else %}
+                                                <small class="text-success ms-2">✓ Validated</small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex align-items-center">
                                             <span class="badge {{ 'bg-success' if current_user.passkey_tested else 'bg-secondary' }} me-2">
-                                                {{ 'Tested' if current_user.passkey_tested else 'Not Tested' }}
+                                                <i class="fas {{ 'fa-check' if current_user.passkey_tested else 'fa-times' }}"></i>
                                             </span>
-                                            Passkey Authentication
-                                        </li>
-                                    </ul>
+                                            <span class="fw-medium">Passkey Authentication</span>
+                                            {% if not current_user.passkey_tested %}
+                                                <small class="text-muted ms-2">Not validated</small>
+                                            {% else %}
+                                                <small class="text-success ms-2">✓ Validated</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <strong>Progress:</strong> 
+                                            {{ (current_user.saml_tested|int + current_user.oidc_tested|int + current_user.password_tested|int + current_user.passkey_tested|int) }} of 4 methods validated
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h6 class="card-title">Quick Actions</h6>
-                                    <div class="d-grid gap-2">
+                                    <h6 class="card-title">Account Information</h6>
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Email:</span>
+                                            <span class="fw-medium">{{ current_user.email }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Name:</span>
+                                            <span class="fw-medium">{{ current_user.name }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Role:</span>
+                                            <span class="fw-medium">
+                                                {% if current_user.is_super_admin %}
+                                                    <span class="badge bg-danger">Super Admin</span>
+                                                {% elif current_user.is_admin %}
+                                                    <span class="badge bg-warning">Admin</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">User</span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Member Since:</span>
+                                            <span class="fw-medium">{{ current_user.created_at.strftime('%b %d, %Y') if current_user.created_at else 'Unknown' }}</span>
+                                        </div>
+                                        {% if current_user.scim_provisioned %}
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Provisioning:</span>
+                                            <span class="badge bg-success">SCIM Provisioned</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-grid gap-2 mt-3">
                                         <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Test Authentication</a>
                                         {% if current_user.is_admin %}
                                             <a href="{{ url_for('admin') }}" class="btn btn-secondary btn-sm">Admin Dashboard</a>
