@@ -534,3 +534,16 @@ body {
     background-color: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
 }
+
+/* Admin table improvements */
+.auth-tests-column {
+    min-width: 140px;
+}
+
+.auth-tests-column .d-flex {
+    margin-bottom: 0.25rem;
+}
+
+.auth-tests-column .d-flex:last-child {
+    margin-bottom: 0;
+}
