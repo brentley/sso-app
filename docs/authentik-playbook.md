@@ -50,6 +50,7 @@ This guide covers three authentication methods:
    ✅ authentik default SAML Mapping: Username  
    ✅ authentik default SAML Mapping: UPN
    ✅ authentik default SAML Mapping: Email
+   ✅ authentik default SAML Mapping: Groups (for group membership display)
    ```
 
 4. **Advanced Settings:**
@@ -149,7 +150,7 @@ This guide covers three authentication methods:
    
    Redirect URIs/Origins (CORS): https://sso-app.visiquate.com/oauth/callback/authentik
    
-   Scopes: openid, email, profile
+   Scopes: openid, email, profile, groups
    Subject mode: Based on the User's hashed ID
    Include claims in id_token: ✅
    
@@ -319,7 +320,12 @@ Once configured, SCIM will automatically:
 - Ensure redirect URI is exactly: `https://sso-app.visiquate.com/oauth/callback/authentik`
 
 **Error:** "Scope not allowed"
-- **Solution:** Verify scopes in Authentik provider include: `openid email profile`
+- **Solution:** Verify scopes in Authentik provider include: `openid email profile groups`
+
+**Groups not showing in SSO Test App:**
+- **Solution:** Ensure user is member of groups in Authentik
+- Verify SAML provider has "Groups" property mapping enabled
+- For OIDC, ensure `groups` scope is included in provider configuration
 
 ### SCIM Issues
 
@@ -383,5 +389,27 @@ After completing this playbook, you will have:
 ✅ **SCIM Provisioning** - Users automatically provisioned from Authentik  
 ✅ **User Lifecycle Management** - Create, update, deactivate users automatically  
 ✅ **Centralized Access Control** - Manage all access through Authentik groups and policies
+✅ **Dynamic Group Display** - Real-time group membership shown from authentication payloads
+✅ **Enhanced Debugging** - Debug endpoints for troubleshooting configuration issues
 
-The SSO Test App will support multiple authentication methods while maintaining centralized user management through Authentik.
+## New Features in SSO Test App
+
+### Dynamic Group Membership Display
+- Groups from SAML attributes and OIDC claims are displayed in real-time
+- No storage required - groups shown directly from authentication session
+- Visual badges on success page and dashboard
+- Progress tracking for authentication method validation
+
+### Enhanced Admin Interface  
+- Separate configuration panels for SAML, OIDC, SCIM, and app settings
+- Automatic metadata import for SAML and OIDC discovery
+- Real-time configuration validation
+- Debug endpoints for troubleshooting
+
+### Improved Security and Reliability
+- Production WSGI server (Gunicorn) instead of development server
+- Accurate client IP logging behind Cloudflare tunnel
+- Proper HTTPS detection for SAML behind reverse proxies
+- WebAuthn 2.0 compatibility with latest security standards
+
+The SSO Test App will support multiple authentication methods while maintaining centralized user management through Authentik with enhanced user experience and debugging capabilities.
