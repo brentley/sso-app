@@ -96,6 +96,23 @@ def save_config_file(config):
         logger.error(f"Failed to save config file: {e}")
         return False
 
+def export_config_to_file():
+    """Export all database configuration to YAML file"""
+    try:
+        configs = Configuration.query.all()
+        file_config = {}
+        
+        for config in configs:
+            if config.value:  # Only export non-empty values
+                file_config[config.key] = config.value
+        
+        save_config_file(file_config)
+        logger.info(f"Exported {len(file_config)} configurations to {CONFIG_FILE_PATH}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to export configuration to file: {e}")
+        return False
+
 def update_config_from_file():
     """Update database configuration from file on startup"""
     file_config = load_config_file()
