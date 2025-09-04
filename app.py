@@ -7,6 +7,7 @@ import time
 import yaml
 import logging
 from datetime import datetime, timedelta
+from urllib.parse import urlsplit
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
@@ -773,11 +774,11 @@ def init_saml_auth(req):
 
 def prepare_flask_request(request):
     """Prepare Flask request for SAML"""
-    url_data = request.urlsplit(request.url)
+    url_data = urlsplit(request.url)
     return {
         'https': 'on' if request.scheme == 'https' else 'off',
         'http_host': request.headers.get('Host', request.host),
-        'server_port': url_data.port,
+        'server_port': url_data.port or (443 if request.scheme == 'https' else 80),
         'script_name': request.path,
         'get_data': request.args.copy(),
         'post_data': request.form.copy()
