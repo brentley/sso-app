@@ -9,7 +9,7 @@ services:
       - BUILD_DATE=${BUILD_DATE:-unknown}
       - VERSION=${VERSION:-1.0.0}
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=sqlite:///data/sso_test.db
+      - DATABASE_URL=sqlite:////app/data/sso_test.db
       - RP_ID=${RP_ID:-sso-app.visiquate.com}
       - RP_NAME=${RP_NAME:-SSO Test App}
       - ORIGIN=${ORIGIN:-https://sso-app.visiquate.com}
