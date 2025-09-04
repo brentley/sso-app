@@ -1149,31 +1149,32 @@ def get_saml_client():
         "cert_file": None,  # Will set if certificate provided
     }
     
-    # Add IdP configuration using inline metadata only
-    if idp_entity_id and idp_sso_url and idp_cert:
-        # Use proper pysaml2 inline metadata format
-        config["metadata"]["inline"] = [
-            ("idp", {
-                "entityid": idp_entity_id,
-                "service": {
-                    "idp": {
-                        "name": "Identity Provider",
-                        "endpoints": {
-                            "single_sign_on_service": [
-                                (idp_sso_url, BINDING_HTTP_REDIRECT),
-                            ],
-                            "single_logout_service": [
-                                (idp_slo_url, BINDING_HTTP_REDIRECT),
-                            ] if idp_slo_url else [],
-                        },
-                        "name_id_format": [nameid_format],
-                    }
-                },
-                "signing": {
-                    "cert": idp_cert,
-                }
-            })
+    # Check for metadata URL first, then fall back to manual configuration
+    metadata_url = get_config('saml_metadata_url', '')
+    
+    if metadata_url:
+        # Use remote metadata URL
+        app.logger.info(f"get_saml_client: Using metadata URL: {metadata_url}")
+        config["metadata"]["remote"] = [
+            {"url": metadata_url}
         ]
+    elif idp_entity_id and idp_sso_url and idp_cert:
+        # Use manual IdP configuration without metadata
+        app.logger.info("get_saml_client: Using manual IdP configuration")
+        # Don't use inline metadata, set up IdP manually in the config
+        config["idp"] = {
+            idp_entity_id: {
+                "single_sign_on_service": {
+                    BINDING_HTTP_REDIRECT: idp_sso_url
+                },
+                "single_logout_service": {
+                    BINDING_HTTP_REDIRECT: idp_slo_url
+                } if idp_slo_url else {},
+                "name_id_format": nameid_format,
+                # Add certificate for signature validation
+                "signing_key": idp_cert if idp_cert else None
+            }
+        }
     
     # Configure SP certificate if provided
     if sp_cert and sp_private_key:
