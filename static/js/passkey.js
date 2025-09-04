@@ -3,12 +3,34 @@
 class PasskeyManager {
     constructor() {
         this.modal = null;
+        this.modalInstance = null;
         this.init();
     }
 
     init() {
         this.setupEventListeners();
         this.modal = document.getElementById('passkeyModal');
+        
+        // Add event listeners for modal cleanup
+        if (this.modal) {
+            this.modal.addEventListener('hidden.bs.modal', () => {
+                this.cleanup();
+            });
+        }
+    }
+
+    cleanup() {
+        // Ensure no modal instance is lingering
+        this.modalInstance = null;
+        
+        // Force remove any remaining backdrops
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        // Remove modal-open class from body
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
     }
 
     setupEventListeners() {
@@ -27,19 +49,47 @@ class PasskeyManager {
 
     showModal(title, content) {
         if (this.modal) {
+            // Hide any existing modal first
+            this.hideModal();
+            
+            // Update modal content
             this.modal.querySelector('.modal-title').textContent = title;
             this.modal.querySelector('.modal-body').innerHTML = content;
-            const bsModal = new bootstrap.Modal(this.modal);
-            bsModal.show();
-            return bsModal;
+            
+            // Create new modal instance
+            this.modalInstance = new bootstrap.Modal(this.modal, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            
+            this.modalInstance.show();
+            return this.modalInstance;
         }
     }
 
     hideModal() {
-        const bsModal = bootstrap.Modal.getInstance(this.modal);
-        if (bsModal) {
-            bsModal.hide();
+        // Hide current modal instance
+        if (this.modalInstance) {
+            this.modalInstance.hide();
+            this.modalInstance.dispose();
+            this.modalInstance = null;
         }
+        
+        // Clean up any remaining modal instances
+        const existingModal = bootstrap.Modal.getInstance(this.modal);
+        if (existingModal) {
+            existingModal.hide();
+            existingModal.dispose();
+        }
+        
+        // Force remove any remaining backdrops
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        // Remove modal-open class from body
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
     }
 
     async registerPasskey() {
@@ -151,7 +201,7 @@ class PasskeyManager {
                     <div class="webauthn-icon text-danger">❌</div>
                     <h5 class="text-danger">Registration Failed</h5>
                     <p class="text-muted">${errorMessage}</p>
-                    <button class="btn btn-secondary" onclick="passkeyManager.hideModal()">Close</button>
+                    <button class="btn btn-secondary" onclick="window.passkeyManager.hideModal()">Close</button>
                 </div>
             `);
         }
@@ -277,7 +327,7 @@ class PasskeyManager {
                     <div class="webauthn-icon text-danger">❌</div>
                     <h5 class="text-danger">Authentication Failed</h5>
                     <p class="text-muted">${errorMessage}</p>
-                    <button class="btn btn-secondary" onclick="passkeyManager.hideModal()">Close</button>
+                    <button class="btn btn-secondary" onclick="window.passkeyManager.hideModal()">Close</button>
                 </div>
             `);
         }
