@@ -11,7 +11,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE_URL=sqlite:////app/data/sso_test.db
       - RP_ID=${RP_ID:-sso-app.visiquate.com}
-      - RP_NAME=${RP_NAME:-VisiQuate SSO Test App}
+      - RP_NAME=${RP_NAME:-SSO Test App}
       - ORIGIN=${ORIGIN:-https://sso-app.visiquate.com}
     volumes:
       - sso_data:/app/data

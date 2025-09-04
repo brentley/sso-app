@@ -16,7 +16,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DATABASE_URL=sqlite:///data/sso_test_dev.db
       - RP_ID=${RP_ID:-localhost}
-      - RP_NAME=${RP_NAME:-VisiQuate SSO Test App (Dev)}
+      - RP_NAME=${RP_NAME:-SSO Test App (Dev)}
       - ORIGIN=${ORIGIN:-http://localhost:5000}
     ports:
       - "5000:5000"

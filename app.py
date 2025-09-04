@@ -137,7 +137,7 @@ app.config['AUTHENTIK_SERVER_URL'] = os.getenv('AUTHENTIK_SERVER_URL', 'https://
 
 # WebAuthn Configuration
 app.config['WEBAUTHN_RP_ID'] = os.getenv('WEBAUTHN_RP_ID', 'sso-app.visiquate.com')
-app.config['WEBAUTHN_RP_NAME'] = os.getenv('WEBAUTHN_RP_NAME', 'SSO Test App')
+app.config['WEBAUTHN_RP_NAME'] = os.getenv('WEBAUTHN_RP_NAME', 'VisiQuate SSO Test App')
 app.config['WEBAUTHN_ORIGIN'] = os.getenv('WEBAUTHN_ORIGIN', 'https://sso-app.visiquate.com')
 
 # Initialize extensions
@@ -152,7 +152,7 @@ oauth = OAuth(app)
 
 # WebAuthn Configuration
 RP_ID = os.getenv('RP_ID', 'localhost')
-RP_NAME = os.getenv('RP_NAME', 'SSO Test App')
+RP_NAME = os.getenv('RP_NAME', 'VisiQuate SSO Test App')
 ORIGIN = os.getenv('ORIGIN', 'http://localhost:5000')
 
 # Models
@@ -1187,7 +1187,7 @@ def get_saml_client():
         "entityid": f"{base_url}",
         "service": {
             "sp": {
-                "name": "SSO Test Application",
+                "name": "VisiQuate SSO Test Application",
                 "endpoints": {
                     "assertion_consumer_service": [
                         (f"{base_url}/saml/acs", BINDING_HTTP_POST, "0"),

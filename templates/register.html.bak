@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}VisiQuate SSO Test App - Register{% endblock %}
+{% block title %}SSO Authentication Test - Register{% endblock %}
 
 {% block content %}
 <div class="row">

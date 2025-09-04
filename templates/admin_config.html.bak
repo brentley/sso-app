@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}VisiQuate SSO Test App - Configuration{% endblock %}
+{% block title %}SSO Authentication Test - Configuration{% endblock %}
 
 {% block content %}
 <div class="row">

@@ -20,7 +20,7 @@ def test_index_page(client):
     """Test the index page loads"""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'VisiQuate SSO Authentication Testing' in response.data
+    assert b'SSO Authentication Testing' in response.data
 
 
 def test_login_page(client):
