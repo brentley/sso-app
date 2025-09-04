@@ -1192,12 +1192,20 @@ def get_saml_client():
             config["key_file"] = key_path
             
             app.logger.info("get_saml_client: Creating SAML config with certificates")
-            saml_config = Saml2Config()
-            saml_config.load(config)
-            app.logger.info("get_saml_client: Creating SAML client with certificates")
-            client = Saml2Client(config=saml_config)
-            
-            return client
+            try:
+                saml_config = Saml2Config()
+                app.logger.info("get_saml_client: Saml2Config created, loading config")
+                saml_config.load(config)
+                app.logger.info("get_saml_client: Config loaded, creating SAML client with certificates")
+                client = Saml2Client(config=saml_config)
+                app.logger.info("get_saml_client: SAML client created successfully")
+                return client
+            except Exception as e:
+                app.logger.error(f"get_saml_client: Error creating SAML client: {str(e)}")
+                app.logger.error(f"get_saml_client: Error type: {type(e)}")
+                import traceback
+                app.logger.error(f"get_saml_client: Traceback: {traceback.format_exc()}")
+                raise
             
         finally:
             # Clean up temp files
@@ -1208,10 +1216,20 @@ def get_saml_client():
                 pass
     else:
         app.logger.info("get_saml_client: Creating SAML config without certificates")
-        saml_config = Saml2Config()
-        saml_config.load(config)
-        app.logger.info("get_saml_client: Creating SAML client without certificates")
-        return Saml2Client(config=saml_config)
+        try:
+            saml_config = Saml2Config()
+            app.logger.info("get_saml_client: Saml2Config created, loading config")
+            saml_config.load(config)
+            app.logger.info("get_saml_client: Config loaded, creating SAML client without certificates")
+            client = Saml2Client(config=saml_config)
+            app.logger.info("get_saml_client: SAML client created successfully")
+            return client
+        except Exception as e:
+            app.logger.error(f"get_saml_client: Error creating SAML client: {str(e)}")
+            app.logger.error(f"get_saml_client: Error type: {type(e)}")
+            import traceback
+            app.logger.error(f"get_saml_client: Traceback: {traceback.format_exc()}")
+            raise
 
 # SAML functions removed - now using pysaml2 via get_saml_client()
 
