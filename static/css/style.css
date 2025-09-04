@@ -103,9 +103,32 @@ body {
     background-color: var(--navbar-bg) !important;
 }
 
+/* Alert fixes for dark mode */
+[data-theme="dark"] .alert-success {
+    background-color: rgba(40, 167, 69, 0.15) !important;
+    border-color: rgba(40, 167, 69, 0.3) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .alert-success .alert-heading {
+    color: var(--text-primary) !important;
+}
+
 [data-theme="dark"] .alert-info {
     background-color: rgba(17, 109, 248, 0.1) !important;
     border-color: rgba(17, 109, 248, 0.2) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+    border-color: rgba(255, 193, 7, 0.3) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
     color: var(--text-primary) !important;
 }
 
@@ -145,9 +168,47 @@ body {
     color: var(--text-secondary) !important;
 }
 
+[data-theme="dark"] .text-dark {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-white {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-light {
+    color: var(--text-secondary) !important;
+}
+
 [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, 
 [data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6,
 [data-theme="dark"] p, [data-theme="dark"] span, [data-theme="dark"] div {
+    color: var(--text-primary) !important;
+}
+
+/* Fix button text contrast */
+[data-theme="dark"] .btn-light {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .btn-light:hover,
+[data-theme="dark"] .btn-light:focus {
+    background-color: var(--border-color) !important;
+    border-color: var(--text-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .btn-outline-light {
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .btn-outline-light:hover,
+[data-theme="dark"] .btn-outline-light:focus {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
     color: var(--text-primary) !important;
 }
 
@@ -191,6 +252,48 @@ body {
 [data-theme="dark"] code {
     background-color: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
+}
+
+/* Fix list and navigation text */
+[data-theme="dark"] .list-group-item {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .nav-link {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .nav-link:focus {
+    color: var(--vq-primary) !important;
+}
+
+/* Fix pagination */
+[data-theme="dark"] .page-link {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .page-link:hover,
+[data-theme="dark"] .page-link:focus {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .page-item.active .page-link {
+    background-color: var(--vq-primary) !important;
+    border-color: var(--vq-primary) !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .page-item.disabled .page-link {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-secondary) !important;
 }
 
 /* Custom styles */
