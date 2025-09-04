@@ -82,7 +82,8 @@
                         <div id="passkey-auth-section">
                             <div class="mb-3">
                                 <label for="passkey-email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="passkey-email" required>
+                                <input type="email" class="form-control" id="passkey-email" 
+                                       value="{{ current_user.email if current_user.is_authenticated else '' }}" required>
                             </div>
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-warning" id="authenticate-passkey">

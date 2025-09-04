@@ -1550,7 +1550,8 @@ def webauthn_register_complete():
             expected_rp_id=app.config['WEBAUTHN_RP_ID']
         )
         
-        if verification.verified:
+        # WebAuthn 2.0.0 API - verification object itself indicates success
+        if verification:
             # Save credential to database
             new_credential = WebAuthnCredential(
                 user_id=current_user.id,
@@ -1664,7 +1665,8 @@ def webauthn_authenticate_complete():
             credential_current_sign_count=db_credential.sign_count
         )
         
-        if verification.verified:
+        # WebAuthn 2.0.0 API - verification object itself indicates success
+        if verification:
             # Update sign count
             db_credential.sign_count = verification.new_sign_count
             db.session.commit()
