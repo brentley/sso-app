@@ -34,7 +34,9 @@
                                 <th>User</th>
                                 <th>Email</th>
                                 <th>SCIM Provisioned</th>
-                                <th>Authentication Tests</th>
+                                <th>SAML</th>
+                                <th>OIDC</th>
+                                <th>Passkey</th>
                                 <th>Created</th>
                                 <th>Actions</th>
                             </tr>
@@ -68,27 +70,20 @@
                                         {{ 'Yes' if user.scim_provisioned else 'No' }}
                                     </span>
                                 </td>
-                                <td class="auth-tests-column">
-                                    <div class="d-flex flex-column gap-1">
-                                        <div class="d-flex align-items-center">
-                                            <small class="text-muted me-2" style="min-width: 60px;">SAML:</small>
-                                            <span class="badge {{ 'bg-success' if user.saml_tested else 'bg-secondary' }}">
-                                                {{ 'Tested' if user.saml_tested else 'Not Tested' }}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <small class="text-muted me-2" style="min-width: 60px;">OIDC:</small>
-                                            <span class="badge {{ 'bg-success' if user.oidc_tested else 'bg-secondary' }}">
-                                                {{ 'Tested' if user.oidc_tested else 'Not Tested' }}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <small class="text-muted me-2" style="min-width: 60px;">Passkey:</small>
-                                            <span class="badge {{ 'bg-success' if user.passkey_tested else 'bg-secondary' }}">
-                                                {{ 'Tested' if user.passkey_tested else 'Not Tested' }}
-                                            </span>
-                                        </div>
-                                    </div>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.saml_tested else 'bg-secondary' }}">
+                                        {{ 'Tested' if user.saml_tested else 'Not Tested' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.oidc_tested else 'bg-secondary' }}">
+                                        {{ 'Tested' if user.oidc_tested else 'Not Tested' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if user.passkey_tested else 'bg-secondary' }}">
+                                        {{ 'Tested' if user.passkey_tested else 'Not Tested' }}
+                                    </span>
                                 </td>
                                 <td>
                                     <small class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</small>

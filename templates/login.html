@@ -12,7 +12,7 @@
 
         <div class="row">
             <!-- SAML Authentication -->
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-8 mx-auto mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="card-title mb-0">SAML Authentication</h5>
@@ -28,7 +28,7 @@
             </div>
 
             <!-- OIDC Authentication -->
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-8 mx-auto mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-info text-white">
                         <h5 class="card-title mb-0">OIDC Authentication</h5>
@@ -49,7 +49,7 @@
 
 
             <!-- Passkey Authentication -->
-            <div class="col-md-6 mb-4">
+            <div class="col-lg-8 mx-auto mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-warning text-dark">
                         <h5 class="card-title mb-0">Passkey Authentication</h5>
@@ -80,13 +80,17 @@
             </div>
         </div>
 
-        <div class="card mt-4">
+        <div class="row mt-4">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">Don't have an account?</h5>
             </div>
             <div class="card-body">
                 <p>Create a new account to test all authentication methods.</p>
                 <a href="{{ url_for('register') }}" class="btn btn-secondary">Register New Account</a>
+            </div>
+                </div>
             </div>
         </div>
     </div>
