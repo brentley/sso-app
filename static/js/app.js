@@ -4,6 +4,8 @@
 class ThemeManager {
     constructor() {
         this.theme = localStorage.getItem('theme') || 'auto';
+        this.themes = ['auto', 'dark', 'light']; // Cycle order
+        this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         this.init();
     }
 
@@ -11,50 +13,90 @@ class ThemeManager {
         this.applyTheme();
         this.setupThemeToggle();
         
-        // Listen for system theme changes
-        if (this.theme === 'auto') {
-            window.matchMedia('(prefers-color-scheme: dark)')
-                .addEventListener('change', () => this.applyTheme());
-        }
+        // Always listen for system theme changes (for auto mode)
+        this.mediaQuery.addEventListener('change', () => {
+            if (this.theme === 'auto') {
+                this.applyTheme();
+            }
+        });
     }
 
     applyTheme() {
         let isDark = false;
+        let effectiveTheme = this.theme;
         
         if (this.theme === 'dark') {
             isDark = true;
         } else if (this.theme === 'light') {
             isDark = false;
         } else {
-            // auto
-            isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            // auto - follow system preference
+            isDark = this.mediaQuery.matches;
+            effectiveTheme = isDark ? 'dark' : 'light';
         }
         
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-        this.updateToggleIcon(isDark);
+        document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        this.updateToggleIcon();
     }
 
-    updateToggleIcon(isDark) {
+    updateToggleIcon() {
         const icon = document.getElementById('theme-icon');
-        if (icon) {
-            icon.textContent = isDark ? '☀️' : '🌙';
+        const button = document.getElementById('theme-toggle');
+        
+        if (!icon || !button) return;
+        
+        // Update icon and tooltip based on current theme setting
+        switch (this.theme) {
+            case 'auto':
+                const isSystemDark = this.mediaQuery.matches;
+                icon.textContent = '🌓'; // Half moon for auto
+                button.title = `Auto (currently ${isSystemDark ? 'dark' : 'light'}) - click for dark mode`;
+                break;
+            case 'dark':
+                icon.textContent = '🌙'; // Moon for dark
+                button.title = 'Dark mode - click for light mode';
+                break;
+            case 'light':
+                icon.textContent = '☀️'; // Sun for light
+                button.title = 'Light mode - click for auto mode';
+                break;
         }
     }
 
     setupThemeToggle() {
         const toggle = document.getElementById('theme-toggle');
         if (toggle) {
-            toggle.addEventListener('click', () => this.toggleTheme());
+            toggle.addEventListener('click', () => this.cycleTheme());
         }
     }
 
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    cycleTheme() {
+        // Cycle through: auto → dark → light → auto
+        const currentIndex = this.themes.indexOf(this.theme);
+        const nextIndex = (currentIndex + 1) % this.themes.length;
         
-        this.theme = newTheme;
-        localStorage.setItem('theme', newTheme);
+        this.theme = this.themes[nextIndex];
+        localStorage.setItem('theme', this.theme);
         this.applyTheme();
+        
+        // Show a brief toast notification
+        if (window.toastManager) {
+            const themeNames = {
+                'auto': 'Auto (System)',
+                'dark': 'Dark Mode', 
+                'light': 'Light Mode'
+            };
+            window.toastManager.info(`Switched to ${themeNames[this.theme]}`, 2000);
+        }
+    }
+
+    // Method to get current effective theme (useful for debugging)
+    getEffectiveTheme() {
+        if (this.theme === 'auto') {
+            return this.mediaQuery.matches ? 'dark' : 'light';
+        }
+        return this.theme;
     }
 }
 
@@ -234,8 +276,8 @@ class ToastManager {
         this.show(message, 'warning');
     }
 
-    info(message) {
-        this.show(message, 'info');
+    info(message, duration = 5000) {
+        this.show(message, 'info', duration);
     }
 }
 
@@ -427,10 +469,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
-        // Alt + T for theme toggle
+        // Alt + T for theme cycle
         if (e.altKey && e.key === 't') {
             e.preventDefault();
-            window.themeManager.toggleTheme();
+            window.themeManager.cycleTheme();
         }
         
         // Alt + A for admin (if admin)

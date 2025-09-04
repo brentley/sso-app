@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ git_commit[:7] if git_commit else 'dev' }}">
     {% block extra_head %}{% endblock %}
 </head>
-<body data-theme="light">
+<body data-theme="auto">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">SSO Test App</a>
@@ -32,8 +32,8 @@
                     <a class="nav-link" href="{{ url_for('login') }}">Login</a>
                 {% endif %}
                 
-                <button class="btn btn-sm btn-outline-light ms-2" id="theme-toggle">
-                    <span id="theme-icon">🌙</span>
+                <button class="btn btn-sm btn-outline-light ms-2" id="theme-toggle" title="Auto mode - click for dark mode">
+                    <span id="theme-icon">🌓</span>
                 </button>
             </div>
         </div>
