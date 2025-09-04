@@ -89,9 +89,14 @@
                                     <small class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</small>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewUserLogs({{ user.id }})">
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewUserLogs({{ user.id }})">
                                         View Logs
                                     </button>
+                                    {% if current_user.is_admin %}
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="managePasskeys({{ user.id }})">
+                                            Passkeys
+                                        </button>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -150,6 +155,27 @@
             </div>
             <div class="modal-body">
                 <div id="userLogsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Passkey Management Modal -->
+<div class="modal fade" id="passkeyManageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Passkeys</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="passkeyManageContent">
                     <div class="text-center">
                         <div class="spinner-border" role="status">
                             <span class="visually-hidden">Loading...</span>
@@ -244,6 +270,82 @@ function showLogDetails(logId, transactionData) {
     detailsModal.addEventListener('hidden.bs.modal', function() {
         document.body.removeChild(detailsModal);
     });
+}
+
+async function managePasskeys(userId) {
+    const modal = new bootstrap.Modal(document.getElementById('passkeyManageModal'));
+    const content = document.getElementById('passkeyManageContent');
+    
+    // Show loading state
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading passkey credentials...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    try {
+        const response = await fetch(`/admin/user/${userId}/passkeys`);
+        const credentials = await response.json();
+        
+        if (credentials.length === 0) {
+            content.innerHTML = '<p class="text-muted text-center">No passkey credentials found for this user.</p>';
+            return;
+        }
+        
+        let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr>';
+        html += '<th>Credential ID</th><th>Created</th><th>Sign Count</th><th>Actions</th>';
+        html += '</tr></thead><tbody>';
+        
+        credentials.forEach(credential => {
+            const date = new Date(credential.created_at).toLocaleDateString();
+            const credentialId = credential.credential_id_b64.substring(0, 20) + '...';
+            
+            html += `<tr>
+                <td><code class="text-break">${credentialId}</code></td>
+                <td>${date}</td>
+                <td>${credential.sign_count}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deletePasskey(${userId}, ${credential.id})">
+                        <i class="fas fa-trash me-1"></i>Delete
+                    </button>
+                </td>
+            </tr>`;
+        });
+        
+        html += '</tbody></table></div>';
+        content.innerHTML = html;
+        
+    } catch (error) {
+        content.innerHTML = '<div class="alert alert-danger">Error loading passkey credentials: ' + error.message + '</div>';
+    }
+}
+
+async function deletePasskey(userId, credentialId) {
+    if (!confirm('Are you sure you want to delete this passkey credential? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/user/${userId}/passkeys/${credentialId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Refresh the passkey list
+            managePasskeys(userId);
+        } else {
+            alert('Error deleting passkey: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error deleting passkey: ' + error.message);
+    }
 }
 </script>
 {% endblock %}

@@ -717,6 +717,62 @@ def user_logs(user_id):
     
     return jsonify(logs_data)
 
+@app.route('/admin/user/<int:user_id>/passkeys')
+@login_required
+def admin_user_passkeys(user_id):
+    """Get passkey credentials for a specific user"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    credentials = WebAuthnCredential.query.filter_by(user_id=user_id).order_by(WebAuthnCredential.created_at.desc()).all()
+    
+    return jsonify([{
+        'id': credential.id,
+        'credential_id_b64': base64.b64encode(credential.credential_id).decode('utf-8'),
+        'created_at': credential.created_at.isoformat(),
+        'sign_count': credential.sign_count
+    } for credential in credentials])
+
+@app.route('/admin/user/<int:user_id>/passkeys/<int:credential_id>', methods=['DELETE'])
+@login_required
+def admin_delete_passkey(user_id, credential_id):
+    """Delete a specific passkey credential for a user"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    credential = WebAuthnCredential.query.filter_by(id=credential_id, user_id=user_id).first()
+    
+    if not credential:
+        return jsonify({'error': 'Credential not found'}), 404
+    
+    try:
+        credential_id_b64 = base64.b64encode(credential.credential_id).decode('utf-8')
+        db.session.delete(credential)
+        db.session.commit()
+        
+        # Log the admin action
+        log_authentication(
+            user_id=user_id,
+            method='passkey_admin_delete',
+            success=True,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', ''),
+            transaction_data={
+                'admin_user_id': current_user.id,
+                'admin_email': current_user.email,
+                'credential_id': credential_id_b64,
+                'action': 'passkey_deregistered'
+            }
+        )
+        
+        return jsonify({'message': 'Passkey credential deleted successfully'})
+    except Exception as e:
+        app.logger.error(f"Error deleting passkey credential: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete credential'}), 500
+
 @app.route('/admin/scim_logs')
 @login_required 
 def admin_scim_logs():
