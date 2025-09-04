@@ -1143,14 +1143,9 @@ def get_saml_client():
         "cert_file": None,  # Will set if certificate provided
     }
     
-    # Add IdP configuration
+    # Add IdP configuration using inline metadata only
     if idp_entity_id and idp_sso_url and idp_cert:
-        config["metadata"]["remote"].append({
-            "url": None,  # We're providing manual config
-            "cert": idp_cert,
-        })
-        
-        # Manual IdP configuration
+        # Manual IdP configuration - don't use remote metadata at all
         config["metadata"]["inline"] = [{
             "entityid": idp_entity_id,
             "service": {
