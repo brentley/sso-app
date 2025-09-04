@@ -31,14 +31,24 @@ app = Flask(__name__)
 START_TIME = time.time()
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('data/auth.log'),
-        logging.StreamHandler()
-    ]
-)
+def setup_logging():
+    """Setup logging with proper directory creation"""
+    log_dir = 'data'
+    log_file = os.path.join(log_dir, 'auth.log')
+    
+    # Ensure log directory exists
+    os.makedirs(log_dir, exist_ok=True)
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+
+setup_logging()
 logger = logging.getLogger(__name__)
 
 def get_build_info():
