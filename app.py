@@ -1307,42 +1307,70 @@ def saml_login():
         if not idp_entity_id:
             raise ValueError("SAML IdP not configured")
             
-        # Create authentication request
-        session_id, result = client.prepare_for_authenticate(
-            entityid=idp_entity_id,
-            relay_state=url_for('saml_acs', _external=True),
-            binding=BINDING_HTTP_REDIRECT
-        )
+        app.logger.info(f"SAML: Creating auth request for entity_id: {idp_entity_id}")
+        
+        try:
+            # Create authentication request
+            session_id, result = client.prepare_for_authenticate(
+                entityid=idp_entity_id,
+                relay_state=url_for('saml_acs', _external=True),
+                binding=BINDING_HTTP_REDIRECT
+            )
+            
+            app.logger.info(f"SAML prepare_for_authenticate succeeded: session_id={session_id}")
+            app.logger.info(f"SAML result type: {type(result)}")
+            app.logger.info(f"SAML result: {result}")
+            
+        except Exception as prepare_error:
+            app.logger.error(f"SAML prepare_for_authenticate failed: {str(prepare_error)}")
+            app.logger.error(f"SAML prepare error type: {type(prepare_error)}")
+            raise ValueError(f"SAML preparation failed: {str(prepare_error)}")
         
         # Store session ID for later validation
         session['saml_session_id'] = session_id
         
-        # Debug the result structure
-        app.logger.info(f"SAML prepare_for_authenticate result: {result}")
-        app.logger.info(f"SAML result type: {type(result)}")
-        
-        # Extract redirect URL more safely
+        # Extract redirect URL - try different approaches
         redirect_url = None
-        if isinstance(result, dict):
-            # Check for headers structure
-            if 'headers' in result and result['headers']:
-                if isinstance(result['headers'], list) and len(result['headers']) > 0:
-                    header = result['headers'][0]
-                    if isinstance(header, (list, tuple)) and len(header) > 1:
-                        redirect_url = header[1]
-                    else:
-                        app.logger.error(f"Unexpected header structure: {header}")
-                else:
-                    app.logger.error(f"No headers in result: {result}")
-            elif 'url' in result:
+        
+        try:
+            # Method 1: Check if result is a tuple/dict with headers
+            if hasattr(result, 'headers') and result.headers:
+                for header_name, header_value in result.headers:
+                    if header_name.lower() == 'location':
+                        redirect_url = header_value
+                        app.logger.info(f"SAML: Found redirect URL in headers: {redirect_url}")
+                        break
+            
+            # Method 2: Check for dict with headers key
+            elif isinstance(result, dict) and 'headers' in result:
+                headers = result['headers']
+                if isinstance(headers, list) and len(headers) > 0:
+                    for header in headers:
+                        if isinstance(header, (list, tuple)) and len(header) >= 2:
+                            if header[0].lower() == 'location':
+                                redirect_url = header[1]
+                                app.logger.info(f"SAML: Found redirect URL in dict headers: {redirect_url}")
+                                break
+            
+            # Method 3: Check if result is a string URL
+            elif isinstance(result, str) and result.startswith('http'):
+                redirect_url = result
+                app.logger.info(f"SAML: Result is direct URL: {redirect_url}")
+                
+            # Method 4: Check for url key in dict
+            elif isinstance(result, dict) and 'url' in result:
                 redirect_url = result['url']
-        elif isinstance(result, str):
-            redirect_url = result
+                app.logger.info(f"SAML: Found URL in dict: {redirect_url}")
+                
+        except Exception as parse_error:
+            app.logger.error(f"SAML: Error parsing result: {str(parse_error)}")
         
         if not redirect_url:
-            raise ValueError(f"No redirect URL found in SAML result: {result}")
+            app.logger.error(f"SAML: No redirect URL found. Result structure: {result}")
+            app.logger.error(f"SAML: Result attributes: {dir(result) if hasattr(result, '__dict__') else 'No attributes'}")
+            raise ValueError(f"No redirect URL found in SAML result. Result type: {type(result)}, Content: {result}")
         
-        app.logger.info(f"SAML redirecting to: {redirect_url}")
+        app.logger.info(f"SAML: Redirecting to: {redirect_url}")
         return redirect(redirect_url)
         
     except ValueError as e:
