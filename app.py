@@ -482,8 +482,34 @@ def admin_config():
         return redirect(url_for('index'))
     
     if request.method == 'POST':
-        # Handle configuration updates (for future implementation)
-        return jsonify({'status': 'success'})
+        try:
+            config_data = request.get_json()
+            if not config_data:
+                return jsonify({'status': 'error', 'message': 'No configuration data provided'}), 400
+            
+            # Save each configuration item to database
+            for key, value in config_data.items():
+                if value:  # Only save non-empty values
+                    existing_config = Configuration.query.filter_by(key=key).first()
+                    if existing_config:
+                        existing_config.value = value
+                        existing_config.updated_at = datetime.utcnow()
+                    else:
+                        new_config = Configuration(key=key, value=value)
+                        db.session.add(new_config)
+            
+            db.session.commit()
+            
+            # Export to YAML file for persistence
+            export_config_to_file()
+            
+            app.logger.info(f'Configuration updated by {current_user.email}: {list(config_data.keys())}')
+            return jsonify({'status': 'success', 'message': 'Configuration saved successfully'})
+            
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f'Error saving configuration: {str(e)}')
+            return jsonify({'status': 'error', 'message': f'Failed to save configuration: {str(e)}'}), 500
     
     # Get current configuration values as objects for template access
     configs = Configuration.query.all()
