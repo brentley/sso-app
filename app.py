@@ -1153,11 +1153,21 @@ def get_saml_client():
     metadata_url = get_config('saml_metadata_url', '')
     
     if metadata_url:
-        # Use remote metadata URL
-        app.logger.info(f"get_saml_client: Using metadata URL: {metadata_url}")
-        config["metadata"]["remote"] = [
-            {"url": metadata_url}
-        ]
+        # Fetch metadata manually to handle redirects
+        app.logger.info(f"get_saml_client: Fetching metadata from URL: {metadata_url}")
+        try:
+            import requests
+            response = requests.get(metadata_url, allow_redirects=True, timeout=10)
+            if response.status_code == 200:
+                metadata_xml = response.text
+                app.logger.info("get_saml_client: Successfully fetched metadata XML")
+                config["metadata"]["inline"] = [metadata_xml]
+            else:
+                app.logger.error(f"get_saml_client: Failed to fetch metadata, status: {response.status_code}")
+                raise ValueError(f"Failed to fetch metadata: HTTP {response.status_code}")
+        except Exception as e:
+            app.logger.error(f"get_saml_client: Error fetching metadata: {str(e)}")
+            raise ValueError(f"Failed to fetch metadata: {str(e)}")
     elif idp_entity_id and idp_sso_url and idp_cert:
         # Use manual IdP configuration without metadata
         app.logger.info("get_saml_client: Using manual IdP configuration")
