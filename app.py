@@ -246,7 +246,7 @@ def get_real_ip():
         return cf_ip
     
     # Fallback to remote_addr (direct connection)
-    return get_real_ip()
+    return request.remote_addr
 
 def set_config(key, value, description=None, user_id=None):
     config = Configuration.query.filter_by(key=key).first()
