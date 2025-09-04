@@ -1093,6 +1093,8 @@ def scim_create_user():
 # Authentication routes
 def get_saml_client():
     """Get configured SAML client using pysaml2"""
+    app.logger.info("get_saml_client: Starting SAML client creation")
+    
     # Force HTTPS for all visiquate.com domains
     host = request.headers.get('Host', request.host)
     if 'visiquate.com' in host or request.headers.get('X-Forwarded-Proto') == 'https':
@@ -1103,6 +1105,7 @@ def get_saml_client():
         port = request.environ.get('SERVER_PORT', 80)
     
     base_url = f"{scheme}://{host}"
+    app.logger.info(f"get_saml_client: Base URL: {base_url}")
     
     # Get configuration from database
     idp_entity_id = get_config('saml_idp_entity_id', '')
@@ -1113,7 +1116,10 @@ def get_saml_client():
     sp_private_key = get_config('saml_sp_private_key', '')
     nameid_format = get_config('saml_nameid_format', 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress')
     
+    app.logger.info(f"get_saml_client: Config loaded - IdP Entity ID: {idp_entity_id}, SSO URL: {idp_sso_url}")
+    
     if not all([idp_entity_id, idp_sso_url, idp_cert]):
+        app.logger.error("get_saml_client: SAML not fully configured")
         raise ValueError("SAML not fully configured")
     
     # pysaml2 configuration
@@ -1185,8 +1191,10 @@ def get_saml_client():
             config["cert_file"] = cert_path
             config["key_file"] = key_path
             
+            app.logger.info("get_saml_client: Creating SAML config with certificates")
             saml_config = Saml2Config()
             saml_config.load(config)
+            app.logger.info("get_saml_client: Creating SAML client with certificates")
             client = Saml2Client(config=saml_config)
             
             return client
@@ -1199,8 +1207,10 @@ def get_saml_client():
             except:
                 pass
     else:
+        app.logger.info("get_saml_client: Creating SAML config without certificates")
         saml_config = Saml2Config()
         saml_config.load(config)
+        app.logger.info("get_saml_client: Creating SAML client without certificates")
         return Saml2Client(config=saml_config)
 
 # SAML functions removed - now using pysaml2 via get_saml_client()
@@ -1295,22 +1305,32 @@ def debug_saml_config():
 def saml_login():
     """SAML authentication endpoint - pysaml2 version"""
     try:
-        client = get_saml_client()
+        app.logger.info("SAML: Starting login process")
         
-        # Get IdP entity ID
+        # Get IdP entity ID first for debugging
         idp_entity_id = get_config('saml_idp_entity_id', '')
         if not idp_entity_id:
+            app.logger.error("SAML: IdP entity ID not configured")
             raise ValueError("SAML IdP not configured")
-            
+        
+        app.logger.info(f"SAML: IdP entity ID configured: {idp_entity_id}")
+        
+        # Get SAML client
+        app.logger.info("SAML: Getting SAML client")
+        client = get_saml_client()
+        app.logger.info("SAML: SAML client created successfully")
+        
         app.logger.info(f"SAML: Creating auth request for entity_id: {idp_entity_id}")
         
         try:
             # Create authentication request
+            app.logger.info("SAML: Calling prepare_for_authenticate")
             session_id, result = client.prepare_for_authenticate(
                 entityid=idp_entity_id,
                 relay_state=url_for('saml_acs', _external=True),
                 binding=BINDING_HTTP_REDIRECT
             )
+            app.logger.info("SAML: prepare_for_authenticate completed")
             
             app.logger.info(f"SAML prepare_for_authenticate succeeded: session_id={session_id}")
             app.logger.info(f"SAML result type: {type(result)}")
