@@ -1168,6 +1168,34 @@ def debug_saml_config():
         return jsonify({'error': 'Access denied'}), 403
     
     try:
+        # Show current request details that affect SAML URL generation
+        req_info = {
+            'scheme': request.scheme,
+            'host': request.host,
+            'headers': {
+                'Host': request.headers.get('Host'),
+                'X-Forwarded-Proto': request.headers.get('X-Forwarded-Proto'),
+                'X-Forwarded-Ssl': request.headers.get('X-Forwarded-Ssl'),
+                'CF-Connecting-IP': request.headers.get('CF-Connecting-IP'),
+                'X-Forwarded-For': request.headers.get('X-Forwarded-For')
+            },
+            'url': request.url
+        }
+        
+        # Show what prepare_flask_request generates
+        prepared_req = prepare_flask_request(request)
+        
+        # Show SAML settings that would be generated
+        try:
+            saml_settings = get_saml_settings()
+            saml_sp_info = {
+                'entityId': saml_settings['sp']['entityId'],
+                'assertionConsumerService_url': saml_settings['sp']['assertionConsumerService']['url'],
+                'singleLogoutService_url': saml_settings['sp']['singleLogoutService']['url']
+            }
+        except Exception as e:
+            saml_sp_info = {'error': str(e)}
+        
         # Get all SAML related config
         saml_configs = {}
         for key in ['saml_entity_id', 'saml_idp_entity_id', 'saml_idp_sso_url', 'saml_idp_slo_url', 
@@ -1181,7 +1209,12 @@ def debug_saml_config():
             else:
                 saml_configs[key] = value or "[NOT SET]"
         
-        return jsonify(saml_configs)
+        return jsonify({
+            'request_info': req_info,
+            'prepared_request': prepared_req,
+            'saml_sp_info': saml_sp_info,
+            'config_values': saml_configs
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1205,6 +1238,11 @@ def saml_acs():
     try:
         req = prepare_flask_request(request)
         auth = init_saml_auth(req)
+        
+        # Debug logging
+        app.logger.info(f"SAML ACS - Prepared request: {req}")
+        app.logger.info(f"SAML ACS - Settings SP EntityId: {auth.get_settings().get_sp_data().get('entityId')}")
+        
         auth.process_response()
         
         errors = auth.get_errors()
