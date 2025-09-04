@@ -105,10 +105,10 @@
                                             <small class="text-muted d-block mb-1">Current Group Membership:</small>
                                             <div class="d-flex flex-wrap gap-1">
                                                 {% for group in session.get('last_auth_data', {}).get('groups', [])[:3] %}
-                                                    <span class="badge bg-light text-dark" style="font-size: 0.7em;">{{ group }}</span>
+                                                    <span class="badge group-badge">{{ group }}</span>
                                                 {% endfor %}
                                                 {% if session.get('last_auth_data', {}).get('groups', [])|length > 3 %}
-                                                    <span class="badge bg-light text-muted" style="font-size: 0.7em;">+{{ session.get('last_auth_data', {}).get('groups', [])|length - 3 }} more</span>
+                                                    <span class="badge group-badge text-muted">+{{ session.get('last_auth_data', {}).get('groups', [])|length - 3 }} more</span>
                                                 {% endif %}
                                             </div>
                                             <small class="text-muted">From {{ session.get('last_auth_data', {}).get('method', 'last').upper() }} authentication</small>

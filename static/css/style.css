@@ -155,6 +155,39 @@ body {
     color: white !important;
 }
 
+/* Group badge specific styling for dark mode */
+[data-theme="dark"] .badge.bg-light {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .badge.text-dark {
+    color: var(--text-primary) !important;
+}
+
+/* Group badges should have consistent styling */
+.group-badge {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    font-size: 0.7em;
+    font-weight: 500;
+}
+
+/* Light mode specific styling for group badges */
+[data-theme="light"] .group-badge {
+    background-color: #e9ecef;
+    color: #495057;
+    border-color: #dee2e6;
+}
+
+[data-theme="dark"] .group-badge {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
 [data-theme="dark"] code {
     background-color: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
