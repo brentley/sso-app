@@ -1066,9 +1066,15 @@ def prepare_flask_request(request):
         url_data = urlsplit(request.url)
         server_port = url_data.port or (443 if is_https else 80)
     
+    # IMPORTANT: Force HTTPS for production domains behind Cloudflare
+    host = request.headers.get('Host', request.host)
+    if 'visiquate.com' in host:
+        is_https = True
+        server_port = 443
+    
     return {
         'https': 'on' if is_https else 'off',
-        'http_host': request.headers.get('Host', request.host),
+        'http_host': host,
         'server_port': server_port,
         'script_name': request.path,
         'get_data': request.args.copy(),
@@ -1084,10 +1090,14 @@ def get_saml_settings():
         scheme = request.scheme
     
     host = request.headers.get('Host', request.host)
-    base_url = f"{scheme}://{host}"
     
-    # Always use HTTPS for Entity ID (required for production behind Cloudflare)
-    entity_id = f"https://{host}"
+    # IMPORTANT: Always use HTTPS for ALL URLs in production behind Cloudflare
+    # This ensures consistency between Entity ID, ACS URL, and SLS URL
+    if 'visiquate.com' in host:
+        scheme = 'https'
+    
+    base_url = f"{scheme}://{host}"
+    entity_id = f"{scheme}://{host}"
     acs_url = f"{base_url}/saml/acs"
     sls_url = f"{base_url}/saml/sls" 
     
