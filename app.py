@@ -13,7 +13,6 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from webauthn import generate_registration_options, verify_registration_response, generate_authentication_options, verify_authentication_response
@@ -160,7 +159,6 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(80), nullable=False)
-    password_hash = db.Column(db.String(120))
     is_admin = db.Column(db.Boolean, default=False)
     is_super_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -173,7 +171,6 @@ class User(UserMixin, db.Model):
     # Authentication status tracking
     saml_tested = db.Column(db.Boolean, default=False)
     oidc_tested = db.Column(db.Boolean, default=False)
-    password_tested = db.Column(db.Boolean, default=False)
     passkey_tested = db.Column(db.Boolean, default=False)
     
     # Relationships
@@ -217,6 +214,21 @@ class ImpersonationLog(db.Model):
     user_agent = db.Column(db.Text)
     notes = db.Column(db.Text)
 
+class SCIMLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    method = db.Column(db.String(10), nullable=False)  # GET, POST, PUT, DELETE
+    endpoint = db.Column(db.String(100), nullable=False)  # e.g. /scim/v2/Users
+    user_identifier = db.Column(db.String(255))  # email or external_id being processed
+    status_code = db.Column(db.Integer, nullable=False)
+    success = db.Column(db.Boolean, nullable=False)
+    request_data = db.Column(db.Text)  # JSON request payload
+    response_data = db.Column(db.Text)  # JSON response payload
+    error_message = db.Column(db.Text)
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.Text)
+    created_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Link to created user if successful
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -226,6 +238,40 @@ def get_config(key, default=None):
     if config:
         return config.value
     return default
+
+def log_scim_activity(method, endpoint, user_identifier=None, status_code=200, success=True, 
+                      request_data=None, response_data=None, error_message=None, created_user_id=None):
+    """Log SCIM API activity"""
+    try:
+        scim_log = SCIMLog(
+            method=method,
+            endpoint=endpoint,
+            user_identifier=user_identifier,
+            status_code=status_code,
+            success=success,
+            request_data=json.dumps(request_data) if request_data else None,
+            response_data=json.dumps(response_data) if response_data else None,
+            error_message=error_message,
+            ip_address=get_real_ip(),
+            user_agent=request.headers.get('User-Agent'),
+            created_user_id=created_user_id
+        )
+        db.session.add(scim_log)
+        db.session.commit()
+    except Exception as e:
+        print(f"Failed to log SCIM activity: {str(e)}")
+
+def safe_b64decode(data):
+    """Safely decode base64 data with proper padding"""
+    try:
+        # Add padding if needed
+        missing_padding = len(data) % 4
+        if missing_padding:
+            data += '=' * (4 - missing_padding)
+        return base64.urlsafe_b64decode(data.encode('utf-8') if isinstance(data, str) else data)
+    except Exception as e:
+        print(f"Base64 decode error: {e}")
+        raise
 
 def get_real_ip():
     """Get the real client IP address from headers"""
@@ -308,8 +354,6 @@ def log_authentication(user_id, auth_method, success, transaction_data, ip_addre
                 user.saml_tested = True
             elif auth_method == 'oidc':
                 user.oidc_tested = True
-            elif auth_method == 'password':
-                user.password_tested = True
             elif auth_method == 'passkey':
                 user.passkey_tested = True
     
@@ -432,7 +476,6 @@ def register():
     if request.method == 'POST':
         email = request.form['email']
         name = request.form['name']
-        password = request.form['password']
         
         if User.query.filter_by(email=email).first():
             flash('Email already exists')
@@ -444,55 +487,16 @@ def register():
         user = User(
             email=email,
             name=name,
-            password_hash=generate_password_hash(password),
             is_admin=is_admin
         )
         db.session.add(user)
         db.session.commit()
         
-        flash('Registration successful')
+        flash('Registration successful - use SAML, OIDC, or Passkey to login')
         return redirect(url_for('login'))
     
     return render_template('register.html')
 
-@app.route('/password_auth', methods=['POST'])
-def password_auth():
-    email = request.form['email']
-    password = request.form['password']
-    user = User.query.filter_by(email=email).first()
-    
-    transaction_data = {
-        'method': 'password',
-        'email': email,
-        'timestamp': datetime.utcnow().isoformat(),
-        'ip_address': get_real_ip(),
-        'user_agent': request.headers.get('User-Agent')
-    }
-    
-    if user and check_password_hash(user.password_hash, password):
-        login_user(user)
-        transaction_data['success'] = True
-        transaction_data['user_id'] = user.id
-        
-        log_authentication(
-            user.id, 'password', True, transaction_data,
-            get_real_ip(), request.headers.get('User-Agent')
-        )
-        
-        session['last_auth_data'] = transaction_data
-        flash('Password authentication successful!')
-        return redirect(url_for('success'))
-    else:
-        transaction_data['success'] = False
-        transaction_data['error'] = 'Invalid credentials'
-        
-        log_authentication(
-            user.id if user else None, 'password', False, transaction_data,
-            get_real_ip(), request.headers.get('User-Agent')
-        )
-        
-        flash('Invalid email or password')
-        return redirect(url_for('login'))
 
 @app.route('/success')
 @login_required
@@ -705,6 +709,41 @@ def user_logs(user_id):
     
     return jsonify(logs_data)
 
+@app.route('/admin/scim_logs')
+@login_required 
+def admin_scim_logs():
+    """Display SCIM activity logs"""
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('login'))
+    
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    
+    # Get SCIM logs ordered by most recent first
+    scim_logs = SCIMLog.query.order_by(SCIMLog.timestamp.desc())\
+                            .paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Get summary statistics
+    total_logs = SCIMLog.query.count()
+    successful_logs = SCIMLog.query.filter_by(success=True).count()
+    failed_logs = SCIMLog.query.filter_by(success=False).count()
+    user_creations = SCIMLog.query.filter(SCIMLog.created_user_id.is_not(None)).count()
+    
+    # Get recent user creations via SCIM
+    recent_scim_users = User.query.filter_by(scim_provisioned=True)\
+                                  .order_by(User.created_at.desc())\
+                                  .limit(10).all()
+    
+    return render_template('admin_scim_logs.html', 
+                         scim_logs=scim_logs,
+                         total_logs=total_logs,
+                         successful_logs=successful_logs, 
+                         failed_logs=failed_logs,
+                         user_creations=user_creations,
+                         recent_scim_users=recent_scim_users)
+
 # User Impersonation Routes (Super Admin Only)
 @app.route('/admin/impersonate')
 @login_required
@@ -802,42 +841,55 @@ def test_auth_as_user(method):
 @app.route('/scim/v2/ServiceProviderConfig')
 def scim_service_provider_config():
     """SCIM endpoint for service provider configuration"""
-    config = {
-        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig'],
-        'patch': {
-            'supported': True
-        },
-        'bulk': {
-            'supported': False,
-            'maxOperations': 0,
-            'maxPayloadSize': 0
-        },
-        'filter': {
-            'supported': True,
-            'maxResults': 200
-        },
-        'changePassword': {
-            'supported': False
-        },
-        'sort': {
-            'supported': False
-        },
-        'etag': {
-            'supported': False
-        },
-        'authenticationSchemes': [{
-            'name': 'HTTP Bearer',
-            'description': 'Authentication via bearer token',
-            'specUri': 'http://www.rfc-editor.org/info/rfc6750',
-            'type': 'httpbearer'
-        }],
-        'meta': {
-            'location': '/scim/v2/ServiceProviderConfig',
-            'resourceType': 'ServiceProviderConfig'
+    try:
+        config = {
+            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig'],
+            'patch': {
+                'supported': True
+            },
+            'bulk': {
+                'supported': False,
+                'maxOperations': 0,
+                'maxPayloadSize': 0
+            },
+            'filter': {
+                'supported': True,
+                'maxResults': 200
+            },
+            'changePassword': {
+                'supported': False
+            },
+            'sort': {
+                'supported': False
+            },
+            'etag': {
+                'supported': False
+            },
+            'authenticationSchemes': [{
+                'name': 'HTTP Bearer',
+                'description': 'Authentication via bearer token',
+                'specUri': 'http://www.rfc-editor.org/info/rfc6750',
+                'type': 'httpbearer'
+            }],
+            'meta': {
+                'location': '/scim/v2/ServiceProviderConfig',
+                'resourceType': 'ServiceProviderConfig'
+            }
         }
-    }
-    
-    return jsonify(config)
+        
+        # Log successful config request
+        log_scim_activity('GET', '/scim/v2/ServiceProviderConfig', status_code=200, success=True)
+        
+        return jsonify(config)
+        
+    except Exception as e:
+        error_msg = f'Failed to return service provider config: {str(e)}'
+        log_scim_activity('GET', '/scim/v2/ServiceProviderConfig', status_code=500, success=False, 
+                         error_message=error_msg)
+        return jsonify({
+            'detail': 'Internal server error',
+            'status': 500
+        }), 500
 
 @app.route('/scim/v2/Users', methods=['GET'])
 def scim_list_users():
@@ -846,17 +898,118 @@ def scim_list_users():
     scim_bearer_token = get_config('scim_bearer_token', '')
     
     if not auth_header.startswith('Bearer ') or auth_header[7:] != scim_bearer_token:
+        log_scim_activity('GET', '/scim/v2/Users', status_code=401, success=False, 
+                         error_message='Authentication failed')
         return jsonify({'detail': 'Authentication failed', 'status': 401}), 401
     
-    users = User.query.all()
+    try:
+        users = User.query.all()
+        
+        # Parse SCIM filters if provided
+        start_index = int(request.args.get('startIndex', 1))
+        count = int(request.args.get('count', 20))
+        
+        scim_users = []
+        for user in users[start_index-1:start_index-1+count]:
+            scim_user = {
+                'id': str(user.id),
+                'externalId': user.external_id,
+                'userName': user.email,
+                'name': {
+                    'formatted': user.name,
+                    'givenName': user.name.split()[0] if user.name else '',
+                    'familyName': ' '.join(user.name.split()[1:]) if len(user.name.split()) > 1 else ''
+                },
+                'emails': [{
+                    'value': user.email,
+                    'primary': True
+                }],
+                'active': user.active,
+                'meta': {
+                    'resourceType': 'User',
+                    'created': user.created_at.isoformat() + 'Z',
+                    'location': f'/scim/v2/Users/{user.id}'
+                }
+            }
+            scim_users.append(scim_user)
+        
+        response = {
+            'schemas': ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
+            'totalResults': len(users),
+            'startIndex': start_index,
+            'itemsPerPage': len(scim_users),
+            'Resources': scim_users
+        }
+        
+        # Log successful list operation
+        log_scim_activity('GET', '/scim/v2/Users', status_code=200, success=True, 
+                         response_data={'totalResults': len(users), 'returnedResults': len(scim_users)})
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        error_msg = f'Failed to list users: {str(e)}'
+        log_scim_activity('GET', '/scim/v2/Users', status_code=500, success=False, 
+                         error_message=error_msg)
+        return jsonify({
+            'detail': 'Internal server error',
+            'status': 500
+        }), 500
+
+@app.route('/scim/v2/Users', methods=['POST'])
+def scim_create_user():
+    """SCIM endpoint to create a user"""
+    auth_header = request.headers.get('Authorization', '')
+    scim_bearer_token = get_config('scim_bearer_token', '')
     
-    # Parse SCIM filters if provided
-    start_index = int(request.args.get('startIndex', 1))
-    count = int(request.args.get('count', 20))
+    if not auth_header.startswith('Bearer ') or auth_header[7:] != scim_bearer_token:
+        log_scim_activity('POST', '/scim/v2/Users', status_code=401, success=False, 
+                         error_message='Authentication failed')
+        return jsonify({'detail': 'Authentication failed', 'status': 401}), 401
     
-    scim_users = []
-    for user in users[start_index-1:start_index-1+count]:
+    data = request.get_json()
+    
+    # Extract user information from SCIM payload
+    username = data.get('userName')
+    external_id = data.get('externalId')
+    name_data = data.get('name', {})
+    formatted_name = name_data.get('formatted', username)
+    emails = data.get('emails', [])
+    email = emails[0]['value'] if emails else username
+    active = data.get('active', True)
+    
+    # Check if user already exists
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        error_msg = f'User already exists: {email}'
+        log_scim_activity('POST', '/scim/v2/Users', user_identifier=email, 
+                         status_code=409, success=False, request_data=data, 
+                         error_message=error_msg)
+        return jsonify({
+            'detail': 'User already exists',
+            'status': 409
+        }), 409
+    
+    try:
+        # Check if user should be admin
+        is_admin = email in ['brent.langston@visiquate.com', 'yuliia.lutai@visiquate.com']
+        
+        # Create user
+        user = User(
+            email=email,
+            name=formatted_name,
+            external_id=external_id,
+            active=active,
+            scim_provisioned=True,
+            is_admin=is_admin
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Return SCIM user representation
         scim_user = {
+            'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
             'id': str(user.id),
             'externalId': user.external_id,
             'userName': user.email,
@@ -876,86 +1029,24 @@ def scim_list_users():
                 'location': f'/scim/v2/Users/{user.id}'
             }
         }
-        scim_users.append(scim_user)
-    
-    response = {
-        'schemas': ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
-        'totalResults': len(users),
-        'startIndex': start_index,
-        'itemsPerPage': len(scim_users),
-        'Resources': scim_users
-    }
-    
-    return jsonify(response)
-
-@app.route('/scim/v2/Users', methods=['POST'])
-def scim_create_user():
-    """SCIM endpoint to create a user"""
-    auth_header = request.headers.get('Authorization', '')
-    scim_bearer_token = get_config('scim_bearer_token', '')
-    
-    if not auth_header.startswith('Bearer ') or auth_header[7:] != scim_bearer_token:
-        return jsonify({'detail': 'Authentication failed', 'status': 401}), 401
-    
-    data = request.get_json()
-    
-    # Extract user information from SCIM payload
-    username = data.get('userName')
-    external_id = data.get('externalId')
-    name_data = data.get('name', {})
-    formatted_name = name_data.get('formatted', username)
-    emails = data.get('emails', [])
-    email = emails[0]['value'] if emails else username
-    active = data.get('active', True)
-    
-    # Check if user already exists
-    existing_user = User.query.filter_by(email=email).first()
-    if existing_user:
+        
+        # Log successful creation
+        log_scim_activity('POST', '/scim/v2/Users', user_identifier=email, 
+                         status_code=201, success=True, request_data=data, 
+                         response_data=scim_user, created_user_id=user.id)
+        
+        return jsonify(scim_user), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        error_msg = f'Failed to create user: {str(e)}'
+        log_scim_activity('POST', '/scim/v2/Users', user_identifier=email, 
+                         status_code=500, success=False, request_data=data, 
+                         error_message=error_msg)
         return jsonify({
-            'detail': 'User already exists',
-            'status': 409
-        }), 409
-    
-    # Check if user should be admin
-    is_admin = email in ['brent.langston@visiquate.com', 'yuliia.lutai@visiquate.com']
-    
-    # Create user
-    user = User(
-        email=email,
-        name=formatted_name,
-        external_id=external_id,
-        active=active,
-        scim_provisioned=True,
-        is_admin=is_admin
-    )
-    
-    db.session.add(user)
-    db.session.commit()
-    
-    # Return SCIM user representation
-    scim_user = {
-        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
-        'id': str(user.id),
-        'externalId': user.external_id,
-        'userName': user.email,
-        'name': {
-            'formatted': user.name,
-            'givenName': user.name.split()[0] if user.name else '',
-            'familyName': ' '.join(user.name.split()[1:]) if len(user.name.split()) > 1 else ''
-        },
-        'emails': [{
-            'value': user.email,
-            'primary': True
-        }],
-        'active': user.active,
-        'meta': {
-            'resourceType': 'User',
-            'created': user.created_at.isoformat() + 'Z',
-            'location': f'/scim/v2/Users/{user.id}'
-        }
-    }
-    
-    return jsonify(scim_user), 201
+            'detail': 'Internal server error',
+            'status': 500
+        }), 500
 
 # Authentication routes
 def init_saml_auth(req):
@@ -1537,7 +1628,7 @@ def webauthn_register_complete():
         if not credential_json or 'webauthn_challenge' not in session:
             return jsonify({"error": "Invalid request"}), 400
             
-        challenge = base64.urlsafe_b64decode(session['webauthn_challenge'].encode('utf-8'))
+        challenge = safe_b64decode(session['webauthn_challenge'])
         
         # Parse registration credential from JSON
         credential = parse_registration_credential_json(credential_json)
@@ -1640,10 +1731,10 @@ def webauthn_authenticate_complete():
         if not user:
             return jsonify({"error": "User not found"}), 404
             
-        challenge = base64.urlsafe_b64decode(session['webauthn_challenge'].encode('utf-8'))
+        challenge = safe_b64decode(session['webauthn_challenge'])
         
         # Find the credential
-        credential_id = base64.urlsafe_b64decode(credential_json['id'].encode('utf-8'))
+        credential_id = safe_b64decode(credential_json['id'])
         db_credential = WebAuthnCredential.query.filter_by(
             user_id=user_id,
             credential_id=credential_id

@@ -24,7 +24,6 @@ def test_user_model(client):
         # Test authentication status defaults
         assert user.saml_tested is False
         assert user.oidc_tested is False
-        assert user.password_tested is False
         assert user.passkey_tested is False
 
 

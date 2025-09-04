@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}SCIM Activity Logs - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>SCIM Activity Logs</h1>
+        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Admin
+        </a>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Requests</h5>
+                    <h2>{{ total_logs }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Successful</h5>
+                    <h2>{{ successful_logs }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Failed</h5>
+                    <h2>{{ failed_logs }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Users Created</h5>
+                    <h2>{{ user_creations }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent SCIM Users -->
+    {% if recent_scim_users %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Recent SCIM Provisioned Users</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>External ID</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in recent_scim_users %}
+                        <tr>
+                            <td>{{ user.name }}</td>
+                            <td><code>{{ user.email }}</code></td>
+                            <td>
+                                {% if user.external_id %}
+                                    <small class="text-muted">{{ user.external_id[:20] }}{% if user.external_id|length > 20 %}...{% endif %}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                            <td>
+                                <span class="badge {{ 'bg-success' if user.active else 'bg-warning' }}">
+                                    {{ 'Active' if user.active else 'Inactive' }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SCIM Activity Log -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">SCIM Request Log</h5>
+        </div>
+        <div class="card-body">
+            {% if scim_logs.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in scim_logs.items %}
+                        <tr class="{{ 'table-success' if log.success else 'table-danger' }}">
+                            <td>
+                                <small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                <br>
+                                <small class="text-muted">{{ log.ip_address }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if log.method == 'GET' else 'primary' if log.method == 'POST' else 'warning' }}">
+                                    {{ log.method }}
+                                </span>
+                            </td>
+                            <td><code>{{ log.endpoint }}</code></td>
+                            <td>
+                                {% if log.user_identifier %}
+                                    <code>{{ log.user_identifier }}</code>
+                                {% elif log.created_user_id %}
+                                    <small class="text-success">User ID: {{ log.created_user_id }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if log.success else 'danger' }}">
+                                    {{ log.status_code }}
+                                </span>
+                                {% if log.success %}
+                                    <small class="text-success">✓</small>
+                                {% else %}
+                                    <small class="text-danger">✗</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.error_message %}
+                                    <button class="btn btn-sm btn-outline-danger" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#error-{{ log.id }}" 
+                                            aria-expanded="false">
+                                        View Error
+                                    </button>
+                                    <div class="collapse mt-2" id="error-{{ log.id }}">
+                                        <div class="alert alert-danger">
+                                            <small>{{ log.error_message }}</small>
+                                        </div>
+                                    </div>
+                                {% elif log.created_user_id %}
+                                    <small class="text-success">User created successfully</small>
+                                {% elif log.method == 'GET' and log.success %}
+                                    {% if log.response_data %}
+                                        {% set response = log.response_data | from_json %}
+                                        {% if response.totalResults is defined %}
+                                            <small class="text-muted">{{ response.totalResults }} users returned</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <small class="text-muted">Config retrieved</small>
+                                    {% endif %}
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if scim_logs.pages > 1 %}
+            <nav aria-label="SCIM logs pagination">
+                <ul class="pagination justify-content-center">
+                    {% if scim_logs.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_scim_logs', page=scim_logs.prev_num) }}">Previous</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Previous</span>
+                        </li>
+                    {% endif %}
+
+                    {% for page_num in scim_logs.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != scim_logs.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin_scim_logs', page=page_num) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if scim_logs.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_scim_logs', page=scim_logs.next_num) }}">Next</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="alert alert-info">
+                <h5>No SCIM Activity Yet</h5>
+                <p>No SCIM requests have been logged yet. Once Authentik starts provisioning users, activity will appear here.</p>
+                <hr>
+                <h6>Troubleshooting:</h6>
+                <ul class="mb-0">
+                    <li>Verify SCIM is enabled in the configuration</li>
+                    <li>Check that Authentik has the correct SCIM endpoint URL</li>
+                    <li>Ensure the SCIM bearer token matches between Authentik and this app</li>
+                    <li>Check Authentik's event logs for SCIM-related errors</li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

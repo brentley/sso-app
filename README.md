@@ -16,7 +16,6 @@ A comprehensive SSO authentication testing platform that allows users to test SA
 ### Authentication Methods
 - **SAML 2.0**: Test SAML authentication with detailed assertion analysis and group extraction
 - **OIDC (OpenID Connect)**: Test OAuth 2.0/OIDC flows with Authentik and custom providers
-- **Password Authentication**: Traditional username/password authentication
 - **Passkey (WebAuthn)**: Passwordless authentication using FIDO2/WebAuthn
 
 ### User Experience
@@ -143,7 +142,6 @@ Returns service health status with database and configuration checks.
 - `GET /saml/login` - Initiate SAML authentication
 - `POST /saml/acs` - SAML assertion consumer service
 - `GET /oauth/{provider}` - OIDC authentication (authentik)
-- `POST /password_auth` - Password authentication
 - `POST /webauthn/register/begin` - Start passkey registration
 - `POST /webauthn/authenticate/begin` - Start passkey authentication
 
@@ -221,7 +219,7 @@ make shell
 
 ## License
 
-Internal VisiQuate application - not for public distribution.
+Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
 
 ## Troubleshooting
 

@@ -74,28 +74,6 @@ def test_admin_user_registration(client):
         assert user.is_admin
 
 
-def test_password_authentication(client):
-    """Test password authentication"""
-    # First register a user
-    client.post('/register', data={
-        'name': 'Test User',
-        'email': 'test@example.com',
-        'password': 'password123'
-    })
-    
-    # Test successful login
-    response = client.post('/password_auth', data={
-        'email': 'test@example.com',
-        'password': 'password123'
-    })
-    assert response.status_code == 302  # Redirect to success page
-    
-    # Test failed login
-    response = client.post('/password_auth', data={
-        'email': 'test@example.com',
-        'password': 'wrongpassword'
-    })
-    assert response.status_code == 302  # Redirect back to login
 
 
 def test_configuration_management(client):
@@ -190,23 +168,15 @@ def test_scim_user_creation(client):
 
 def test_user_auth_status_tracking(client):
     """Test that authentication status is tracked properly"""
-    # Register user
+    # Register user (no password needed now)
     client.post('/register', data={
         'name': 'Test User',
-        'email': 'test@example.com',
-        'password': 'password123'
+        'email': 'test@example.com'
     })
     
-    # Login with password
-    client.post('/password_auth', data={
-        'email': 'test@example.com',
-        'password': 'password123'
-    })
-    
-    # Check that password_tested is marked as True
+    # Check initial state - no authentication methods tested yet
     with app.app_context():
         user = User.query.filter_by(email='test@example.com').first()
-        assert user.password_tested is True
         assert user.saml_tested is False
         assert user.oidc_tested is False
         assert user.passkey_tested is False
