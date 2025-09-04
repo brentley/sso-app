@@ -1010,6 +1010,31 @@ def get_saml_settings():
         }
     }
 
+@app.route('/debug/saml-config')
+@login_required
+def debug_saml_config():
+    """Debug endpoint to check SAML configuration"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        # Get all SAML related config
+        saml_configs = {}
+        for key in ['saml_entity_id', 'saml_idp_entity_id', 'saml_idp_sso_url', 'saml_idp_slo_url', 
+                   'saml_idp_cert', 'saml_sp_cert', 'saml_sp_private_key', 'saml_nameid_format']:
+            value = get_config(key, '')
+            # Don't expose full private key for security, just show if it exists
+            if 'private_key' in key and value:
+                saml_configs[key] = f"[PRIVATE KEY PRESENT - {len(value)} chars]"
+            elif 'cert' in key and value:
+                saml_configs[key] = f"[CERTIFICATE PRESENT - {len(value)} chars]"
+            else:
+                saml_configs[key] = value or "[NOT SET]"
+        
+        return jsonify(saml_configs)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/saml/login')
 def saml_login():
     """SAML authentication endpoint"""
@@ -1074,13 +1099,19 @@ def saml_acs():
             return redirect(url_for('success'))
         else:
             error_msg = f"SAML Error: {', '.join(errors)}"
-            flash(error_msg)
+            last_error = auth.get_last_error_reason()
+            
+            # Enhanced logging for debugging
+            app.logger.error(f"SAML processing failed: {error_msg}")
+            app.logger.error(f"SAML last error reason: {last_error}")
+            
+            flash(f"SAML processing error: {last_error if last_error else error_msg}")
             
             # Log failed authentication
             log_authentication(
                 None, 'saml', False, {
                     'errors': errors,
-                    'last_error_reason': auth.get_last_error_reason()
+                    'last_error_reason': last_error
                 },
                 request.remote_addr, request.headers.get('User-Agent')
             )
