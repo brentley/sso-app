@@ -111,6 +111,20 @@
                                             <span class="badge bg-success">SCIM Provisioned</span>
                                         </div>
                                         {% endif %}
+                                        {% if session.get('last_auth_data', {}).get('groups') %}
+                                        <div class="mt-3 pt-2 border-top">
+                                            <small class="text-muted d-block mb-1">Current Group Membership:</small>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for group in session.get('last_auth_data', {}).get('groups', [])[:3] %}
+                                                    <span class="badge bg-light text-dark" style="font-size: 0.7em;">{{ group }}</span>
+                                                {% endfor %}
+                                                {% if session.get('last_auth_data', {}).get('groups', [])|length > 3 %}
+                                                    <span class="badge bg-light text-muted" style="font-size: 0.7em;">+{{ session.get('last_auth_data', {}).get('groups', [])|length - 3 }} more</span>
+                                                {% endif %}
+                                            </div>
+                                            <small class="text-muted">From {{ session.get('last_auth_data', {}).get('method', 'last').upper() }} authentication</small>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                     <div class="d-grid gap-2 mt-3">
                                         <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Test Authentication</a>

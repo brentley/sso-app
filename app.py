@@ -1085,6 +1085,21 @@ def saml_acs():
             email = auth.get_nameid()
             name = attributes.get('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name', [email])[0]
             
+            # Extract group membership from SAML attributes
+            groups = []
+            # Common SAML group attribute names
+            for group_attr in [
+                'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/groups',
+                'http://schemas.microsoft.com/ws/2008/06/identity/claims/groups', 
+                'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role',
+                'groups',
+                'memberOf',
+                'roles'
+            ]:
+                if group_attr in attributes:
+                    groups.extend(attributes[group_attr])
+                    break
+            
             # Find or create user
             user = User.query.filter_by(email=email).first()
             if not user:
@@ -1099,11 +1114,14 @@ def saml_acs():
             auth_data = {
                 'method': 'saml',
                 'email': email,
+                'name': name,
+                'groups': groups,
                 'success': True,
                 'user_id': user.id,
                 'timestamp': datetime.utcnow().isoformat(),
                 'ip_address': get_real_ip(),
-                'user_agent': request.headers.get('User-Agent')
+                'user_agent': request.headers.get('User-Agent'),
+                'attributes': dict(attributes)  # Store all attributes for debugging
             }
             session['last_auth_data'] = auth_data
             
@@ -1193,7 +1211,7 @@ def oauth_login(provider):
             client_secret=client_secret,
             server_metadata_url=metadata_url,
             client_kwargs={
-                'scope': 'openid email profile'
+                'scope': 'openid email profile groups'
             }
         )
         
@@ -1230,7 +1248,7 @@ def oauth_callback(provider):
             client_secret=client_secret,
             server_metadata_url=metadata_url,
             client_kwargs={
-                'scope': 'openid email profile'
+                'scope': 'openid email profile groups'
             }
         )
         
@@ -1248,6 +1266,18 @@ def oauth_callback(provider):
         if not email:
             raise ValueError("No email found in OIDC response")
         
+        # Extract group membership from OIDC claims
+        groups = []
+        # Common OIDC group claim names
+        for group_claim in ['groups', 'roles', 'memberOf', 'group_membership', 'authorities']:
+            if group_claim in user_info:
+                group_data = user_info[group_claim]
+                if isinstance(group_data, list):
+                    groups.extend(group_data)
+                elif isinstance(group_data, str):
+                    groups.append(group_data)
+                break
+        
         # Find or create user
         user = User.query.filter_by(email=email).first()
         if not user:
@@ -1262,12 +1292,15 @@ def oauth_callback(provider):
         auth_data = {
             'method': 'oidc',
             'email': email,
+            'name': name,
             'provider': provider,
+            'groups': groups,
             'success': True,
             'user_id': user.id,
             'timestamp': datetime.utcnow().isoformat(),
             'ip_address': get_real_ip(),
-            'user_agent': request.headers.get('User-Agent')
+            'user_agent': request.headers.get('User-Agent'),
+            'user_info': dict(user_info)  # Store all user info for debugging
         }
         session['last_auth_data'] = auth_data
         
