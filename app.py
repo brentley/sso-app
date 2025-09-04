@@ -178,6 +178,10 @@ class User(UserMixin, db.Model):
     # Relationships
     auth_logs = db.relationship('AuthLog', backref='user', lazy=True)
     credentials = db.relationship('WebAuthnCredential', backref='user', lazy=True)
+    
+    def has_passkey(self):
+        """Check if the user has any registered passkey credentials"""
+        return len(self.credentials) > 0
 
 class Configuration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
