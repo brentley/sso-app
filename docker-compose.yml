@@ -1,7 +1,7 @@
 
 services:
   sso-app:
-    build: .
+    image: ghcr.io/brentley/sso-app:latest
     container_name: sso-app
     restart: unless-stopped
     environment:
