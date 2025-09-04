@@ -7,74 +7,165 @@
     <div class="col-lg-10 mx-auto">
         <div class="text-center mb-4">
             <h2>Authentication Testing</h2>
-            <p class="text-muted">Test different authentication methods and view detailed transaction data</p>
+            <p class="text-muted">Complete these authentication tests to validate your SSO setup</p>
+            {% if current_user.is_authenticated %}
+                {% set completed_tests = (current_user.saml_tested|int) + (current_user.oidc_tested|int) + (current_user.passkey_tested|int) %}
+                <div class="progress mb-3" style="height: 25px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ (completed_tests / 3 * 100)|round|int }}%">
+                        {{ completed_tests }}/3 Tests Complete
+                    </div>
+                </div>
+            {% endif %}
         </div>
 
         <div class="row">
-            <!-- SAML Authentication -->
-            <div class="col-lg-8 mx-auto mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0">SAML Authentication</h5>
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Authentication Test Checklist</h5>
                     </div>
-                    <div class="card-body">
-                        <p class="card-text">Test SAML 2.0 authentication with your configured identity provider.</p>
-                        <a href="{{ url_for('saml_login') }}" class="btn btn-primary w-100">Test SAML Authentication</a>
-                        <small class="text-muted d-block mt-2">
-                            Will redirect to configured SAML IdP for authentication
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- OIDC Authentication -->
-            <div class="col-lg-8 mx-auto mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="card-title mb-0">OIDC Authentication</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">Test OpenID Connect authentication with VisiQuate's identity provider.</p>
-                        <div class="d-grid gap-2">
-                            <a href="{{ url_for('oauth_login', provider='authentik') }}" class="btn btn-primary">
-                                <i class="fas fa-shield-alt me-2"></i>Login with VisiQuate OIDC
-                            </a>
-                        </div>
-                        <small class="text-muted d-block mt-2">
-                            OAuth 2.0 / OpenID Connect flow with detailed logging
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Passkey Authentication -->
-            <div class="col-lg-8 mx-auto mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="card-title mb-0">Passkey Authentication</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="passkey-auth-section">
-                            <div class="mb-3">
-                                <label for="passkey-email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="passkey-email" 
-                                       value="{{ current_user.email if current_user.is_authenticated else '' }}" required>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            
+                            <!-- SAML Test -->
+                            <div class="list-group-item d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    {% if current_user.is_authenticated and current_user.saml_tested %}
+                                        <i class="fas fa-check-circle text-success fs-4"></i>
+                                    {% else %}
+                                        <i class="far fa-circle text-muted fs-4"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">Test SAML Authentication</h6>
+                                            <p class="mb-1 text-muted">Validate SAML 2.0 authentication flow with your identity provider</p>
+                                            {% if current_user.is_authenticated and current_user.saml_tested %}
+                                                <small class="text-success">
+                                                    <i class="fas fa-check me-1"></i>Completed successfully
+                                                </small>
+                                            {% else %}
+                                                <small class="text-primary">
+                                                    <i class="fas fa-arrow-right me-1"></i>Click to test SAML authentication
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                        <a href="{{ url_for('saml_login') }}" class="btn btn-sm {{ 'btn-outline-success' if (current_user.is_authenticated and current_user.saml_tested) else 'btn-primary' }}">
+                                            {% if current_user.is_authenticated and current_user.saml_tested %}
+                                                <i class="fas fa-redo me-1"></i>Test Again
+                                            {% else %}
+                                                <i class="fas fa-play me-1"></i>Start Test
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-warning" id="authenticate-passkey">
-                                    Test Passkey Authentication
-                                </button>
-                                {% if current_user.is_authenticated %}
-                                <button type="button" class="btn btn-outline-warning" id="register-passkey">
-                                    Register New Passkey
-                                </button>
-                                {% endif %}
+
+                            <!-- OIDC Test -->
+                            <div class="list-group-item d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    {% if current_user.is_authenticated and current_user.oidc_tested %}
+                                        <i class="fas fa-check-circle text-success fs-4"></i>
+                                    {% else %}
+                                        <i class="far fa-circle text-muted fs-4"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">Test OIDC Authentication</h6>
+                                            <p class="mb-1 text-muted">Validate OpenID Connect flow with VisiQuate's identity provider</p>
+                                            {% if current_user.is_authenticated and current_user.oidc_tested %}
+                                                <small class="text-success">
+                                                    <i class="fas fa-check me-1"></i>Completed successfully
+                                                </small>
+                                            {% else %}
+                                                <small class="text-primary">
+                                                    <i class="fas fa-arrow-right me-1"></i>Click to test OIDC authentication
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                        <a href="{{ url_for('oauth_login', provider='authentik') }}" class="btn btn-sm {{ 'btn-outline-success' if (current_user.is_authenticated and current_user.oidc_tested) else 'btn-primary' }}">
+                                            {% if current_user.is_authenticated and current_user.oidc_tested %}
+                                                <i class="fas fa-redo me-1"></i>Test Again
+                                            {% else %}
+                                                <i class="fas fa-play me-1"></i>Start Test
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Passkey Test -->
+                            <div class="list-group-item d-flex align-items-center">
+                                <div class="flex-shrink-0 me-3">
+                                    {% if current_user.is_authenticated and current_user.passkey_tested %}
+                                        <i class="fas fa-check-circle text-success fs-4"></i>
+                                    {% else %}
+                                        <i class="far fa-circle text-muted fs-4"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">Test Passkey Authentication</h6>
+                                            <p class="mb-1 text-muted">Validate WebAuthn/FIDO2 passwordless authentication</p>
+                                            {% if current_user.is_authenticated and current_user.passkey_tested %}
+                                                <small class="text-success">
+                                                    <i class="fas fa-check me-1"></i>Completed successfully
+                                                </small>
+                                            {% else %}
+                                                <small class="text-primary">
+                                                    <i class="fas fa-arrow-right me-1"></i>Enter email below to test passkey
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-end">
+                                            {% if not (current_user.is_authenticated and current_user.passkey_tested) %}
+                                                <div class="mb-2" style="width: 200px;">
+                                                    <input type="email" class="form-control form-control-sm" id="passkey-email" 
+                                                           placeholder="Enter email" value="{{ current_user.email if current_user.is_authenticated else '' }}" required>
+                                                </div>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-sm {{ 'btn-outline-success' if (current_user.is_authenticated and current_user.passkey_tested) else 'btn-primary' }}" id="authenticate-passkey">
+                                                {% if current_user.is_authenticated and current_user.passkey_tested %}
+                                                    <i class="fas fa-redo me-1"></i>Test Again
+                                                {% else %}
+                                                    <i class="fas fa-play me-1"></i>Start Test
+                                                {% endif %}
+                                            </button>
+                                            {% if current_user.is_authenticated %}
+                                                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="register-passkey">
+                                                    <i class="fas fa-plus me-1"></i>Register
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <small class="text-muted d-block mt-2">
-                            WebAuthn/FIDO2 passwordless authentication
-                        </small>
+                        
+                        {% if current_user.is_authenticated %}
+                            {% if current_user.saml_tested and current_user.oidc_tested and current_user.passkey_tested %}
+                                <div class="p-4 text-center bg-light">
+                                    <i class="fas fa-trophy text-warning fs-2 mb-2"></i>
+                                    <h5 class="text-success mb-2">All Tests Complete!</h5>
+                                    <p class="text-muted mb-3">Congratulations! You've successfully tested all authentication methods.</p>
+                                    <a href="{{ url_for('success') }}" class="btn btn-success">
+                                        <i class="fas fa-chart-line me-2"></i>View Authentication Summary
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="p-3 text-center border-top">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Complete all tests above to validate your SSO setup
+                                    </small>
+                                </div>
+                            {% endif %}
+                        {% endif %}
                     </div>
                 </div>
             </div>
