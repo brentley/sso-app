@@ -203,7 +203,7 @@ class ImpersonationLog(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 def get_config(key, default=None):
     config = Configuration.query.filter_by(key=key).first()
@@ -265,7 +265,7 @@ def log_authentication(user_id, auth_method, success, transaction_data, ip_addre
     
     # Update user test status
     if success and user_id:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if user:
             if auth_method == 'saml':
                 user.saml_tested = True
@@ -331,7 +331,7 @@ def stop_impersonation():
     session.pop('impersonation_start', None)
     
     # Login as original admin user
-    original_user = User.query.get(original_user_id)
+    original_user = db.session.get(User, original_user_id)
     if original_user:
         login_user(original_user, remember=False)
         return True
@@ -346,8 +346,8 @@ def get_impersonation_info():
     if not is_impersonating():
         return None
     
-    original_user = User.query.get(session.get('original_user_id'))
-    impersonated_user = User.query.get(session.get('impersonated_user_id'))
+    original_user = db.session.get(User, session.get('original_user_id'))
+    impersonated_user = db.session.get(User, session.get('impersonated_user_id'))
     start_time = session.get('impersonation_start')
     
     return {
@@ -1462,7 +1462,7 @@ def webauthn_authenticate_complete():
             return jsonify({"error": "Invalid request"}), 400
             
         user_id = session['webauthn_user_id']
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
             
