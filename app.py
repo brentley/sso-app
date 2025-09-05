@@ -15,12 +15,6 @@ from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
-from webauthn import generate_registration_options, verify_registration_response, generate_authentication_options, verify_authentication_response
-from webauthn.helpers.structs import (
-    AuthenticatorSelectionCriteria,
-    UserVerificationRequirement,
-)
-from webauthn.helpers import parse_registration_credential_json, parse_authentication_credential_json
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.config import Config as Saml2Config
@@ -135,10 +129,6 @@ app.config['AUTHENTIK_CLIENT_ID'] = os.getenv('AUTHENTIK_CLIENT_ID')
 app.config['AUTHENTIK_CLIENT_SECRET'] = os.getenv('AUTHENTIK_CLIENT_SECRET')
 app.config['AUTHENTIK_SERVER_URL'] = os.getenv('AUTHENTIK_SERVER_URL', 'https://auth.visiquate.com')
 
-# WebAuthn Configuration
-app.config['WEBAUTHN_RP_ID'] = os.getenv('WEBAUTHN_RP_ID', 'sso-app.visiquate.com')
-app.config['WEBAUTHN_RP_NAME'] = os.getenv('WEBAUTHN_RP_NAME', 'VisiQuate SSO Test App')
-app.config['WEBAUTHN_ORIGIN'] = os.getenv('WEBAUTHN_ORIGIN', 'https://sso-app.visiquate.com')
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -173,15 +163,10 @@ class User(UserMixin, db.Model):
     # Authentication status tracking
     saml_tested = db.Column(db.Boolean, default=False)
     oidc_tested = db.Column(db.Boolean, default=False)
-    passkey_tested = db.Column(db.Boolean, default=False)
     
     # Relationships
     auth_logs = db.relationship('AuthLog', backref='user', lazy=True)
-    credentials = db.relationship('WebAuthnCredential', backref='user', lazy=True)
     
-    def has_passkey(self):
-        """Check if the user has any registered passkey credentials"""
-        return len(self.credentials) > 0
 
 class Configuration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -202,13 +187,6 @@ class AuthLog(db.Model):
     user_agent = db.Column(db.String(500))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-class WebAuthnCredential(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    credential_id = db.Column(db.LargeBinary, nullable=False, unique=True)
-    public_key = db.Column(db.LargeBinary, nullable=False)
-    sign_count = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class ImpersonationLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -269,17 +247,6 @@ def log_scim_activity(method, endpoint, user_identifier=None, status_code=200, s
     except Exception as e:
         print(f"Failed to log SCIM activity: {str(e)}")
 
-def safe_b64decode(data):
-    """Safely decode base64 data with proper padding"""
-    try:
-        # Add padding if needed
-        missing_padding = len(data) % 4
-        if missing_padding:
-            data += '=' * (4 - missing_padding)
-        return base64.urlsafe_b64decode(data.encode('utf-8') if isinstance(data, str) else data)
-    except Exception as e:
-        print(f"Base64 decode error: {e}")
-        raise
 
 def get_real_ip():
     """Get the real client IP address from headers"""
@@ -362,8 +329,6 @@ def log_authentication(user_id, auth_method, success, transaction_data, ip_addre
                 user.saml_tested = True
             elif auth_method == 'oidc':
                 user.oidc_tested = True
-            elif auth_method == 'passkey':
-                user.passkey_tested = True
     
     db.session.commit()
 
@@ -500,7 +465,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        flash('Registration successful - use SAML, OIDC, or Passkey to login')
+        flash('Registration successful - use SAML or OIDC to login')
         return redirect(url_for('login'))
     
     return render_template('register.html')
@@ -717,61 +682,54 @@ def user_logs(user_id):
     
     return jsonify(logs_data)
 
-@app.route('/admin/user/<int:user_id>/passkeys')
-@login_required
-def admin_user_passkeys(user_id):
-    """Get passkey credentials for a specific user"""
-    if not current_user.is_admin:
-        return jsonify({'error': 'Access denied'}), 403
-    
-    user = User.query.get_or_404(user_id)
-    credentials = WebAuthnCredential.query.filter_by(user_id=user_id).order_by(WebAuthnCredential.created_at.desc()).all()
-    
-    return jsonify([{
-        'id': credential.id,
-        'credential_id_b64': base64.b64encode(credential.credential_id).decode('utf-8'),
-        'created_at': credential.created_at.isoformat(),
-        'sign_count': credential.sign_count
-    } for credential in credentials])
 
-@app.route('/admin/user/<int:user_id>/passkeys/<int:credential_id>', methods=['DELETE'])
+@app.route('/admin/user/<int:user_id>', methods=['DELETE'])
 @login_required
-def admin_delete_passkey(user_id, credential_id):
-    """Delete a specific passkey credential for a user"""
+def admin_delete_user(user_id):
+    """Delete a user and all associated data"""
     if not current_user.is_admin:
         return jsonify({'error': 'Access denied'}), 403
     
     user = User.query.get_or_404(user_id)
-    credential = WebAuthnCredential.query.filter_by(id=credential_id, user_id=user_id).first()
     
-    if not credential:
-        return jsonify({'error': 'Credential not found'}), 404
+    # Prevent admin from deleting themselves
+    if user.id == current_user.id:
+        return jsonify({'error': 'Cannot delete your own account'}), 400
     
     try:
-        credential_id_b64 = base64.b64encode(credential.credential_id).decode('utf-8')
-        db.session.delete(credential)
+        user_email = user.email
+        user_name = user.name
+        
+        
+        # Delete associated authentication logs
+        AuthLog.query.filter_by(user_id=user_id).delete()
+        
+        # Delete the user
+        db.session.delete(user)
         db.session.commit()
         
         # Log the admin action
         log_authentication(
-            user_id=user_id,
-            method='passkey_admin_delete',
+            user_id=None,
+            auth_method='user_admin_delete',
             success=True,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent', ''),
             transaction_data={
                 'admin_user_id': current_user.id,
                 'admin_email': current_user.email,
-                'credential_id': credential_id_b64,
-                'action': 'passkey_deregistered'
-            }
+                'deleted_user_id': user_id,
+                'deleted_user_email': user_email,
+                'deleted_user_name': user_name,
+                'action': 'user_deleted'
+            },
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', '')
         )
         
-        return jsonify({'message': 'Passkey credential deleted successfully'})
+        return jsonify({'message': f'User {user_email} deleted successfully'})
     except Exception as e:
-        app.logger.error(f"Error deleting passkey credential: {str(e)}")
+        app.logger.error(f"Error deleting user: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to delete credential'}), 500
+        return jsonify({'error': 'Failed to delete user'}), 500
 
 @app.route('/admin/scim_logs')
 @login_required 
@@ -894,9 +852,6 @@ def test_auth_as_user(method):
         return redirect(url_for('saml_login'))
     elif method == 'oidc':
         return redirect(url_for('oauth_login', provider='authentik'))
-    elif method == 'passkey':
-        flash(f'Test passkey authentication for {current_user.email}', 'info')
-        return redirect(url_for('login'))
     else:
         flash('Invalid authentication method', 'error')
         return redirect(url_for('index'))
@@ -1536,8 +1491,8 @@ def saml_acs():
         try:
             subject = authn_response.get_subject()
             app.logger.info(f"SAML ACS: Subject type: {type(subject)}, content: {subject}")
-            email = subject.text  # NameID
-            app.logger.info(f"SAML ACS: Extracted email: {email}")
+            nameid = subject.text  # NameID (may not be email)
+            app.logger.info(f"SAML ACS: Extracted NameID: {nameid}")
         except Exception as subject_error:
             app.logger.error(f"SAML ACS: Failed to get subject: {str(subject_error)}")
             raise
@@ -1553,6 +1508,28 @@ def saml_acs():
             app.logger.error(f"SAML ACS: Failed to extract attributes: {str(attr_error)}")
             app.logger.error(f"SAML ACS: Identity type: {type(identity)}")
             raise
+        
+        # Get email from attributes first, fallback to NameID
+        email = nameid  # fallback
+        for email_attr in [
+            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+            'http://schemas.microsoft.com/ws/2008/06/identity/claims/emailaddress', 
+            'emailAddress',  # camelCase variant (Authentik uses this)
+            'emailaddress',
+            'email',
+            'mail',
+            'userPrincipalName',
+            'upn'  # User Principal Name (also present in the log)
+        ]:
+            if email_attr in attributes and attributes[email_attr]:
+                email = attributes[email_attr][0]
+                app.logger.info(f"SAML ACS: Found email in attribute {email_attr}: {email}")
+                break
+        
+        if email == nameid:
+            app.logger.info(f"SAML ACS: No email attribute found, using NameID: {email}")
+        
+        app.logger.info(f"SAML ACS: Final email for user lookup: {email}")
         
         # Get display name
         name = email  # fallback
@@ -1753,6 +1730,10 @@ def oauth_callback(provider):
             db.session.add(user)
             db.session.commit()
         
+        # Update OIDC tested flag
+        user.oidc_tested = True
+        db.session.commit()
+        
         # Login user
         login_user(user, remember=True)
         
@@ -1917,260 +1898,6 @@ def download_oidc_metadata():
     except Exception as e:
         return jsonify({'error': f'Failed to process OIDC metadata: {str(e)}'}), 500
 
-# WebAuthn Routes
-@app.route('/webauthn/register/begin', methods=['POST'])
-@login_required
-def webauthn_register_begin():
-    """Begin WebAuthn registration process"""
-    try:
-        user_id = str(current_user.id).encode('utf-8')
-        user_name = current_user.email
-        user_display_name = current_user.email
-        
-        # Generate registration options
-        options = generate_registration_options(
-            rp_id=app.config['WEBAUTHN_RP_ID'],
-            rp_name=app.config['WEBAUTHN_RP_NAME'],
-            user_id=user_id,
-            user_name=user_name,
-            user_display_name=user_display_name,
-            authenticator_selection=AuthenticatorSelectionCriteria(
-                user_verification=UserVerificationRequirement.PREFERRED
-            )
-        )
-        
-        # Store challenge in session
-        session['webauthn_challenge'] = base64.urlsafe_b64encode(options.challenge).decode('utf-8')
-        
-        # Convert options to JSON-serializable format
-        options_json = {
-            "challenge": base64.urlsafe_b64encode(options.challenge).decode('utf-8'),
-            "rp": {
-                "name": options.rp.name,
-                "id": options.rp.id
-            },
-            "user": {
-                "id": base64.urlsafe_b64encode(options.user.id).decode('utf-8'),
-                "name": options.user.name,
-                "displayName": options.user.display_name
-            },
-            "pubKeyCredParams": [{"alg": param.alg, "type": param.type} for param in options.pub_key_cred_params],
-            "authenticatorSelection": {
-                "userVerification": options.authenticator_selection.user_verification.value
-            },
-            "timeout": options.timeout,
-            "attestation": options.attestation.value
-        }
-        
-        return jsonify({"options": options_json})
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/webauthn/register/complete', methods=['POST'])
-@login_required
-def webauthn_register_complete():
-    """Complete WebAuthn registration process"""
-    try:
-        credential_json = request.get_json()
-        
-        if not credential_json or 'webauthn_challenge' not in session:
-            return jsonify({"error": "Invalid request"}), 400
-            
-        challenge = safe_b64decode(session['webauthn_challenge'])
-        
-        # Parse registration credential from JSON
-        credential = parse_registration_credential_json(credential_json)
-        
-        # Verify the registration
-        verification = verify_registration_response(
-            credential=credential,
-            expected_challenge=challenge,
-            expected_origin=app.config['WEBAUTHN_ORIGIN'],
-            expected_rp_id=app.config['WEBAUTHN_RP_ID']
-        )
-        
-        # WebAuthn 2.0.0 API - verification object itself indicates success
-        if verification:
-            # Save credential to database
-            new_credential = WebAuthnCredential(
-                user_id=current_user.id,
-                credential_id=verification.credential_id,
-                public_key=verification.credential_public_key,
-                sign_count=verification.sign_count
-            )
-            db.session.add(new_credential)
-            db.session.commit()
-            
-            # Clear challenge from session
-            session.pop('webauthn_challenge', None)
-            
-            return jsonify({"verified": True})
-        else:
-            return jsonify({"error": "Registration verification failed"}), 400
-            
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/webauthn/authenticate/begin', methods=['POST'])
-def webauthn_authenticate_begin():
-    """Begin WebAuthn authentication process"""
-    try:
-        data = request.get_json()
-        email = data.get('email') if data else None
-        
-        if not email:
-            return jsonify({"error": "Email required"}), 400
-        
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-            
-        # Get user's credentials
-        credentials = WebAuthnCredential.query.filter_by(user_id=user.id).all()
-        if not credentials:
-            return jsonify({"error": "No credentials found"}), 404
-            
-        # Generate authentication options
-        credential_descriptors = [{
-            "id": base64.urlsafe_b64encode(cred.credential_id).decode('utf-8'),
-            "type": "public-key"
-        } for cred in credentials]
-        
-        options = generate_authentication_options(
-            rp_id=app.config['WEBAUTHN_RP_ID'],
-            allow_credentials=credential_descriptors,
-            user_verification=UserVerificationRequirement.PREFERRED
-        )
-        
-        # Store challenge and user ID in session
-        session['webauthn_challenge'] = base64.urlsafe_b64encode(options.challenge).decode('utf-8')
-        session['webauthn_user_id'] = user.id
-        
-        # Convert options to JSON-serializable format
-        options_json = {
-            "challenge": base64.urlsafe_b64encode(options.challenge).decode('utf-8'),
-            "allowCredentials": [
-                {
-                    "id": base64.urlsafe_b64encode(cred.credential_id).decode('utf-8'),
-                    "type": "public-key"
-                } for cred in credentials
-            ],
-            "timeout": options.timeout,
-            "rpId": options.rp_id,
-            "userVerification": options.user_verification.value
-        }
-        
-        return jsonify({"options": options_json})
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/webauthn/authenticate/complete', methods=['POST'])
-def webauthn_authenticate_complete():
-    """Complete WebAuthn authentication process"""
-    try:
-        credential_json = request.get_json()
-        
-        if not credential_json or 'webauthn_challenge' not in session or 'webauthn_user_id' not in session:
-            return jsonify({"error": "Invalid request"}), 400
-            
-        user_id = session['webauthn_user_id']
-        user = db.session.get(User, user_id)
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-            
-        challenge = safe_b64decode(session['webauthn_challenge'])
-        
-        # Find the credential
-        credential_id = safe_b64decode(credential_json['id'])
-        db_credential = WebAuthnCredential.query.filter_by(
-            user_id=user_id,
-            credential_id=credential_id
-        ).first()
-        
-        if not db_credential:
-            return jsonify({"error": "Credential not found"}), 404
-            
-        # Parse authentication credential from JSON
-        credential = parse_authentication_credential_json(credential_json)
-        
-        # Verify the authentication
-        verification = verify_authentication_response(
-            credential=credential,
-            expected_challenge=challenge,
-            expected_origin=app.config['WEBAUTHN_ORIGIN'],
-            expected_rp_id=app.config['WEBAUTHN_RP_ID'],
-            credential_public_key=db_credential.public_key,
-            credential_current_sign_count=db_credential.sign_count
-        )
-        
-        # WebAuthn 2.0.0 API - verification object itself indicates success
-        if verification:
-            # Update sign count
-            db_credential.sign_count = verification.new_sign_count
-            db.session.commit()
-            
-            # Log the user in
-            login_user(user, remember=True)
-            
-            # Update passkey tested flag
-            user.passkey_tested = True
-            db.session.commit()
-            
-            # Set session data for success page
-            auth_data = {
-                'method': 'passkey',
-                'email': user.email,
-                'name': user.name,
-                'success': True,
-                'user_id': user.id,
-                'timestamp': datetime.utcnow().isoformat(),
-                'ip_address': get_real_ip(),
-                'user_agent': request.headers.get('User-Agent'),
-                'credential_id': credential_json['id'][:20] + '...' if len(credential_json['id']) > 20 else credential_json['id'],
-                'new_sign_count': verification.new_sign_count
-            }
-            session['last_auth_data'] = auth_data
-            
-            # Log successful authentication
-            log_authentication(
-                user.id, 'passkey', True, {
-                    'email': user.email,
-                    'credential_id': credential_json['id'],
-                    'new_sign_count': verification.new_sign_count
-                },
-                get_real_ip(), request.headers.get('User-Agent')
-            )
-            
-            # Clear session data
-            session.pop('webauthn_challenge', None)
-            session.pop('webauthn_user_id', None)
-            
-            return jsonify({
-                "verified": True,
-                "redirect": url_for('success')
-            })
-        else:
-            # Log failed authentication
-            log_authentication(
-                user_id, 'passkey', False, {
-                    'error': 'Authentication verification failed',
-                    'email': user.email if user else 'unknown'
-                },
-                get_real_ip(), request.headers.get('User-Agent')
-            )
-            return jsonify({"error": "Authentication verification failed"}), 400
-            
-    except Exception as e:
-        # Log failed authentication
-        log_authentication(
-            session.get('webauthn_user_id'), 'passkey', False, {
-                'error': str(e)
-            },
-            get_real_ip(), request.headers.get('User-Agent')
-        )
-        return jsonify({"error": str(e)}), 500
 
 @app.route('/logout')
 @login_required

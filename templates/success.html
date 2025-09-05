@@ -163,31 +163,6 @@
                     {% endif %}
                     {% endif %}
 
-                    {% if auth_data.get('method') == 'passkey' %}
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <h6>WebAuthn Details</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <tbody>
-                                        <tr>
-                                            <td><strong>Credential ID:</strong></td>
-                                            <td><code>{{ auth_data.get('credential_id', 'Not provided')[:20] }}...</code></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>New Sign Count:</strong></td>
-                                            <td><code>{{ auth_data.get('new_sign_count', 'Unknown') }}</code></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>User Verification:</strong></td>
-                                            <td><span class="badge bg-success">Required</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
 
                     <div class="row mb-3">
                         <div class="col-12">

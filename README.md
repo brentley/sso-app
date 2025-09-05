@@ -1,6 +1,6 @@
 # SSO Authentication Test Application
 
-A comprehensive SSO authentication testing platform that allows users to test SAML, OIDC, password, and passkey authentication methods with detailed transaction data logging, group membership display, and admin oversight.
+A comprehensive SSO authentication testing platform that allows users to test SAML and OIDC authentication methods with detailed transaction data logging, group membership display, and admin oversight.
 
 ## ✨ Recent Updates
 
@@ -142,8 +142,6 @@ Returns service health status with database and configuration checks.
 - `GET /saml/login` - Initiate SAML authentication
 - `POST /saml/acs` - SAML assertion consumer service
 - `GET /oauth/{provider}` - OIDC authentication (authentik)
-- `POST /webauthn/register/begin` - Start passkey registration
-- `POST /webauthn/authenticate/begin` - Start passkey authentication
 
 ### Debug Endpoints
 - `GET /debug/saml-config` - Check SAML configuration status (admin only)

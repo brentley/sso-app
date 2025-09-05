@@ -178,4 +178,3 @@ def test_user_auth_status_tracking(client):
         user = User.query.filter_by(email='test@example.com').first()
         assert user.saml_tested is False
         assert user.oidc_tested is False
-        assert user.passkey_tested is False

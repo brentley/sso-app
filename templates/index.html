@@ -4,124 +4,256 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-lg-8 mx-auto">
-        <div class="text-center mb-5">
-            <h1 class="display-4 mb-3">VisiQuate SSO Authentication Testing</h1>
+    <div class="col-lg-10 mx-auto">
+        <div class="text-center mb-4">
+            <h1 class="display-5 mb-3">VisiQuate SSO Authentication Testing</h1>
             <p class="lead">Test and validate various authentication methods with detailed transaction logging</p>
         </div>
 
         {% if current_user.is_authenticated %}
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Welcome, {{ current_user.name }}!</h5>
-                    <p class="card-text">You are currently authenticated. Use the buttons below to test different authentication methods.</p>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title">Authentication Validation Status</h6>
-                                    <div class="d-flex flex-column gap-2">
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge {{ 'bg-success' if current_user.saml_tested else 'bg-secondary' }} me-2">
-                                                <i class="fas {{ 'fa-check' if current_user.saml_tested else 'fa-times' }}"></i>
-                                            </span>
-                                            <span class="fw-medium">SAML Authentication</span>
-                                            {% if not current_user.saml_tested %}
-                                                <small class="text-muted ms-2">Not validated</small>
-                                            {% else %}
-                                                <small class="text-success ms-2">✓ Validated</small>
-                                            {% endif %}
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge {{ 'bg-success' if current_user.oidc_tested else 'bg-secondary' }} me-2">
-                                                <i class="fas {{ 'fa-check' if current_user.oidc_tested else 'fa-times' }}"></i>
-                                            </span>
-                                            <span class="fw-medium">OIDC Authentication</span>
-                                            {% if not current_user.oidc_tested %}
-                                                <small class="text-muted ms-2">Not validated</small>
-                                            {% else %}
-                                                <small class="text-success ms-2">✓ Validated</small>
-                                            {% endif %}
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge {{ 'bg-success' if current_user.passkey_tested else 'bg-secondary' }} me-2">
-                                                <i class="fas {{ 'fa-check' if current_user.passkey_tested else 'fa-times' }}"></i>
-                                            </span>
-                                            <span class="fw-medium">Passkey Authentication</span>
-                                            {% if not current_user.passkey_tested %}
-                                                <small class="text-muted ms-2">Not validated</small>
-                                            {% else %}
-                                                <small class="text-success ms-2">✓ Validated</small>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="mt-3">
-                                        <small class="text-muted">
-                                            <strong>Progress:</strong> 
-                                            {{ (current_user.saml_tested|int + current_user.oidc_tested|int + current_user.passkey_tested|int) }} of 3 methods validated
-                                        </small>
-                                    </div>
-                                </div>
+            <!-- Prominent Progress Section -->
+            {% set progress_count = (current_user.saml_tested|int + current_user.oidc_tested|int) %}
+            <div class="alert {{ 'alert-success' if progress_count == 2 else 'alert-warning' }} text-center mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4 class="alert-heading mb-2">
+                            {% if progress_count == 2 %}
+                                <i class="fas fa-trophy text-warning me-2"></i>All Authentication Methods Validated!
+                            {% else %}
+                                <i class="fas fa-exclamation-triangle me-2"></i>Authentication Testing in Progress
+                            {% endif %}
+                        </h4>
+                        <p class="mb-0">
+                            <strong>Progress: {{ progress_count }} of 2 methods validated</strong>
+                            {% if progress_count < 2 %}
+                                <br><small>Complete {{ 2 - progress_count }} more authentication test(s) below</small>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar {{ 'bg-success' if progress_count == 2 else 'bg-warning' }}" role="progressbar" 
+                                 style="width: {{ (progress_count / 2 * 100)|round }}%" 
+                                 aria-valuenow="{{ progress_count }}" aria-valuemin="0" aria-valuemax="2">
+                                {{ (progress_count / 2 * 100)|round }}%
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title">Account Information</h6>
-                                    <div class="d-flex flex-column gap-2">
-                                        <div class="d-flex justify-content-between">
-                                            <span class="text-muted">Email:</span>
-                                            <span class="fw-medium">{{ current_user.email }}</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span class="text-muted">Name:</span>
-                                            <span class="fw-medium">{{ current_user.name }}</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span class="text-muted">Role:</span>
-                                            <span class="fw-medium">
-                                                {% if current_user.is_super_admin %}
-                                                    <span class="badge bg-danger">Super Admin</span>
-                                                {% elif current_user.is_admin %}
-                                                    <span class="badge bg-warning">Admin</span>
-                                                {% else %}
-                                                    <span class="badge bg-info">User</span>
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span class="text-muted">Member Since:</span>
-                                            <span class="fw-medium">{{ current_user.created_at.strftime('%b %d, %Y') if current_user.created_at else 'Unknown' }}</span>
-                                        </div>
-                                        {% if current_user.scim_provisioned %}
-                                        <div class="d-flex justify-content-between">
-                                            <span class="text-muted">Provisioning:</span>
-                                            <span class="badge bg-success">SCIM Provisioned</span>
-                                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Authentication Validation Status -->
+                <div class="col-lg-7 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Authentication Validation Status</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                <!-- SAML Test -->
+                                <div class="list-group-item d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        {% if current_user.saml_tested %}
+                                            <i class="fas fa-check-circle text-success fs-4"></i>
+                                        {% else %}
+                                            <i class="far fa-circle text-muted fs-4"></i>
                                         {% endif %}
-                                        {% if session.get('last_auth_data', {}).get('groups') %}
-                                        <div class="mt-3 pt-2 border-top">
-                                            <small class="text-muted d-block mb-1">Current Group Membership:</small>
-                                            <div class="d-flex flex-wrap gap-1">
-                                                {% for group in session.get('last_auth_data', {}).get('groups', [])[:3] %}
-                                                    <span class="badge group-badge">{{ group }}</span>
-                                                {% endfor %}
-                                                {% if session.get('last_auth_data', {}).get('groups', [])|length > 3 %}
-                                                    <span class="badge group-badge text-muted">+{{ session.get('last_auth_data', {}).get('groups', [])|length - 3 }} more</span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">SAML 2.0 Authentication</h6>
+                                                <p class="mb-1 text-muted">Validate SAML authentication flow with your identity provider</p>
+                                                {% if current_user.saml_tested %}
+                                                    <small class="text-success">
+                                                        <i class="fas fa-check me-1"></i>Completed successfully
+                                                    </small>
+                                                {% else %}
+                                                    <small class="text-primary">
+                                                        <i class="fas fa-arrow-right me-1"></i>Click to test SAML authentication
+                                                    </small>
                                                 {% endif %}
                                             </div>
-                                            <small class="text-muted">From {{ session.get('last_auth_data', {}).get('method', 'last').upper() }} authentication</small>
+                                            <a href="{{ url_for('saml_login') }}" class="btn btn-sm {{ 'btn-outline-success' if current_user.saml_tested else 'btn-primary' }}">
+                                                {% if current_user.saml_tested %}
+                                                    <i class="fas fa-redo me-1"></i>Test Again
+                                                {% else %}
+                                                    <i class="fas fa-play me-1"></i>Start Test
+                                                {% endif %}
+                                            </a>
                                         </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="d-grid gap-2 mt-3">
-                                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Test Authentication</a>
-                                        {% if current_user.is_admin %}
-                                            <a href="{{ url_for('admin') }}" class="btn btn-secondary btn-sm">Admin Dashboard</a>
-                                        {% endif %}
                                     </div>
                                 </div>
+
+                                <!-- OIDC Test -->
+                                <div class="list-group-item d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        {% if current_user.oidc_tested %}
+                                            <i class="fas fa-check-circle text-success fs-4"></i>
+                                        {% else %}
+                                            <i class="far fa-circle text-muted fs-4"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">OpenID Connect (OIDC)</h6>
+                                                <p class="mb-1 text-muted">Validate OIDC flow with VisiQuate's identity provider</p>
+                                                {% if current_user.oidc_tested %}
+                                                    <small class="text-success">
+                                                        <i class="fas fa-check me-1"></i>Completed successfully
+                                                    </small>
+                                                {% else %}
+                                                    <small class="text-primary">
+                                                        <i class="fas fa-arrow-right me-1"></i>Click to test OIDC authentication
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                            <a href="{{ url_for('oauth_login', provider='authentik') }}" class="btn btn-sm {{ 'btn-outline-success' if current_user.oidc_tested else 'btn-primary' }}">
+                                                {% if current_user.oidc_tested %}
+                                                    <i class="fas fa-redo me-1"></i>Test Again
+                                                {% else %}
+                                                    <i class="fas fa-play me-1"></i>Start Test
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            {% if progress_count == 2 %}
+                                <div class="card-footer bg-light text-center">
+                                    <i class="fas fa-trophy text-warning fs-2 mb-2"></i>
+                                    <h6 class="text-success mb-2">All Tests Complete!</h6>
+                                    <p class="text-muted mb-3">Congratulations! You've successfully tested all authentication methods.</p>
+                                    <a href="{{ url_for('success') }}" class="btn btn-success">
+                                        <i class="fas fa-chart-line me-2"></i>View Authentication Summary
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Information -->
+                <div class="col-lg-5 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Account Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Email:</span>
+                                    <span class="fw-medium">{{ current_user.email }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Name:</span>
+                                    <span class="fw-medium">{{ current_user.name }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Username:</span>
+                                    <span class="fw-medium">{{ session.get('last_auth_data', {}).get('email', current_user.email).split('@')[0] }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Role:</span>
+                                    <span class="fw-medium">
+                                        {% if current_user.is_super_admin %}
+                                            <span class="badge bg-danger">Super Admin</span>
+                                        {% elif current_user.is_admin %}
+                                            <span class="badge bg-warning">Admin</span>
+                                        {% elif current_user.is_auditor %}
+                                            <span class="badge bg-info">Auditor</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">User</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Member Since:</span>
+                                    <span class="fw-medium">{{ current_user.created_at.strftime('%b %d, %Y') if current_user.created_at else 'Unknown' }}</span>
+                                </div>
+                                {% if current_user.scim_provisioned %}
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Provisioning:</span>
+                                    <span class="badge bg-success">SCIM Provisioned</span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Current Session Info -->
+                                {% if session.get('last_auth_data') %}
+                                <div class="mt-3 pt-3 border-top">
+                                    <h6 class="text-muted mb-2">Current Session</h6>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Auth Method:</span>
+                                        <span class="badge bg-primary">{{ session.get('last_auth_data', {}).get('method', 'unknown').upper() }}</span>
+                                    </div>
+                                    {% if session.get('last_auth_data', {}).get('ip_address') %}
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">IP Address:</span>
+                                        <span class="fw-medium">{{ session.get('last_auth_data', {}).get('ip_address') }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if session.get('last_auth_data', {}).get('timestamp') %}
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Login Time:</span>
+                                        <span class="fw-medium">
+                                            <script>
+                                                document.write(new Date('{{ session.get('last_auth_data', {}).get('timestamp') }}').toLocaleString());
+                                            </script>
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                                <!-- Group Membership for OIDC and SAML -->
+                                {% if session.get('last_auth_data', {}).get('groups') %}
+                                <div class="mt-3 pt-3 border-top">
+                                    <h6 class="text-muted mb-2">Group Membership</h6>
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                        {% for group in session.get('last_auth_data', {}).get('groups', [])[:4] %}
+                                            <span class="badge group-badge">{{ group }}</span>
+                                        {% endfor %}
+                                        {% if session.get('last_auth_data', {}).get('groups', [])|length > 4 %}
+                                            <span class="badge group-badge text-muted">+{{ session.get('last_auth_data', {}).get('groups', [])|length - 4 }} more</span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">From {{ session.get('last_auth_data', {}).get('method', 'last').upper() }} authentication</small>
+                                </div>
+                                {% endif %}
+
+                                <!-- Additional Metadata -->
+                                {% if session.get('last_auth_data', {}).get('provider') %}
+                                <div class="mt-3 pt-3 border-top">
+                                    <h6 class="text-muted mb-2">Provider Details</h6>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Provider:</span>
+                                        <span class="fw-medium">{{ session.get('last_auth_data', {}).get('provider', 'N/A') }}</span>
+                                    </div>
+                                    {% if session.get('last_auth_data', {}).get('user_agent') %}
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Browser:</span>
+                                        <span class="fw-medium" style="font-size: 0.8em;">
+                                            {{ session.get('last_auth_data', {}).get('user_agent', 'Unknown')[:50] }}{% if session.get('last_auth_data', {}).get('user_agent', '')|length > 50 %}...{% endif %}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                {% if current_user.is_admin %}
+                                    <a href="{{ url_for('admin') }}" class="btn btn-secondary">
+                                        <i class="fas fa-cogs me-2"></i>Admin Dashboard
+                                    </a>
+                                {% endif %}
+                                <a href="{{ url_for('success') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-chart-line me-2"></i>View Transaction History
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -132,56 +264,14 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">Authentication Testing Platform</h5>
                     <p class="card-text">Please log in to test various authentication methods and view detailed transaction logs.</p>
-                    <a href="{{ url_for('login') }}" class="btn btn-primary">Get Started</a>
-                    <a href="{{ url_for('register') }}" class="btn btn-outline-secondary ms-2">Register</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Get Started
+                    </a>
                 </div>
             </div>
         {% endif %}
 
-        <div class="row mt-5">
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">SAML Testing</h5>
-                        <p class="card-text">Test SAML 2.0 authentication with detailed assertion analysis and attribute mapping validation.</p>
-                        <ul class="list-unstyled small text-muted">
-                            <li>✓ SAML Response validation</li>
-                            <li>✓ Attribute extraction</li>
-                            <li>✓ Signature verification</li>
-                            <li>✓ Error analysis</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">OIDC Testing</h5>
-                        <p class="card-text">Test OpenID Connect authentication with comprehensive token inspection and claim analysis.</p>
-                        <ul class="list-unstyled small text-muted">
-                            <li>✓ JWT token validation</li>
-                            <li>✓ Claims extraction</li>
-                            <li>✓ Provider compatibility</li>
-                            <li>✓ Flow analysis</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Passkey (WebAuthn)</h5>
-                        <p class="card-text">Test passwordless authentication using WebAuthn/FIDO2 with biometric and hardware token support.</p>
-                        <ul class="list-unstyled small text-muted">
-                            <li>✓ Biometric authentication</li>
-                            <li>✓ Hardware token support</li>
-                            <li>✓ Cross-platform compatibility</li>
-                            <li>✓ Security validation</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
+
 {% endblock %}

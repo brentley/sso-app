@@ -36,9 +36,6 @@
                     <a href="{{ url_for('test_auth_as_user', method='oidc') }}" class="btn btn-outline-info">
                         <i class="fas fa-key me-2"></i>Test OIDC
                     </a>
-                    <a href="{{ url_for('test_auth_as_user', method='passkey') }}" class="btn btn-outline-success">
-                        <i class="fas fa-fingerprint me-2"></i>Test Passkey
-                    </a>
                 </div>
             </div>
             {% endif %}
@@ -89,9 +86,6 @@
                                                     {% endif %}
                                                     {% if user.oidc_tested %}
                                                         <span class="badge bg-info">OIDC</span>
-                                                    {% endif %}
-                                                    {% if user.passkey_tested %}
-                                                        <span class="badge bg-primary">Passkey</span>
                                                     {% endif %}
                                                 </div>
                                             </td>

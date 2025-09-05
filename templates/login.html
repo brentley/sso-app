@@ -9,11 +9,11 @@
             <h2>Authentication Testing</h2>
             <p class="text-muted">Complete these authentication tests to validate your SSO setup</p>
             {% if current_user.is_authenticated %}
-                {% set completed_tests = (current_user.saml_tested|int) + (current_user.oidc_tested|int) + (current_user.passkey_tested|int) %}
+                {% set completed_tests = (current_user.saml_tested|int) + (current_user.oidc_tested|int) %}
                 <div class="progress mb-3" style="height: 25px;">
                     <div class="progress-bar bg-success" role="progressbar" 
-                         style="width: {{ (completed_tests / 3 * 100)|round|int }}%">
-                        {{ completed_tests }}/3 Tests Complete
+                         style="width: {{ (completed_tests / 2 * 100)|round|int }}%">
+                        {{ completed_tests }}/2 Tests Complete
                     </div>
                 </div>
             {% endif %}
@@ -98,57 +98,10 @@
                                 </div>
                             </div>
 
-                            <!-- Passkey Test -->
-                            <div class="list-group-item d-flex align-items-center">
-                                <div class="flex-shrink-0 me-3">
-                                    {% if current_user.is_authenticated and current_user.passkey_tested %}
-                                        <i class="fas fa-check-circle text-success fs-4"></i>
-                                    {% else %}
-                                        <i class="far fa-circle text-muted fs-4"></i>
-                                    {% endif %}
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="mb-1">Test Passkey Authentication</h6>
-                                            <p class="mb-1 text-muted">Validate WebAuthn/FIDO2 passwordless authentication</p>
-                                            {% if current_user.is_authenticated and current_user.passkey_tested %}
-                                                <small class="text-success">
-                                                    <i class="fas fa-check me-1"></i>Completed successfully
-                                                </small>
-                                            {% else %}
-                                                <small class="text-primary">
-                                                    <i class="fas fa-arrow-right me-1"></i>Enter email below to test passkey
-                                                </small>
-                                            {% endif %}
-                                        </div>
-                                        <div class="text-end">
-                                            {% if not (current_user.is_authenticated and current_user.passkey_tested) %}
-                                                <div class="mb-2" style="width: 200px;">
-                                                    <input type="email" class="form-control form-control-sm" id="passkey-email" 
-                                                           placeholder="Enter email" value="{{ current_user.email if current_user.is_authenticated else '' }}" required>
-                                                </div>
-                                            {% endif %}
-                                            <button type="button" class="btn btn-sm {{ 'btn-outline-success' if (current_user.is_authenticated and current_user.passkey_tested) else 'btn-primary' }}" id="authenticate-passkey">
-                                                {% if current_user.is_authenticated and current_user.passkey_tested %}
-                                                    <i class="fas fa-redo me-1"></i>Test Again
-                                                {% else %}
-                                                    <i class="fas fa-play me-1"></i>Start Test
-                                                {% endif %}
-                                            </button>
-                                            {% if current_user.is_authenticated and not current_user.has_passkey() %}
-                                                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="register-passkey">
-                                                    <i class="fas fa-plus me-1"></i>Register
-                                                </button>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                         
                         {% if current_user.is_authenticated %}
-                            {% if current_user.saml_tested and current_user.oidc_tested and current_user.passkey_tested %}
+                            {% if current_user.saml_tested and current_user.oidc_tested %}
                                 <div class="p-4 text-center bg-light">
                                     <i class="fas fa-trophy text-warning fs-2 mb-2"></i>
                                     <h5 class="text-success mb-2">All Tests Complete!</h5>
@@ -187,27 +140,4 @@
     </div>
 </div>
 
-<!-- Passkey Status Modal -->
-<div class="modal fade" id="passkeyModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="passkeyModalTitle">Passkey Authentication</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="passkeyModalBody">
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Initializing passkey authentication...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/passkey.js') }}?v={{ git_commit[:7] if git_commit else 'dev' }}"></script>
 {% endblock %}

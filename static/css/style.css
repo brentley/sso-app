@@ -480,18 +480,6 @@ body {
     opacity: 0.7;
 }
 
-.passkey-animation {
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.7;
-    }
-    50% {
-        opacity: 1;
-    }
-}
 
 /* Footer styles with version info */
 .footer {

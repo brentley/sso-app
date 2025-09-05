@@ -1,5 +1,5 @@
 import pytest
-from app import app, db, User, AuthLog, Configuration, WebAuthnCredential
+from app import app, db, User, AuthLog, Configuration
 
 
 def test_user_model(client):
@@ -24,7 +24,6 @@ def test_user_model(client):
         # Test authentication status defaults
         assert user.saml_tested is False
         assert user.oidc_tested is False
-        assert user.passkey_tested is False
 
 
 def test_configuration_model(client):
@@ -66,25 +65,6 @@ def test_auth_log_model(client, regular_user):
         assert auth_log.auth_method == 'password'
         assert auth_log.success is True
 
-
-def test_webauthn_credential_model(client, regular_user):
-    """Test WebAuthnCredential model functionality"""
-    with app.app_context():
-        # Create credential
-        credential = WebAuthnCredential(
-            user_id=regular_user.user_id,
-            credential_id=b'test_credential_id',
-            public_key=b'test_public_key',
-            sign_count=0
-        )
-        db.session.add(credential)
-        db.session.commit()
-        
-        # Test basic credential properties
-        assert credential.user_id == regular_user.user_id
-        assert credential.credential_id == b'test_credential_id'
-        assert credential.public_key == b'test_public_key'
-        assert credential.sign_count == 0
 
 
 def test_user_admin_detection(client):
