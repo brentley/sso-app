@@ -28,8 +28,8 @@ def test_login_page(client):
     response = client.get('/login')
     assert response.status_code == 200
     assert b'VisiQuate SSO Testing Guide' in response.data
-    assert b'SAML Authentication' in response.data
-    assert b'OIDC Authentication' in response.data
+    assert b'Login Method #1' in response.data
+    assert b'Login Method #2' in response.data
 
 
 def test_register_page(client):
