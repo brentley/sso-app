@@ -1836,9 +1836,9 @@ def oauth_login(provider):
         # Use configured discovery URL or fall back to standard format
         metadata_url = discovery_url if discovery_url else f'{server_url}/.well-known/openid-configuration'
         
-        # Configure OAuth client dynamically
-        authentik = oauth.register(
-            name='authentik',
+        # Configure OAuth client dynamically with provider-specific name
+        oauth_client = oauth.register(
+            name=provider,
             client_id=client_id,
             client_secret=client_secret,
             server_metadata_url=metadata_url,
@@ -1848,7 +1848,7 @@ def oauth_login(provider):
         )
         
         redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
-        return authentik.authorize_redirect(redirect_uri)
+        return oauth_client.authorize_redirect(redirect_uri)
         
     except ValueError:
         flash('VisiQuate OIDC authentication not yet configured. Please configure OAuth settings in admin panel.')
@@ -1881,9 +1881,9 @@ def oauth_callback(provider):
         # Use configured discovery URL or fall back to standard format
         metadata_url = discovery_url if discovery_url else f'{server_url}/.well-known/openid-configuration'
         
-        # Configure OAuth client dynamically (same as above)
-        authentik = oauth.register(
-            name='authentik',
+        # Configure OAuth client dynamically with provider-specific name
+        oauth_client = oauth.register(
+            name=provider,
             client_id=client_id,
             client_secret=client_secret,
             server_metadata_url=metadata_url,
@@ -1893,25 +1893,25 @@ def oauth_callback(provider):
         )
         
         # Exchange authorization code for tokens
-        token = authentik.authorize_access_token()
+        token = oauth_client.authorize_access_token()
         user_info = token.get('userinfo')
         
         if not user_info:
             # For passkey-test-app, handle empty JWKS gracefully
             if provider == 'passkey-test-app':
                 try:
-                    user_info = authentik.parse_id_token(token)
+                    user_info = oauth_client.parse_id_token(token)
                 except Exception as e:
                     # If JWT parsing fails due to empty JWKS, try to get user info directly
                     logger.warning(f"JWT parsing failed for passkey provider: {str(e)}")
                     # Try to get userinfo from the userinfo endpoint
                     try:
-                        user_info = authentik.userinfo()
+                        user_info = oauth_client.userinfo()
                     except Exception as userinfo_error:
                         logger.error(f"Userinfo endpoint also failed: {str(userinfo_error)}")
                         raise ValueError(f"Unable to get user info from passkey provider: {str(e)}")
             else:
-                user_info = authentik.parse_id_token(token)
+                user_info = oauth_client.parse_id_token(token)
         
         # Extract user information
         email = user_info.get('email')
