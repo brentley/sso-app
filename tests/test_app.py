@@ -17,10 +17,10 @@ def test_health_endpoint(client):
 
 
 def test_index_page(client):
-    """Test the index page loads"""
+    """Test the index page redirects logged-out users to login"""
     response = client.get('/')
-    assert response.status_code == 200
-    assert b'VisiQuate SSO Authentication Testing' in response.data
+    assert response.status_code == 302
+    assert response.location.endswith('/login')
 
 
 def test_login_page(client):
