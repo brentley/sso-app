@@ -1,6 +1,6 @@
 import json
 import pytest
-from app import app, User, Configuration, set_config, get_config
+from app import app, db, User, Configuration, set_config, get_config
 
 
 def test_health_endpoint(client):
@@ -164,6 +164,18 @@ def test_scim_user_creation(client):
         assert user.scim_provisioned is True
 
 
+def test_passkey_oauth_provider_configuration(client):
+    """Test that passkey OAuth provider is properly configured"""
+    # Test accessing passkey OAuth login route
+    response = client.get('/oauth/login/passkey-test-app')
+    
+    # Should redirect to OAuth provider (or return 302 for redirect)
+    assert response.status_code == 302
+    
+    # The redirect location should contain the passkey test app URL
+    assert 'id.visiquate.com' in response.location
+
+
 def test_user_auth_status_tracking(client):
     """Test that authentication status is tracked properly"""
     # Register user (no password needed now)
@@ -177,3 +189,30 @@ def test_user_auth_status_tracking(client):
         user = User.query.filter_by(email='test@example.com').first()
         assert user.saml_tested is False
         assert user.oidc_tested is False
+        assert user.passkey_tested is False
+
+
+def test_user_passkey_metadata_methods(client):
+    """Test user passkey metadata getter methods"""
+    with app.app_context():
+        # Create user with passkey metadata
+        user = User(
+            email='passkey@example.com',
+            name='Passkey User',
+            passkey_tested=True,
+            passkey_metadata='{"groups": ["admin", "users"], "provider": "passkey-test-app", "timestamp": "2024-01-01T12:00:00Z"}'
+        )
+        db.session.add(user)
+        db.session.commit()
+        
+        # Test passkey metadata parsing
+        passkey_metadata = user.get_passkey_metadata_dict()
+        assert passkey_metadata is not None
+        assert 'groups' in passkey_metadata
+        assert 'admin' in passkey_metadata['groups']
+        assert passkey_metadata['provider'] == 'passkey-test-app'
+        
+        # Test with empty metadata
+        user.passkey_metadata = None
+        passkey_metadata = user.get_passkey_metadata_dict()
+        assert passkey_metadata == {}

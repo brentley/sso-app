@@ -163,10 +163,12 @@ class User(UserMixin, db.Model):
     # Authentication status tracking
     saml_tested = db.Column(db.Boolean, default=False)
     oidc_tested = db.Column(db.Boolean, default=False)
+    passkey_tested = db.Column(db.Boolean, default=False)
     
     # Persistent authentication metadata
     saml_metadata = db.Column(db.Text)  # JSON string of last SAML auth data
     oidc_metadata = db.Column(db.Text)  # JSON string of last OIDC auth data
+    passkey_metadata = db.Column(db.Text)  # JSON string of last passkey auth data
     
     # Relationships
     auth_logs = db.relationship('AuthLog', backref='user', lazy=True)
@@ -188,6 +190,16 @@ class User(UserMixin, db.Model):
         try:
             import json
             return json.loads(self.oidc_metadata)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    
+    def get_passkey_metadata_dict(self):
+        """Get parsed passkey metadata as dictionary"""
+        if not self.passkey_metadata:
+            return {}
+        try:
+            import json
+            return json.loads(self.passkey_metadata)
         except (json.JSONDecodeError, TypeError):
             return {}
     
@@ -772,8 +784,10 @@ def admin_clear_user_tests(user_id):
         # Clear test status and metadata
         user.saml_tested = False
         user.oidc_tested = False
+        user.passkey_tested = False
         user.saml_metadata = None
         user.oidc_metadata = None
+        user.passkey_metadata = None
         
         db.session.commit()
         
@@ -1705,17 +1719,23 @@ def saml_sls():
 @app.route('/oauth/login/<provider>')
 def oauth_login(provider):
     """OIDC/OAuth authentication endpoint"""
-    valid_providers = ['authentik']
+    valid_providers = ['authentik', 'passkey-test-app']
     if provider not in valid_providers:
         flash('Invalid OAuth provider')
         return redirect(url_for('login'))
     
     try:
-        # Get OIDC configuration from database
-        server_url = get_config('oidc_authentik_url', '')
-        client_id = get_config('oidc_authentik_client_id', '')
-        client_secret = get_config('oidc_authentik_client_secret', '')
-        discovery_url = get_config('oidc_discovery_url', '')
+        # Get OIDC configuration from database based on provider
+        if provider == 'authentik':
+            server_url = get_config('oidc_authentik_url', '')
+            client_id = get_config('oidc_authentik_client_id', '')
+            client_secret = get_config('oidc_authentik_client_secret', '')
+            discovery_url = get_config('oidc_discovery_url', '')
+        elif provider == 'passkey-test-app':
+            server_url = 'https://id.visiquate.com'  # Base server URL
+            client_id = '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY'
+            client_secret = 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz'
+            discovery_url = 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration'
         
         if not all([server_url, client_id, client_secret]):
             raise ValueError("OIDC not fully configured")
@@ -1748,11 +1768,19 @@ def oauth_login(provider):
 def oauth_callback(provider):
     """OAuth callback handler"""
     try:
-        # Get OIDC configuration from database
-        server_url = get_config('oidc_authentik_url', '')
-        client_id = get_config('oidc_authentik_client_id', '')
-        client_secret = get_config('oidc_authentik_client_secret', '')
-        discovery_url = get_config('oidc_discovery_url', '')
+        # Get OIDC configuration from database based on provider
+        if provider == 'authentik':
+            server_url = get_config('oidc_authentik_url', '')
+            client_id = get_config('oidc_authentik_client_id', '')
+            client_secret = get_config('oidc_authentik_client_secret', '')
+            discovery_url = get_config('oidc_discovery_url', '')
+        elif provider == 'passkey-test-app':
+            server_url = 'https://id.visiquate.com'  # Base server URL
+            client_id = '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY'
+            client_secret = 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz'
+            discovery_url = 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration'
+        else:
+            raise ValueError(f"Unsupported provider: {provider}")
         
         if not all([server_url, client_id, client_secret]):
             raise ValueError("OIDC not fully configured")
@@ -1804,8 +1832,11 @@ def oauth_callback(provider):
             db.session.add(user)
             db.session.commit()
         
-        # Update OIDC tested flag
-        user.oidc_tested = True
+        # Update authentication tested flags based on provider
+        if provider == 'authentik':
+            user.oidc_tested = True
+        elif provider == 'passkey-test-app':
+            user.passkey_tested = True
         db.session.commit()
         
         # Login user
@@ -1827,13 +1858,17 @@ def oauth_callback(provider):
         }
         session['last_auth_data'] = auth_data
         
-        # Store persistent OIDC metadata
-        user.oidc_metadata = json.dumps(auth_data)
+        # Store persistent metadata based on provider
+        if provider == 'authentik':
+            user.oidc_metadata = json.dumps(auth_data)
+        elif provider == 'passkey-test-app':
+            user.passkey_metadata = json.dumps(auth_data)
         db.session.commit()
         
         # Log successful authentication
+        auth_method = 'passkey' if provider == 'passkey-test-app' else 'oidc'
         log_authentication(
-            user.id, 'oidc', True, {
+            user.id, auth_method, True, {
                 'email': email,
                 'provider': provider,
                 'user_info': user_info
@@ -2078,6 +2113,16 @@ def run_migrations():
         if 'oidc_metadata' not in columns:
             logger.info("Adding oidc_metadata column to user table")
             db.session.execute(text("ALTER TABLE user ADD COLUMN oidc_metadata TEXT"))
+            db.session.commit()
+            
+        if 'passkey_tested' not in columns:
+            logger.info("Adding passkey_tested column to user table")
+            db.session.execute(text("ALTER TABLE user ADD COLUMN passkey_tested BOOLEAN DEFAULT 0"))
+            db.session.commit()
+            
+        if 'passkey_metadata' not in columns:
+            logger.info("Adding passkey_metadata column to user table")
+            db.session.execute(text("ALTER TABLE user ADD COLUMN passkey_metadata TEXT"))
             db.session.commit()
             
     except Exception as e:

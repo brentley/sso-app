@@ -24,6 +24,7 @@ def test_user_model(client):
         # Test authentication status defaults
         assert user.saml_tested is False
         assert user.oidc_tested is False
+        assert user.passkey_tested is False
 
 
 def test_configuration_model(client):
@@ -107,3 +108,25 @@ def test_scim_user_fields(client):
         assert user.external_id == 'ext-123'
         assert user.scim_provisioned is True
         assert user.active is True
+
+
+def test_passkey_user_fields(client):
+    """Test passkey-specific user fields"""
+    with app.app_context():
+        # Create user with passkey authentication
+        user = User(
+            email='passkey@example.com',
+            name='Passkey User',
+            passkey_tested=True,
+            passkey_metadata='{"provider": "passkey-test-app", "timestamp": "2024-01-01T12:00:00Z"}'
+        )
+        db.session.add(user)
+        db.session.commit()
+        
+        assert user.passkey_tested is True
+        assert user.passkey_metadata is not None
+        
+        # Test metadata getter method
+        metadata = user.get_passkey_metadata_dict()
+        assert metadata['provider'] == 'passkey-test-app'
+        assert 'timestamp' in metadata
