@@ -164,8 +164,32 @@ class User(UserMixin, db.Model):
     saml_tested = db.Column(db.Boolean, default=False)
     oidc_tested = db.Column(db.Boolean, default=False)
     
+    # Persistent authentication metadata
+    saml_metadata = db.Column(db.Text)  # JSON string of last SAML auth data
+    oidc_metadata = db.Column(db.Text)  # JSON string of last OIDC auth data
+    
     # Relationships
     auth_logs = db.relationship('AuthLog', backref='user', lazy=True)
+    
+    def get_saml_metadata_dict(self):
+        """Get parsed SAML metadata as dictionary"""
+        if not self.saml_metadata:
+            return {}
+        try:
+            import json
+            return json.loads(self.saml_metadata)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    
+    def get_oidc_metadata_dict(self):
+        """Get parsed OIDC metadata as dictionary"""
+        if not self.oidc_metadata:
+            return {}
+        try:
+            import json
+            return json.loads(self.oidc_metadata)
+        except (json.JSONDecodeError, TypeError):
+            return {}
     
 
 class Configuration(db.Model):
@@ -730,6 +754,48 @@ def admin_delete_user(user_id):
         app.logger.error(f"Error deleting user: {str(e)}")
         db.session.rollback()
         return jsonify({'error': 'Failed to delete user'}), 500
+
+@app.route('/admin/user/<int:user_id>/clear-tests', methods=['POST'])
+@login_required
+def admin_clear_user_tests(user_id):
+    """Clear SAML and OIDC test status for a user"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        user_email = user.email
+        
+        # Clear test status and metadata
+        user.saml_tested = False
+        user.oidc_tested = False
+        user.saml_metadata = None
+        user.oidc_metadata = None
+        
+        db.session.commit()
+        
+        # Log the admin action
+        log_authentication(
+            user_id=None,
+            auth_method='user_admin_clear_tests',
+            success=True,
+            transaction_data={
+                'admin_user_id': current_user.id,
+                'admin_email': current_user.email,
+                'target_user_id': user_id,
+                'target_user_email': user_email,
+                'action': 'test_status_cleared'
+            },
+            ip_address=get_real_ip(),
+            user_agent=request.headers.get('User-Agent', '')
+        )
+        
+        return jsonify({'message': f'Test status cleared for {user_email}'})
+    except Exception as e:
+        app.logger.error(f"Error clearing test status for user {user_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to clear test status'}), 500
 
 @app.route('/admin/scim_logs')
 @login_required 
@@ -1545,7 +1611,8 @@ def saml_acs():
             'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/groups',
             'http://schemas.microsoft.com/ws/2008/06/identity/claims/groups', 
             'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role',
-            'groups',
+            'group',      # Authentik uses singular 'group'
+            'groups',     # Some providers use plural 'groups'
             'memberOf',
             'roles'
         ]:
@@ -1583,6 +1650,11 @@ def saml_acs():
             'session_index': authn_response.session_id() if hasattr(authn_response, 'session_id') else None
         }
         session['last_auth_data'] = auth_data
+        
+        # Store persistent SAML metadata
+        import json
+        user.saml_metadata = json.dumps(auth_data)
+        db.session.commit()
         
         # Log successful authentication
         log_authentication(
@@ -1753,6 +1825,10 @@ def oauth_callback(provider):
         }
         session['last_auth_data'] = auth_data
         
+        # Store persistent OIDC metadata
+        user.oidc_metadata = json.dumps(auth_data)
+        db.session.commit()
+        
         # Log successful authentication
         log_authentication(
             user.id, 'oidc', True, {
@@ -1921,13 +1997,22 @@ def format_build_time(build_date_str):
             dt = datetime.fromisoformat(build_date_str.replace('Z', '+00:00'))
             # Convert to Pacific Time
             dt_pt = dt.astimezone(ZoneInfo('America/Los_Angeles'))
-            return dt_pt.strftime('%H:%M %Z')
+            return dt_pt.strftime('%b %d, %H:%M %Z')
         else:
             return build_date_str
     except Exception:
         # Fallback for older Python or if zoneinfo fails
         return build_date_str.split('T')[-1][:5] if 'T' in build_date_str else build_date_str
 
+
+@app.template_filter('provider_display_name')
+def provider_display_name(provider_name):
+    """Convert internal provider names to friendly display names"""
+    provider_names = {
+        'authentik': 'id.visiquate.com',
+        'saml': 'id.visiquate.com'
+    }
+    return provider_names.get(provider_name, provider_name)
 
 @app.template_filter('from_json')
 def from_json_filter(json_string):

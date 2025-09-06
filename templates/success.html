@@ -5,9 +5,14 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-10 mx-auto">
-        <div class="alert alert-success" role="alert">
-            <h4 class="alert-heading">Authentication Successful!</h4>
-            <p>You have successfully authenticated. Below you can view the detailed transaction data for troubleshooting purposes.</p>
+        <div class="alert alert-success text-center" role="alert">
+            <h4 class="alert-heading">✅ {{ auth_data.get('method', 'Authentication').upper() }} Authentication Successful!</h4>
+            <p class="mb-2">You have successfully authenticated with <strong>{{ auth_data.get('provider', auth_data.get('method', 'the provider')) | provider_display_name }}</strong>.</p>
+            <p class="mb-0">
+                <strong>Redirecting to homepage in <span id="countdown">2</span> seconds...</strong>
+                <br>
+                <small class="text-muted">Or <a href="{{ url_for('index') }}" class="alert-link">click here to continue now</a></small>
+            </p>
         </div>
 
         {% if auth_data %}
@@ -219,15 +224,33 @@
 document.addEventListener('DOMContentLoaded', function() {
     const collapseButton = document.querySelector('[data-bs-toggle="collapse"]');
     const collapseTarget = document.querySelector('#transactionDetails');
-    const toggleText = collapseButton.querySelector('.collapse-toggle-text');
+    const toggleText = collapseButton?.querySelector('.collapse-toggle-text');
     
-    collapseTarget.addEventListener('show.bs.collapse', function() {
-        toggleText.textContent = 'Hide Details';
-    });
+    if (collapseButton && collapseTarget && toggleText) {
+        collapseTarget.addEventListener('show.bs.collapse', function() {
+            toggleText.textContent = 'Hide Details';
+        });
+        
+        collapseTarget.addEventListener('hide.bs.collapse', function() {
+            toggleText.textContent = 'Show Details';
+        });
+    }
     
-    collapseTarget.addEventListener('hide.bs.collapse', function() {
-        toggleText.textContent = 'Show Details';
-    });
+    // Auto-redirect countdown
+    let countdown = 2;
+    const countdownElement = document.getElementById('countdown');
+    
+    const timer = setInterval(function() {
+        countdown--;
+        if (countdownElement) {
+            countdownElement.textContent = countdown;
+        }
+        
+        if (countdown <= 0) {
+            clearInterval(timer);
+            window.location.href = '{{ url_for("index") }}';
+        }
+    }, 1000);
 });
 </script>
 {% endblock %}

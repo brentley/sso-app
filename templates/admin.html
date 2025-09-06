@@ -87,6 +87,9 @@
                                         View Logs
                                     </button>
                                     {% if current_user.is_admin %}
+                                        <button class="btn btn-sm btn-outline-warning me-1" onclick="clearTestStatus({{ user.id }}, '{{ user.email }}')">
+                                            <i class="fas fa-undo me-1"></i>Clear Tests
+                                        </button>
                                         <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ user.id }}, '{{ user.email }}')">
                                             <i class="fas fa-trash me-1"></i>Delete
                                         </button>
@@ -246,6 +249,30 @@ function showLogDetails(logId, transactionData) {
     });
 }
 
+
+async function clearTestStatus(userId, userEmail) {
+    if (!confirm(`Clear SAML and OIDC test status for "${userEmail}"? This will allow them to test authentication methods again.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/user/${userId}/clear-tests`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert(`Test status cleared successfully: ${data.message}`);
+            // Refresh the page to update the user list
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error clearing test status: ' + error.message);
+    }
+}
 
 async function deleteUser(userId, userEmail) {
     if (!confirm(`Are you sure you want to delete user "${userEmail}"? This action cannot be undone and will delete all associated data including authentication logs.`)) {
