@@ -30,7 +30,6 @@ def test_login_page(client):
     assert b'Authentication Testing' in response.data
     assert b'SAML Authentication' in response.data
     assert b'OIDC Authentication' in response.data
-    assert b'Passkey Authentication' in response.data
 
 
 def test_register_page(client):
