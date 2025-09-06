@@ -306,6 +306,9 @@
                                 <a href="{{ url_for('success') }}" class="btn btn-outline-primary">
                                     <i class="fas fa-chart-line me-2"></i>View Transaction History
                                 </a>
+                                <button onclick="clearSiteCookies()" class="btn btn-outline-warning">
+                                    <i class="fas fa-broom me-2"></i>Clear All Cookies
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -326,4 +329,37 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function clearSiteCookies() {
+    if (!confirm('This will clear all cookies for this site and log you out. Are you sure?')) {
+        return;
+    }
+    
+    // Get all cookies for this domain
+    const cookies = document.cookie.split("; ");
+    
+    // Clear each cookie
+    cookies.forEach(cookie => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        // Clear cookie for current path
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        // Clear cookie for domain
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+        // Clear cookie for parent domain (in case of subdomain)
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=." + window.location.hostname;
+    });
+    
+    // Clear localStorage and sessionStorage as well
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Show success message and redirect to login
+    alert('All cookies and stored data have been cleared. You will be redirected to the login page.');
+    window.location.href = '/login';
+}
+</script>
 {% endblock %}
