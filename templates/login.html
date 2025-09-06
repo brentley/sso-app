@@ -348,4 +348,60 @@
     </div>
 </div>
 
+<!-- Clear Cookies Section for Testing -->
+<div class="row mt-5">
+    <div class="col-lg-8 mx-auto">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <h5 class="text-muted mb-3">
+                    <i class="fas fa-broom me-2"></i>
+                    Clean Testing State
+                </h5>
+                <p class="text-muted mb-3">
+                    If you're having issues with authentication or want to start fresh, you can clear all cookies and stored data for this site.
+                </p>
+                <button onclick="clearSiteCookies()" class="btn btn-outline-secondary">
+                    <i class="fas fa-broom me-2"></i>Clear Site Cookies
+                </button>
+                <div class="mt-2">
+                    <small class="text-muted">This will only affect this site (sso-app.visiquate.com), not other websites.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function clearSiteCookies() {
+    if (!confirm('This will clear all cookies and stored data for this site only (sso-app.visiquate.com). Other websites will not be affected. This can help resolve authentication issues. Are you sure?')) {
+        return;
+    }
+    
+    // Get all cookies for this domain
+    const cookies = document.cookie.split("; ");
+    
+    // Clear each cookie
+    cookies.forEach(cookie => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        // Clear cookie for current path
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        // Clear cookie for domain
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+        // Clear cookie for parent domain (in case of subdomain)
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=." + window.location.hostname;
+    });
+    
+    // Clear localStorage and sessionStorage as well
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Show success message and reload page
+    alert('All cookies and stored data for this site have been cleared. The page will refresh.');
+    window.location.reload();
+}
+</script>
 {% endblock %}
