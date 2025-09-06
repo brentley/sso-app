@@ -515,6 +515,44 @@ def success():
     auth_data = session.get('last_auth_data', {})
     return render_template('success.html', auth_data=auth_data)
 
+@app.route('/clear-my-test-results', methods=['POST'])
+@login_required
+def clear_my_test_results():
+    """Allow users to clear their own authentication test results"""
+    try:
+        # Clear only test status and metadata, preserve all other user data
+        current_user.saml_tested = False
+        current_user.oidc_tested = False
+        current_user.passkey_tested = False
+        current_user.saml_metadata = None
+        current_user.oidc_metadata = None
+        current_user.passkey_metadata = None
+        
+        db.session.commit()
+        
+        # Log the user action for audit trail
+        log_authentication(
+            user_id=current_user.id,
+            auth_method='user_self_clear_tests',
+            success=True,
+            transaction_data={
+                'email': current_user.email,
+                'cleared_by': 'self',
+                'action': 'clear_test_results'
+            },
+            ip_address=get_real_ip(),
+            user_agent=request.headers.get('User-Agent')
+        )
+        
+        flash('Your test results have been cleared successfully. Your password and account information remain unchanged.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error clearing test results for user {current_user.id}: {str(e)}")
+        flash('An error occurred while clearing test results. Please try again.', 'error')
+    
+    return redirect(url_for('index'))
+
 @app.route('/admin')
 @login_required
 def admin():

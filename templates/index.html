@@ -389,6 +389,9 @@
                                 <button onclick="clearSiteCookies()" class="btn btn-outline-warning">
                                     <i class="fas fa-broom me-2"></i>Clear Site Cookies
                                 </button>
+                                <button onclick="clearTestResults()" class="btn btn-outline-danger">
+                                    <i class="fas fa-eraser me-2"></i>Clear Test Results
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -440,6 +443,36 @@ function clearSiteCookies() {
     // Show success message and redirect to login
     alert('All cookies and stored data for this site have been cleared. You will be redirected to the login page.');
     window.location.href = '/login';
+}
+
+function clearTestResults() {
+    const confirmMessage = 'This will clear all your authentication test results and progress.\n\n' +
+                          '⚠️  IMPORTANT: Your password and account information will NOT be affected.\n' +
+                          'Only your test completion status will be reset.\n\n' +
+                          'You can re-run the authentication tests anytime.\n\n' +
+                          'Are you sure you want to continue?';
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Create and submit a form to clear test results
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("clear_my_test_results") }}';
+    
+    // Add CSRF token if available
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken.getAttribute('content');
+        form.appendChild(csrfInput);
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
 {% endblock %}

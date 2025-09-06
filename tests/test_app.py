@@ -216,3 +216,10 @@ def test_user_passkey_metadata_methods(client):
         user.passkey_metadata = None
         passkey_metadata = user.get_passkey_metadata_dict()
         assert passkey_metadata == {}
+
+
+def test_clear_my_test_results_route_exists(client):
+    """Test that clear test results route exists and requires login"""
+    # Test without login - should redirect to login page
+    response = client.post('/clear-my-test-results')
+    assert response.status_code == 302  # Redirect due to @login_required
