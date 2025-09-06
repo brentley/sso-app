@@ -12,12 +12,20 @@
                 </div>
                 <h1 class="display-5 fw-bold mb-3">VisiQuate SSO Testing Guide</h1>
                 <p class="lead text-muted mb-2">Follow these steps to test and validate your <strong>new</strong> single sign-on (SSO) setup</p>
-                <div class="alert alert-warning d-inline-block mx-auto mb-4" style="max-width: 600px;">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <div class="text-start small">
-                            <strong>New SSO System:</strong> This new <code>id.visiquate.com</code> authentication will eventually replace <code>sso.visiquate.com</code>. 
-                            Testing ensures a smooth transition without accidentally locking users out.
+                <div class="alert alert-warning mx-auto mb-4" style="max-width: 700px; margin-top: 60px;">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fs-3"></i>
+                        </div>
+                        <div class="col">
+                            <h5 class="alert-heading mb-2">🚀 New SSO System Migration</h5>
+                            <p class="mb-2">VisiQuate is migrating from the old <code>sso.visiquate.com</code> system to a new, more robust authentication platform at <code>id.visiquate.com</code>. This new system provides:</p>
+                            <ul class="mb-2 small">
+                                <li><strong>Enhanced Security:</strong> Modern authentication protocols and better password policies</li>
+                                <li><strong>Unified Access:</strong> Single identity across all VisiQuate applications</li>
+                                <li><strong>Improved Reliability:</strong> More stable authentication infrastructure</li>
+                            </ul>
+                            <p class="mb-0"><strong>Why test now?</strong> By validating both SAML and OIDC authentication methods work correctly with your account, we ensure a seamless transition when we migrate each application. This prevents any risk of being locked out during the switchover process.</p>
                         </div>
                     </div>
                 </div>
@@ -48,7 +56,7 @@
                         <div class="row g-3 text-start">
                             <div class="col-md-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="bg-primary bg-gradient rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 30px; height: 30px;">
+                                    <div class="bg-info bg-gradient rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 30px; height: 30px;">
                                         <span class="fw-bold text-white small">1</span>
                                     </div>
                                     <small class="text-muted">Set up password access</small>
@@ -89,7 +97,7 @@
         <div class="row mt-5">
             <div class="col-lg-10 mx-auto">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-gradient text-white text-center py-3" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                    <div class="card-header bg-gradient text-white text-center py-3" style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);">
                         <div class="d-flex align-items-center justify-content-center">
                             <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
                                 <span class="fw-bold text-white">1</span>
@@ -120,7 +128,7 @@
                                                 <i class="fas fa-key text-info me-2 mt-1"></i>
                                                 <div>
                                                     <strong class="text-info">Existing users:</strong>
-                                                    <small class="d-block text-muted">Use this same process anytime you forget your password.</small>
+                                                    <small class="d-block text-muted">We're using the standard "forgot password" flow from id.visiquate.com. You can use this same process anytime you forget your password for the new system.</small>
                                                 </div>
                                             </div>
                                         </div>
