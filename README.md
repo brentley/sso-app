@@ -1,22 +1,29 @@
-# SSO Authentication Test Application
+# VisiQuate SSO Testing Guide
 
-A comprehensive SSO authentication testing platform that allows users to test SAML and OIDC authentication methods with detailed transaction data logging, group membership display, and admin oversight.
+A comprehensive SSO authentication testing platform that guides users through testing SAML and OIDC authentication methods with detailed transaction data logging, persistent metadata display, and admin oversight.
 
-## ✨ Recent Updates
+## ✨ Recent Updates (September 2024)
 
-- **Dynamic Group Membership**: Display groups from SAML/OIDC authentication payloads in real-time
-- **Enhanced Dashboard**: Improved user validation status with progress tracking
-- **Real IP Logging**: Accurate client IP addresses behind Cloudflare tunnel
-- **HTTPS Detection**: Proper SSL detection for SAML behind reverse proxies
-- **Production Server**: Gunicorn WSGI server for better performance
-- **Debug Endpoints**: Enhanced debugging capabilities for troubleshooting
+- **🎓 Instructional Testing Guide**: Complete redesign of login page with step-by-step guidance
+- **📊 Persistent Metadata Display**: Authentication data persists across sessions for both SAML and OIDC
+- **🔄 Auto-Redirect with Success Messages**: 2-second success confirmation before returning to testing
+- **⚙️ Admin Test Management**: Administrators can clear user test status for re-testing
+- **🌙 Dark Mode Improvements**: Better readability in dark mode across all components
+- **🧹 Cookie Management**: One-click site cookie clearing for clean testing states
+- **🔧 Enhanced Build Process**: Improved timestamp display and provider name mapping
 
 ## Features
 
-### Authentication Methods
+### 🎯 Guided Testing Experience
+- **Step-by-Step Instructions**: Clear guidance from password setup through authentication testing
+- **Progress Tracking**: Visual progress indicators showing completion status (X/2 tests complete)
+- **Instructional Interface**: Login page redesigned as comprehensive testing guide
+- **Password Setup Integration**: Direct integration with id.visiquate.com password reset flow
+
+### 🔐 Authentication Methods
 - **SAML 2.0**: Test SAML authentication with detailed assertion analysis and group extraction
-- **OIDC (OpenID Connect)**: Test OAuth 2.0/OIDC flows with Authentik and custom providers
-- **Passkey (WebAuthn)**: Passwordless authentication using FIDO2/WebAuthn
+- **OIDC (OpenID Connect)**: Test OAuth 2.0/OIDC flows with id.visiquate.com (Authentik)
+- **Auto-Redirect**: 2-second success confirmation before returning to homepage
 
 ### User Experience
 - **Dynamic Group Display**: Real-time group membership from authentication payloads
@@ -110,10 +117,10 @@ Configure OIDC providers:
 ### Group Membership
 
 Groups are automatically extracted and displayed from:
-- **SAML Attributes**: `groups`, `memberOf`, `roles`, and standard claim URIs
+- **SAML Attributes**: `group`, `groups`, `memberOf`, `roles`, and standard claim URIs
 - **OIDC Claims**: `groups`, `roles`, `authorities`, `group_membership`
-- **Real-time Display**: Groups shown from current authentication session
-- **No Storage**: Groups displayed dynamically, not stored in database
+- **Persistent Display**: Groups shown from authentication sessions and stored in database
+- **Cross-Session Persistence**: Authentication data persists across browser sessions
 
 ### SCIM Provisioning
 
@@ -185,18 +192,19 @@ make shell
 ### Technology Stack
 - **Backend**: Flask with SQLAlchemy, Gunicorn WSGI server
 - **Database**: SQLite (production), PostgreSQL (optional)
-- **Authentication**: python-saml, Authlib, WebAuthn 2.0
+- **Authentication**: python-saml, Authlib (OIDC)
 - **Frontend**: Bootstrap 5 with ES5-compatible JavaScript
 - **Deployment**: Docker, Watchtower, Cloudflare Tunnel
 - **Reverse Proxy**: Cloudflare with SSL termination
 
 ### Security Features
-- **HTTPS Required**: WebAuthn requires secure context
+- **HTTPS Required**: Secure context for all operations
 - **CSRF Protection**: All forms protected with Flask-WTF
 - **Input Validation**: Comprehensive input validation
 - **Real IP Detection**: Accurate client IP logging behind proxies
 - **Security Headers**: Proper security headers set
 - **Group-based Access**: Dynamic group membership from IdP
+- **Cookie Management**: Secure cookie handling with site clearing functionality
 
 ### DevOps Integration
 - **Multi-stage Docker builds** for optimized images
@@ -233,15 +241,16 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 - Check discovery URL configuration in admin panel
 - Ensure `groups` scope is included in OAuth configuration
 
-**WebAuthn/Passkey Registration:**
-- Requires HTTPS in production
-- Check browser console for WebAuthn API errors
-- Verify RP_ID and ORIGIN environment variables match domain
-
 **Group Membership Not Showing:**
 - Verify identity provider sends group claims in authentication response
+- Check that Authentik sends 'group' attribute (singular) in SAML assertions
+- Ensure OIDC scope includes 'groups' for OpenID Connect authentication
 - Check success page raw data for available attributes/claims
-- Ensure OIDC scope includes `groups`
+
+**Testing and Re-testing:**
+- Administrators can clear user test status from admin panel for re-testing
+- Use "Clear Site Cookies" button on homepage for clean testing states
+- Authentication data persists across sessions for review
 
 ### Debug Resources
 - **Admin Dashboard**: `/admin` - User and authentication log overview

@@ -307,7 +307,7 @@
                                     <i class="fas fa-chart-line me-2"></i>View Transaction History
                                 </a>
                                 <button onclick="clearSiteCookies()" class="btn btn-outline-warning">
-                                    <i class="fas fa-broom me-2"></i>Clear All Cookies
+                                    <i class="fas fa-broom me-2"></i>Clear Site Cookies
                                 </button>
                             </div>
                         </div>
@@ -334,7 +334,7 @@
 {% block extra_scripts %}
 <script>
 function clearSiteCookies() {
-    if (!confirm('This will clear all cookies for this site and log you out. Are you sure?')) {
+    if (!confirm('This will clear all cookies and stored data for this site only (sso-app.visiquate.com) and log you out. Other websites will not be affected. Are you sure?')) {
         return;
     }
     
@@ -358,7 +358,7 @@ function clearSiteCookies() {
     sessionStorage.clear();
     
     // Show success message and redirect to login
-    alert('All cookies and stored data have been cleared. You will be redirected to the login page.');
+    alert('All cookies and stored data for this site have been cleared. You will be redirected to the login page.');
     window.location.href = '/login';
 }
 </script>

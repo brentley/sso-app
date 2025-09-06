@@ -30,13 +30,13 @@
                     <div class="card-body text-center" style="padding: 30px;">
                         <h3 class="card-title mb-4">Step 1: Set Up Your VisiQuate Account Password</h3>
                         
-                        <div class="alert alert-secondary text-start mb-4">
-                            <h5 class="alert-heading">What this step does:</h5>
+                        <div class="border rounded p-3 mb-4">
+                            <h5 class="text-primary mb-3">What this step does:</h5>
                             <p class="mb-2"><strong>For new users:</strong> This is how you'll create your initial password for your VisiQuate account. Your account has been created automatically, but you need to set a password to access it.</p>
                             <p class="mb-0"><strong>For existing users:</strong> You can use this same process anytime you forget your password and need to reset it.</p>
                         </div>
                         
-                        <div class="alert alert-info text-start mb-4">
+                        <div class="alert alert-primary text-start mb-4">
                             <h5 class="alert-heading">Instructions:</h5>
                             <ol class="mb-0">
                                 <li>Click the "Set/Reset Password" button below</li>
@@ -59,14 +59,29 @@
                             </a>
                         </div>
                         
-                        <p class="mt-3 text-muted">
-                            <small>
-                                <i class="fas fa-external-link-alt me-1"></i>
-                                This link will open in a new tab. After setting your password, return to this page to continue.
-                            </small>
-                        </p>
+                        <div class="mt-4 p-3 border rounded" style="background-color: var(--bs-warning-bg-subtle); border-color: var(--bs-warning-border-subtle) !important;">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle text-warning me-2 fs-5"></i>
+                                <div>
+                                    <strong class="text-warning-emphasis">Important:</strong>
+                                    <span class="text-warning-emphasis">This link will open in a new tab. After setting your password, return to this page to continue.</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Visual Arrow Connector -->
+        <div class="row mt-3 mb-3">
+            <div class="col-lg-10 mx-auto text-center">
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-arrow-down text-primary fs-1" style="opacity: 0.7;"></i>
+                    </div>
+                </div>
+                <small class="text-muted mt-2 d-block">After completing Step 1, proceed to Steps 2-3 below</small>
             </div>
         </div>
 
@@ -112,6 +127,12 @@
                                         </a>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Visual Arrow Between Steps 2 and 3 -->
+                            <div class="list-group-item text-center py-2" style="border: none; background: transparent;">
+                                <i class="fas fa-arrow-down text-muted" style="opacity: 0.5;"></i>
+                                <small class="text-muted d-block mt-1">Then proceed to Step 3</small>
                             </div>
 
                             <!-- OIDC Test -->
