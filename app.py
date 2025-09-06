@@ -1804,7 +1804,21 @@ def oauth_callback(provider):
         user_info = token.get('userinfo')
         
         if not user_info:
-            user_info = authentik.parse_id_token(token)
+            # For passkey-test-app, handle empty JWKS gracefully
+            if provider == 'passkey-test-app':
+                try:
+                    user_info = authentik.parse_id_token(token)
+                except Exception as e:
+                    # If JWT parsing fails due to empty JWKS, try to get user info directly
+                    logger.warning(f"JWT parsing failed for passkey provider: {str(e)}")
+                    # Try to get userinfo from the userinfo endpoint
+                    try:
+                        user_info = authentik.userinfo()
+                    except Exception as userinfo_error:
+                        logger.error(f"Userinfo endpoint also failed: {str(userinfo_error)}")
+                        raise ValueError(f"Unable to get user info from passkey provider: {str(e)}")
+            else:
+                user_info = authentik.parse_id_token(token)
         
         # Extract user information
         email = user_info.get('email')
