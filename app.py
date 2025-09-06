@@ -736,6 +736,61 @@ def import_oidc_discovery():
         app.logger.error(f'Error importing OIDC discovery: {str(e)}')
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/admin/import_passkey_discovery', methods=['POST'])
+@login_required
+def import_passkey_discovery():
+    """Import passkey OIDC configuration from discovery document"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data or not data.get('discovery_url'):
+            return jsonify({'success': False, 'error': 'Discovery URL required'})
+        
+        discovery_url = data['discovery_url']
+        if not discovery_url.startswith('https://'):
+            return jsonify({'success': False, 'error': 'Discovery URL must use HTTPS'})
+        
+        # Download and parse OIDC discovery document
+        import requests
+        
+        response = requests.get(discovery_url, timeout=10)
+        response.raise_for_status()
+        
+        discovery_doc = response.json()
+        
+        result = {'success': True}
+        
+        # Extract key values
+        if 'issuer' in discovery_doc:
+            result['issuer'] = discovery_doc['issuer']
+        
+        if 'authorization_endpoint' in discovery_doc:
+            result['authorization_endpoint'] = discovery_doc['authorization_endpoint']
+        
+        if 'token_endpoint' in discovery_doc:
+            result['token_endpoint'] = discovery_doc['token_endpoint']
+        
+        if 'userinfo_endpoint' in discovery_doc:
+            result['userinfo_endpoint'] = discovery_doc['userinfo_endpoint']
+        
+        if 'jwks_uri' in discovery_doc:
+            result['jwks_uri'] = discovery_doc['jwks_uri']
+        
+        app.logger.info(f'Passkey OIDC discovery imported successfully from {discovery_url}')
+        return jsonify(result)
+        
+    except requests.RequestException as e:
+        app.logger.error(f'Error fetching passkey OIDC discovery: {str(e)}')
+        return jsonify({'success': False, 'error': f'Failed to fetch discovery document: {str(e)}'})
+    except ValueError as e:
+        app.logger.error(f'Error parsing passkey OIDC discovery JSON: {str(e)}')
+        return jsonify({'success': False, 'error': 'Invalid discovery document JSON'})
+    except Exception as e:
+        app.logger.error(f'Error importing passkey OIDC discovery: {str(e)}')
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/admin/user/<int:user_id>/logs')
 @login_required
 def user_logs(user_id):
@@ -1770,10 +1825,10 @@ def oauth_login(provider):
             client_secret = get_config('oidc_authentik_client_secret', '')
             discovery_url = get_config('oidc_discovery_url', '')
         elif provider == 'passkey-test-app':
-            server_url = 'https://id.visiquate.com'  # Base server URL
-            client_id = '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY'
-            client_secret = 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz'
-            discovery_url = 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration'
+            server_url = get_config('passkey_server_url', 'https://id.visiquate.com')  # Default fallback
+            client_id = get_config('passkey_client_id', '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY')  # Default fallback
+            client_secret = get_config('passkey_client_secret', 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz')  # Default fallback
+            discovery_url = get_config('passkey_discovery_url', 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration')  # Default fallback
         
         if not all([server_url, client_id, client_secret]):
             raise ValueError("OIDC not fully configured")
@@ -1813,10 +1868,10 @@ def oauth_callback(provider):
             client_secret = get_config('oidc_authentik_client_secret', '')
             discovery_url = get_config('oidc_discovery_url', '')
         elif provider == 'passkey-test-app':
-            server_url = 'https://id.visiquate.com'  # Base server URL
-            client_id = '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY'
-            client_secret = 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz'
-            discovery_url = 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration'
+            server_url = get_config('passkey_server_url', 'https://id.visiquate.com')  # Default fallback
+            client_id = get_config('passkey_client_id', '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY')  # Default fallback
+            client_secret = get_config('passkey_client_secret', 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz')  # Default fallback
+            discovery_url = get_config('passkey_discovery_url', 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration')  # Default fallback
         else:
             raise ValueError(f"Unsupported provider: {provider}")
         
@@ -2176,6 +2231,26 @@ def run_migrations():
             logger.info("Adding passkey_metadata column to user table")
             db.session.execute(text("ALTER TABLE user ADD COLUMN passkey_metadata TEXT"))
             db.session.commit()
+        
+        # Initialize default passkey configuration values if they don't exist
+        passkey_configs = [
+            ('passkey_server_url', 'https://id.visiquate.com', 'Passkey OIDC server URL'),
+            ('passkey_client_id', '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY', 'Passkey OIDC client ID'),
+            ('passkey_client_secret', 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz', 'Passkey OIDC client secret'),
+            ('passkey_discovery_url', 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration', 'Passkey OIDC discovery URL')
+        ]
+        
+        for key, default_value, description in passkey_configs:
+            existing_config = Configuration.query.filter_by(key=key).first()
+            if not existing_config:
+                logger.info(f"Adding default passkey configuration: {key}")
+                new_config = Configuration(
+                    key=key,
+                    value=default_value,
+                    description=description
+                )
+                db.session.add(new_config)
+                db.session.commit()
             
     except Exception as e:
         logger.error(f"Migration error: {str(e)}")

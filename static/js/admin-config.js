@@ -3,7 +3,7 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // Form submission handlers for each configuration section
-    var forms = ['samlForm', 'oidcForm', 'scimForm', 'appForm'];
+    var forms = ['samlForm', 'oidcForm', 'passkeyForm', 'scimForm', 'appForm'];
     
     forms.forEach(function(formId) {
         var form = document.getElementById(formId);
@@ -241,7 +241,63 @@ function importOidcDiscovery() {
     });
 }
 
+// Import Passkey OIDC discovery information
+function importPasskeyDiscovery() {
+    var urlField = document.getElementById('passkey_discovery_url');
+    if (!urlField || !urlField.value.trim()) {
+        alert('Please enter a passkey OIDC discovery URL');
+        return;
+    }
+    
+    var url = urlField.value.trim();
+    if (!url.startsWith('https://')) {
+        alert('Discovery URL must use HTTPS');
+        return;
+    }
+    
+    var button = document.querySelector('button[onclick="importPasskeyDiscovery()"]');
+    var originalText = button ? (button.textContent || button.innerText) : '';
+    
+    if (button) {
+        button.textContent = 'Importing...';
+        button.disabled = true;
+    }
+    
+    fetch('/admin/import_passkey_discovery', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({discovery_url: url})
+    }).then(function(response) {
+        return response.json();
+    }).then(function(data) {
+        if (data.success) {
+            // Extract base URL from issuer or discovery URL
+            if (data.issuer) {
+                var serverUrlField = document.getElementById('passkey_server_url');
+                if (serverUrlField) {
+                    // Extract base URL from issuer (remove /application/o/slug part)
+                    var baseUrl = data.issuer.split('/application/')[0];
+                    serverUrlField.value = baseUrl;
+                }
+            }
+            alert('Passkey OIDC discovery imported successfully! Please verify your Client ID and Client Secret.');
+        } else {
+            alert('Error importing passkey discovery: ' + (data.error || 'Unknown error'));
+        }
+    }).catch(function(error) {
+        alert('Error importing passkey discovery: ' + error.message);
+    }).finally(function() {
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
 // Make functions globally available
 window.generateScimToken = generateScimToken;
 window.importSamlMetadata = importSamlMetadata;
 window.importOidcDiscovery = importOidcDiscovery;
+window.importPasskeyDiscovery = importPasskeyDiscovery;
