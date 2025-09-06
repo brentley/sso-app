@@ -27,7 +27,7 @@ def test_login_page(client):
     """Test the login page loads"""
     response = client.get('/login')
     assert response.status_code == 200
-    assert b'Authentication Testing' in response.data
+    assert b'VisiQuate SSO Testing Guide' in response.data
     assert b'SAML Authentication' in response.data
     assert b'OIDC Authentication' in response.data
 
