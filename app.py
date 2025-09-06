@@ -2063,6 +2063,20 @@ def run_migrations():
             logger.info("Adding updated_user_id column to scim_log table")
             db.session.execute(text("ALTER TABLE scim_log ADD COLUMN updated_user_id INTEGER REFERENCES user(id)"))
             db.session.commit()
+        
+        # Check if saml_metadata column exists in user table
+        result = db.session.execute(text("PRAGMA table_info(user)"))
+        columns = [row[1] for row in result.fetchall()]
+        
+        if 'saml_metadata' not in columns:
+            logger.info("Adding saml_metadata column to user table")
+            db.session.execute(text("ALTER TABLE user ADD COLUMN saml_metadata TEXT"))
+            db.session.commit()
+            
+        if 'oidc_metadata' not in columns:
+            logger.info("Adding oidc_metadata column to user table")
+            db.session.execute(text("ALTER TABLE user ADD COLUMN oidc_metadata TEXT"))
+            db.session.commit()
             
     except Exception as e:
         logger.error(f"Migration error: {str(e)}")
