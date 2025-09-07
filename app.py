@@ -1844,15 +1844,20 @@ def oauth_login(provider):
         metadata_url = discovery_url if discovery_url else f'{server_url}/.well-known/openid-configuration'
         
         # Configure OAuth client dynamically with provider-specific name
-        oauth_client = oauth.register(
-            name=provider,
-            client_id=client_id,
-            client_secret=client_secret,
-            server_metadata_url=metadata_url,
-            client_kwargs={
-                'scope': 'openid email profile groups'
-            }
-        )
+        try:
+            # Try to get existing client first
+            oauth_client = oauth.create_client(provider)
+        except (KeyError, AttributeError):
+            # Register new client if it doesn't exist
+            oauth_client = oauth.register(
+                name=provider,
+                client_id=client_id,
+                client_secret=client_secret,
+                server_metadata_url=metadata_url,
+                client_kwargs={
+                    'scope': 'openid email profile groups'
+                }
+            )
         
         # Generate redirect URI with HTTPS for visiquate.com domains
         host = request.headers.get('Host', request.host)
@@ -1948,15 +1953,20 @@ def oauth_callback(provider):
         metadata_url = discovery_url if discovery_url else f'{server_url}/.well-known/openid-configuration'
         
         # Configure OAuth client dynamically with provider-specific name
-        oauth_client = oauth.register(
-            name=provider,
-            client_id=client_id,
-            client_secret=client_secret,
-            server_metadata_url=metadata_url,
-            client_kwargs={
-                'scope': 'openid email profile groups'
-            }
-        )
+        try:
+            # Try to get existing client first
+            oauth_client = oauth.create_client(provider)
+        except (KeyError, AttributeError):
+            # Register new client if it doesn't exist
+            oauth_client = oauth.register(
+                name=provider,
+                client_id=client_id,
+                client_secret=client_secret,
+                server_metadata_url=metadata_url,
+                client_kwargs={
+                    'scope': 'openid email profile groups'
+                }
+            )
         
         # Exchange authorization code for tokens
         token = oauth_client.authorize_access_token()
