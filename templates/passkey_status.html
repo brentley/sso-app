@@ -55,8 +55,8 @@
                                 <i class="fas fa-plus me-1"></i> Set Up New Passkey
                             </a>
                             {% else %}
-                            <a href="{{ user_settings_url }}" target="_blank" class="btn btn-success">
-                                <i class="fas fa-key me-1"></i> Test Existing Passkey
+                            <a href="{{ test_url }}" target="_blank" class="btn btn-success">
+                                <i class="fas fa-key me-1"></i> Test/Manage Passkeys
                             </a>
                             <a href="{{ setup_url }}" target="_blank" class="btn btn-outline-primary">
                                 <i class="fas fa-plus me-1"></i> Add Another Passkey
@@ -70,9 +70,9 @@
                         
                         <div class="mt-3">
                             <small class="text-muted">
-                                <strong>Note:</strong> These links will open in Authentik (VisiQuate ID) where you can manage your security settings.
+                                <strong>Note:</strong> These links will open in Authentik (VisiQuate ID) passkey management page.
                                 {% if passkey_info.has_passkey %}
-                                You can add additional passkeys, remove existing ones, or test your current passkeys there.
+                                The "Test/Manage Passkeys" button will let you test your existing passkeys and manage them without access to other user settings.
                                 {% else %}
                                 Follow the setup wizard to register your first passkey using your device's built-in security (Face ID, Touch ID, Windows Hello, or a hardware security key).
                                 {% endif %}
