@@ -605,7 +605,14 @@ def admin_config():
     configs = Configuration.query.all()
     config_dict = {config.key: config for config in configs}
     
-    return render_template('admin_config.html', configs=config_dict)
+    # Generate correct base URL (force HTTPS for visiquate.com domains)
+    host = request.headers.get('Host', request.host)
+    if 'visiquate.com' in host or request.headers.get('X-Forwarded-Proto') == 'https':
+        base_url = f"https://{host}"
+    else:
+        base_url = request.url_root.rstrip('/')
+    
+    return render_template('admin_config.html', configs=config_dict, base_url=base_url)
 
 @app.route('/admin/import_saml_metadata', methods=['POST'])
 @login_required

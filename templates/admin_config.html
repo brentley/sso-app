@@ -24,17 +24,17 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <strong>Entity ID (SP Entity ID):</strong><br>
-                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}</code>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ base_url }}</code>
                             </div>
                             <div class="col-md-6">
                                 <strong>ACS URL (Assertion Consumer Service):</strong><br>
-                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}/saml/acs</code>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ base_url }}/saml/acs</code>
                             </div>
                         </div>
                         <div class="row mt-2">
                             <div class="col-md-6">
                                 <strong>SLS URL (Single Logout Service):</strong><br>
-                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}/saml/sls</code>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ base_url }}/saml/sls</code>
                             </div>
                             <div class="col-md-6">
                                 <strong>NameID Format:</strong><br>
@@ -147,7 +147,7 @@
                         <div class="row">
                             <div class="col-md-8">
                                 <strong>Redirect URI:</strong><br>
-                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}/oauth/callback/authentik</code>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ base_url }}/oauth/callback/authentik</code>
                             </div>
                             <div class="col-md-4">
                                 <strong>Scopes:</strong><br>
@@ -235,7 +235,7 @@
                         <div class="row">
                             <div class="col-md-8">
                                 <strong>Redirect URI:</strong><br>
-                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ request.url_root.rstrip('/') }}/oauth/callback/passkey-test-app</code>
+                                <code class="fs-6 bg-white text-dark p-2 d-block border rounded">{{ base_url }}/oauth/callback/passkey-test-app</code>
                             </div>
                             <div class="col-md-4">
                                 <strong>Scopes:</strong><br>
@@ -329,8 +329,8 @@
                         </div>
                     </div>
                     <div class="alert alert-info">
-                        <strong>SCIM Endpoint:</strong> <code id="scim-endpoint">{{ request.url_root }}scim/v2/Users</code><br>
-                        <strong>Service Provider Config:</strong> <code>{{ request.url_root }}scim/v2/ServiceProviderConfig</code>
+                        <strong>SCIM Endpoint:</strong> <code id="scim-endpoint">{{ base_url }}/scim/v2/Users</code><br>
+                        <strong>Service Provider Config:</strong> <code>{{ base_url }}/scim/v2/ServiceProviderConfig</code>
                     </div>
                     
                     <div class="text-end">
@@ -353,7 +353,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="app_origin" class="form-label">Application Origin</label>
                             <input type="url" class="form-control" id="app_origin" name="app_origin"
-                                   value="{{ configs.get('app_origin').value if configs.get('app_origin') else request.url_root.rstrip('/') }}"
+                                   value="{{ configs.get('app_origin').value if configs.get('app_origin') else base_url }}"
                                    placeholder="https://sso-test.example.com">
                             <div class="form-text">The base URL for this application</div>
                         </div>
