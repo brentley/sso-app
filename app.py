@@ -8,7 +8,7 @@ import yaml
 import logging
 from datetime import datetime, timedelta
 from urllib.parse import urlsplit
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response, render_template_string
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from flask_migrate import Migrate
@@ -1861,9 +1861,58 @@ def oauth_login(provider):
         else:
             redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
         
-        # For passkey-test-app, add max_age=0 to force fresh authentication
+        # For passkey-test-app, clear Authentik cookies and add max_age=0 to force fresh authentication
         if provider == 'passkey-test-app':
-            return oauth_client.authorize_redirect(redirect_uri, max_age=0)
+            # Get the authorization URL
+            authorization_url, state = oauth_client.create_authorization_url(redirect_uri, max_age=0)
+            
+            # Create response that clears Authentik session cookies
+            response = make_response(render_template_string('''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redirecting to Passkey Authentication...</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
+                   width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h2>Preparing Passkey Authentication</h2>
+    <div class="spinner"></div>
+    <p>Clearing session and redirecting...</p>
+    <script>
+        // Clear Authentik session cookies for id.visiquate.com
+        document.cookie = "authentik_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.visiquate.com;";
+        document.cookie = "authentik_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=id.visiquate.com;";
+        document.cookie = "authentik_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        
+        // Clear any other potential session cookies
+        document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.visiquate.com;";
+        document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=id.visiquate.com;";
+        document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        
+        // Wait a moment then redirect
+        setTimeout(function() {
+            window.location.href = "{{ authorization_url }}";
+        }, 1000);
+    </script>
+</body>
+</html>
+            ''', authorization_url=authorization_url))
+            
+            # Clear cookies on the server side too
+            response.set_cookie('authentik_session', '', expires=0, domain='.visiquate.com', path='/')
+            response.set_cookie('authentik_session', '', expires=0, domain='id.visiquate.com', path='/')  
+            response.set_cookie('sessionid', '', expires=0, domain='.visiquate.com', path='/')
+            response.set_cookie('sessionid', '', expires=0, domain='id.visiquate.com', path='/')
+            
+            # Store state for later verification
+            session['oauth_state'] = state
+            
+            return response
         else:
             return oauth_client.authorize_redirect(redirect_uri)
         
