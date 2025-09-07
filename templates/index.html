@@ -145,11 +145,11 @@
                                                     </small>
                                                 {% endif %}
                                             </div>
-                                            <a href="{{ url_for('oauth_login', provider='passkey-test-app') }}" class="btn btn-sm {{ 'btn-outline-success' if current_user.passkey_tested else 'btn-warning' }}">
+                                            <a href="{{ url_for('passkey_status') }}" class="btn btn-sm {{ 'btn-outline-success' if current_user.passkey_tested else 'btn-warning' }}">
                                                 {% if current_user.passkey_tested %}
                                                     <i class="fas fa-redo me-1"></i>Test Again
                                                 {% else %}
-                                                    <i class="fas fa-fingerprint me-1"></i>Start Test
+                                                    <i class="fas fa-fingerprint me-1"></i>Check Status
                                                 {% endif %}
                                             </a>
                                         </div>
