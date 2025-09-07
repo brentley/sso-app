@@ -1854,7 +1854,12 @@ def oauth_login(provider):
             }
         )
         
-        redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
+        # Generate redirect URI with HTTPS for visiquate.com domains
+        host = request.headers.get('Host', request.host)
+        if 'visiquate.com' in host or request.headers.get('X-Forwarded-Proto') == 'https':
+            redirect_uri = f"https://{host}/oauth/callback/{provider}"
+        else:
+            redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
         return oauth_client.authorize_redirect(redirect_uri)
         
     except ValueError:
