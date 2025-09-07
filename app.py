@@ -1938,8 +1938,11 @@ def oauth_login(provider):
         try:
             # Try to get existing client first
             oauth_client = oauth.create_client(provider)
+            if oauth_client is None:
+                logger.warning(f"Existing OAuth client for {provider} is None, will re-register")
+                raise ValueError("Existing client is None")
             logger.info(f"Using existing OAuth client for {provider}")
-        except (KeyError, AttributeError) as e:
+        except (KeyError, AttributeError, ValueError) as e:
             logger.info(f"Creating new OAuth client for {provider}, existing client error: {e}")
             # Register new client if it doesn't exist
             try:
@@ -2002,8 +2005,11 @@ def oauth_callback(provider):
         try:
             # Try to get existing client first
             oauth_client = oauth.create_client(provider)
+            if oauth_client is None:
+                logger.warning(f"Existing OAuth client for callback {provider} is None, will re-register")
+                raise ValueError("Existing client is None")
             logger.info(f"Using existing OAuth client for callback {provider}")
-        except (KeyError, AttributeError) as e:
+        except (KeyError, AttributeError, ValueError) as e:
             logger.info(f"Creating new OAuth client for callback {provider}, existing client error: {e}")
             # Register new client if it doesn't exist
             try:
