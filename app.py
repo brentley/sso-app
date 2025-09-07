@@ -1860,7 +1860,12 @@ def oauth_login(provider):
             redirect_uri = f"https://{host}/oauth/callback/{provider}"
         else:
             redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
-        return oauth_client.authorize_redirect(redirect_uri)
+        
+        # For passkey-test-app, add max_age=0 to force fresh authentication
+        if provider == 'passkey-test-app':
+            return oauth_client.authorize_redirect(redirect_uri, max_age=0)
+        else:
+            return oauth_client.authorize_redirect(redirect_uri)
         
     except ValueError:
         flash('VisiQuate OIDC authentication not yet configured. Please configure OAuth settings in admin panel.')
