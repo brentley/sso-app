@@ -1915,9 +1915,9 @@ def saml_sls():
 @app.route('/oauth/login/<provider>')
 def oauth_login(provider):
     """OIDC/OAuth authentication endpoint"""
-    valid_providers = ['authentik', 'passkey-test-app']
+    valid_providers = ['authentik']
     if provider not in valid_providers:
-        flash('Invalid OAuth provider')
+        flash(f'Invalid OAuth provider: {provider}. Only "authentik" is supported.')
         return redirect(url_for('login'))
     
     try:
@@ -1927,11 +1927,6 @@ def oauth_login(provider):
             client_id = get_config('oidc_authentik_client_id', '')
             client_secret = get_config('oidc_authentik_client_secret', '')
             discovery_url = get_config('oidc_discovery_url', '')
-        elif provider == 'passkey-test-app':
-            server_url = get_config('passkey_server_url', 'https://id.visiquate.com')  # Default fallback
-            client_id = get_config('passkey_client_id', '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY')  # Default fallback
-            client_secret = get_config('passkey_client_secret', 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz')  # Default fallback
-            discovery_url = get_config('passkey_discovery_url', 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration')  # Default fallback
         
         if not all([server_url, client_id, client_secret]):
             raise ValueError("OIDC not fully configured")
@@ -1943,17 +1938,29 @@ def oauth_login(provider):
         try:
             # Try to get existing client first
             oauth_client = oauth.create_client(provider)
-        except (KeyError, AttributeError):
+            logger.info(f"Using existing OAuth client for {provider}")
+        except (KeyError, AttributeError) as e:
+            logger.info(f"Creating new OAuth client for {provider}, existing client error: {e}")
             # Register new client if it doesn't exist
-            oauth_client = oauth.register(
-                name=provider,
-                client_id=client_id,
-                client_secret=client_secret,
-                server_metadata_url=metadata_url,
-                client_kwargs={
-                    'scope': 'openid email profile groups'
-                }
-            )
+            try:
+                oauth_client = oauth.register(
+                    name=provider,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    server_metadata_url=metadata_url,
+                    client_kwargs={
+                        'scope': 'openid email profile groups'
+                    }
+                )
+                logger.info(f"Successfully registered OAuth client for {provider}")
+            except Exception as reg_error:
+                logger.error(f"Failed to register OAuth client for {provider}: {reg_error}")
+                raise ValueError(f"OAuth client registration failed: {reg_error}")
+        
+        # Verify client was created successfully
+        if oauth_client is None:
+            logger.error(f"OAuth client is None for provider {provider}")
+            raise ValueError(f"OAuth client creation failed for {provider}")
         
         # Generate redirect URI with HTTPS for visiquate.com domains
         host = request.headers.get('Host', request.host)
@@ -1962,60 +1969,8 @@ def oauth_login(provider):
         else:
             redirect_uri = url_for('oauth_callback', provider=provider, _external=True)
         
-        # For passkey-test-app, clear Authentik cookies and add max_age=0 to force fresh authentication
-        if provider == 'passkey-test-app':
-            # Get the authorization URL
-            authorization_url, state = oauth_client.create_authorization_url(redirect_uri, max_age=0)
-            
-            # Create response that clears Authentik session cookies
-            response = make_response(render_template_string('''
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Redirecting to Passkey Authentication...</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
-                   width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
-    <h2>Preparing Passkey Authentication</h2>
-    <div class="spinner"></div>
-    <p>Clearing session and redirecting...</p>
-    <script>
-        // Clear Authentik session cookies for id.visiquate.com
-        document.cookie = "authentik_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.visiquate.com;";
-        document.cookie = "authentik_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=id.visiquate.com;";
-        document.cookie = "authentik_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        
-        // Clear any other potential session cookies
-        document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.visiquate.com;";
-        document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=id.visiquate.com;";
-        document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        
-        // Wait a moment then redirect
-        setTimeout(function() {
-            window.location.href = "{{ authorization_url }}";
-        }, 1000);
-    </script>
-</body>
-</html>
-            ''', authorization_url=authorization_url))
-            
-            # Clear cookies on the server side too
-            response.set_cookie('authentik_session', '', expires=0, domain='.visiquate.com', path='/')
-            response.set_cookie('authentik_session', '', expires=0, domain='id.visiquate.com', path='/')  
-            response.set_cookie('sessionid', '', expires=0, domain='.visiquate.com', path='/')
-            response.set_cookie('sessionid', '', expires=0, domain='id.visiquate.com', path='/')
-            
-            # Store state for later verification
-            session['oauth_state'] = state
-            
-            return response
-        else:
-            return oauth_client.authorize_redirect(redirect_uri)
+        # Standard OAuth redirect for OIDC authentication
+        return oauth_client.authorize_redirect(redirect_uri)
         
     except ValueError:
         flash('VisiQuate OIDC authentication not yet configured. Please configure OAuth settings in admin panel.')
@@ -2034,13 +1989,8 @@ def oauth_callback(provider):
             client_id = get_config('oidc_authentik_client_id', '')
             client_secret = get_config('oidc_authentik_client_secret', '')
             discovery_url = get_config('oidc_discovery_url', '')
-        elif provider == 'passkey-test-app':
-            server_url = get_config('passkey_server_url', 'https://id.visiquate.com')  # Default fallback
-            client_id = get_config('passkey_client_id', '7Ko3puJT9GgwSb6ts3A0IoAXQiLabuxeI8vdhuXY')  # Default fallback
-            client_secret = get_config('passkey_client_secret', 'ny0iUwnmSFgXQpSekNUP94rCNw9KBg5148APk3r0Hn0llLYoUKeaLE3ysNNqP2ne4lHM9iUFdx5k1d1N1nf8BzFR8I69o0clZU5NhcLzBDDqqju9JChtl6F3i7Ux3iXz')  # Default fallback
-            discovery_url = get_config('passkey_discovery_url', 'https://id.visiquate.com/application/o/passkey-test-app/.well-known/openid-configuration')  # Default fallback
         else:
-            raise ValueError(f"Unsupported provider: {provider}")
+            raise ValueError(f"Unsupported provider: {provider}. Only 'authentik' is supported for OAuth callbacks.")
         
         if not all([server_url, client_id, client_secret]):
             raise ValueError("OIDC not fully configured")
@@ -2052,17 +2002,29 @@ def oauth_callback(provider):
         try:
             # Try to get existing client first
             oauth_client = oauth.create_client(provider)
-        except (KeyError, AttributeError):
+            logger.info(f"Using existing OAuth client for callback {provider}")
+        except (KeyError, AttributeError) as e:
+            logger.info(f"Creating new OAuth client for callback {provider}, existing client error: {e}")
             # Register new client if it doesn't exist
-            oauth_client = oauth.register(
-                name=provider,
-                client_id=client_id,
-                client_secret=client_secret,
-                server_metadata_url=metadata_url,
-                client_kwargs={
-                    'scope': 'openid email profile groups'
-                }
-            )
+            try:
+                oauth_client = oauth.register(
+                    name=provider,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    server_metadata_url=metadata_url,
+                    client_kwargs={
+                        'scope': 'openid email profile groups'
+                    }
+                )
+                logger.info(f"Successfully registered OAuth client for callback {provider}")
+            except Exception as reg_error:
+                logger.error(f"Failed to register OAuth client for callback {provider}: {reg_error}")
+                raise ValueError(f"OAuth client registration failed: {reg_error}")
+        
+        # Verify client was created successfully
+        if oauth_client is None:
+            logger.error(f"OAuth client is None for callback provider {provider}")
+            raise ValueError(f"OAuth client creation failed for callback {provider}")
         
         # Exchange authorization code for tokens
         token = oauth_client.authorize_access_token()
