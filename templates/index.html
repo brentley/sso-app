@@ -383,6 +383,9 @@
                                         <i class="fas fa-cogs me-2"></i>Admin Dashboard
                                     </a>
                                 {% endif %}
+                                <a href="{{ url_for('passkey_status') }}" class="btn btn-primary">
+                                    <i class="fas fa-key me-2"></i>Check Passkey Status
+                                </a>
                                 <a href="{{ url_for('success') }}" class="btn btn-outline-primary">
                                     <i class="fas fa-chart-line me-2"></i>View Transaction History
                                 </a>

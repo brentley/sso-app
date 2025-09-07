@@ -6,6 +6,7 @@ import uuid
 import time
 import yaml
 import logging
+import requests
 from datetime import datetime, timedelta
 from urllib.parse import urlsplit
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response, render_template_string
@@ -325,8 +326,79 @@ def set_config(key, value, description=None, user_id=None):
         logger.info(f"Updated config {key} in database and file")
     except Exception as e:
         logger.error(f"Failed to update config file for {key}: {e}")
-    
-    return config
+
+def get_user_passkey_status(user_email):
+    """Check if a user has passkeys configured in Authentik"""
+    try:
+        # First, find the user in Authentik by email
+        authentik_token = get_config('authentik_token')
+        if not authentik_token:
+            return {'error': 'Authentik token not configured', 'has_passkey': False}
+        
+        # Search for user by email
+        headers = {
+            'Authorization': f'Bearer {authentik_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        user_response = requests.get(
+            'https://id.visiquate.com/api/v3/core/users/',
+            headers=headers,
+            params={'search': user_email},
+            timeout=10
+        )
+        
+        if user_response.status_code != 200:
+            logger.error(f"Failed to search for user {user_email}: {user_response.status_code}")
+            return {'error': 'Failed to search user in Authentik', 'has_passkey': False}
+        
+        users = user_response.json().get('results', [])
+        authentik_user = None
+        
+        # Find exact email match
+        for user in users:
+            if user.get('email', '').lower() == user_email.lower():
+                authentik_user = user
+                break
+        
+        if not authentik_user:
+            return {'error': 'User not found in Authentik', 'has_passkey': False}
+        
+        user_id = authentik_user.get('pk')
+        
+        # Check for WebAuthn authenticators for this user
+        passkey_response = requests.get(
+            f'https://id.visiquate.com/api/v3/authenticators/webauthn/',
+            headers=headers,
+            params={'user': user_id},
+            timeout=10
+        )
+        
+        if passkey_response.status_code != 200:
+            logger.error(f"Failed to check passkeys for user {user_id}: {passkey_response.status_code}")
+            return {'error': 'Failed to check passkeys', 'has_passkey': False}
+        
+        passkeys = passkey_response.json().get('results', [])
+        
+        return {
+            'has_passkey': len(passkeys) > 0,
+            'passkey_count': len(passkeys),
+            'passkeys': [
+                {
+                    'name': passkey.get('name'),
+                    'device_type': passkey.get('device_type', {}).get('description', 'Unknown'),
+                    'created_on': passkey.get('created_on')
+                }
+                for passkey in passkeys
+            ]
+        }
+        
+    except requests.RequestException as e:
+        logger.error(f"Network error checking passkey status for {user_email}: {e}")
+        return {'error': f'Network error: {str(e)}', 'has_passkey': False}
+    except Exception as e:
+        logger.error(f"Unexpected error checking passkey status for {user_email}: {e}")
+        return {'error': f'Unexpected error: {str(e)}', 'has_passkey': False}
 
 def log_authentication(user_id, auth_method, success, transaction_data, ip_address, user_agent):
     email = transaction_data.get('email', 'unknown')
@@ -552,6 +624,30 @@ def clear_my_test_results():
         flash('An error occurred while clearing test results. Please try again.', 'error')
     
     return redirect(url_for('index'))
+
+@app.route('/passkey-status')
+@login_required
+def passkey_status():
+    """Display current user's passkey status and options"""
+    try:
+        # Get passkey status from Authentik API
+        passkey_info = get_user_passkey_status(current_user.email)
+        
+        # Authentik URLs for passkey management
+        setup_url = "https://id.visiquate.com/if/flow/default-authenticator-webauthn-setup/"
+        user_settings_url = "https://id.visiquate.com/if/flow/default-user-settings-flow/"
+        user_dashboard_url = "https://id.visiquate.com/if/user/"
+        
+        return render_template('passkey_status.html', 
+                             passkey_info=passkey_info, 
+                             setup_url=setup_url,
+                             user_settings_url=user_settings_url,
+                             user_dashboard_url=user_dashboard_url)
+    
+    except Exception as e:
+        logger.error(f"Error getting passkey status for user {current_user.email}: {str(e)}")
+        flash('Error retrieving passkey status. Please try again.', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/admin')
 @login_required
