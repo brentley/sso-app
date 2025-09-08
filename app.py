@@ -900,12 +900,8 @@ def test_passkey():
         from urllib.parse import urlencode
         auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
         
-        # First, logout from Authentik to clear any existing sessions
-        from urllib.parse import quote
-        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(auth_url)}"
-        
-        logger.info(f"Clearing Authentik session for {current_user.email}, then redirecting to passkey test")
-        return redirect(logout_url)
+        logger.info(f"Redirecting user {current_user.email} to passkey test: {auth_url}")
+        return redirect(auth_url)
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
