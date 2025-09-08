@@ -909,12 +909,21 @@ def test_passkey():
             'next': return_url
         }
         
-        # Use API executor endpoint format
-        direct_passkey_url = f"{passkey_server_url}/api/v3/flows/executor/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
+        # NEW APPROACH: Create a simple passkey test that doesn't rely on OAuth
+        # Just redirect to passkey flow and handle success differently
+        success_url = f"https://sso-app.visiquate.com/passkey-test-result?state={state}"
         
-        logger.info(f"Redirecting directly to passkey flow (no logout): {current_user.email}")
-        logger.info(f"Direct passkey URL: {direct_passkey_url}")
-        return redirect(direct_passkey_url)
+        # Simple passkey flow test
+        passkey_flow_params = {
+            'next': success_url
+        }
+        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
+        
+        # Clear session first to ensure fresh authentication
+        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(direct_passkey_url)}"
+        
+        logger.info(f"Testing passkey authentication for {current_user.email}")
+        return redirect(logout_url)
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
@@ -954,6 +963,28 @@ def debug_passkey_flow():
         
     except Exception as e:
         return f"Error: {e}"
+
+@app.route('/passkey-test-result')
+def passkey_test_result():
+    """Handle successful passkey authentication test"""
+    try:
+        state = request.args.get('state')
+        stored_state = session.get('passkey_test_state')
+        
+        if state and state == stored_state:
+            # Passkey authentication was successful!
+            flash('🎉 Passkey authentication successful! Your passkeys are working correctly.', 'success')
+            logger.info(f"Passkey test succeeded for user with state {state}")
+        else:
+            flash('⚠️ Passkey test completed but state validation failed', 'warning')
+            logger.warning(f"Passkey test state mismatch: got {state}, expected {stored_state}")
+        
+        return redirect(url_for('passkey_status'))
+        
+    except Exception as e:
+        logger.error(f"Error in passkey test result: {e}")
+        flash('Error processing passkey test result', 'error')
+        return redirect(url_for('passkey_status'))
 
 @app.route('/passkey-auth-complete')
 def passkey_auth_complete():
