@@ -125,6 +125,10 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///sso_test.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Force HTTPS URL generation for external URLs (behind reverse proxy)
+app.config['PREFERRED_URL_SCHEME'] = 'https'
+app.config['SERVER_NAME'] = 'sso-app.visiquate.com'
+
 # OAuth Configuration - VisiQuate OIDC (Authentik)
 app.config['AUTHENTIK_CLIENT_ID'] = os.getenv('AUTHENTIK_CLIENT_ID')
 app.config['AUTHENTIK_CLIENT_SECRET'] = os.getenv('AUTHENTIK_CLIENT_SECRET')
