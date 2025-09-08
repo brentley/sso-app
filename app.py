@@ -894,7 +894,8 @@ def test_passkey():
             'nonce': nonce,
             'prompt': 'login',  # Force authentication even if already logged in
             'max_age': '0',  # Force fresh authentication
-            'acr_values': 'urn:oasis:names:tc:SAML:2.0:ac:classes:AuthenticatorPresentedKey'  # Request WebAuthn
+            'acr_values': 'urn:oasis:names:tc:SAML:2.0:ac:classes:AuthenticatorPresentedKey',  # Request WebAuthn
+            'login_hint': current_user.email  # Pre-fill email address
         }
         
         from urllib.parse import urlencode
