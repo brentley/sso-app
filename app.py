@@ -265,6 +265,17 @@ def get_config(key, default=None):
         return config.value
     return default
 
+
+def calculate_test_completion(user):
+    """Calculate test completion percentage for a user"""
+    tests_completed = sum([
+        1 if user.saml_tested else 0,
+        1 if user.oidc_tested else 0,
+        1 if user.passkey_tested else 0
+    ])
+    return (tests_completed / 3.0) * 100  # 3 total test methods
+
+
 def log_scim_activity(method, endpoint, user_identifier=None, status_code=200, success=True, 
                       request_data=None, response_data=None, error_message=None, created_user_id=None, updated_user_id=None):
     """Log SCIM API activity"""
@@ -1830,15 +1841,6 @@ def admin():
         return redirect(url_for('index'))
     
     users = User.query.all()
-    
-    # Calculate test completion percentage and separate users
-    def calculate_test_completion(user):
-        tests_completed = sum([
-            1 if user.saml_tested else 0,
-            1 if user.oidc_tested else 0,
-            1 if user.passkey_tested else 0
-        ])
-        return (tests_completed / 3.0) * 100  # 3 total test methods
     
     # Separate users by completion status
     active_users = []  # Users with > 0% completion
