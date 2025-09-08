@@ -488,16 +488,34 @@ def get_user_passkey_status(user_email):
         
         passkeys = passkey_response.json().get('results', [])
         
-        # Filter for only confirmed/valid passkeys
-        # Only include passkeys that are confirmed and have proper credential data
-        valid_passkeys = []
+        # Log debug information to understand the API response
+        logger.info(f"Raw API response for user {user_id}: status={passkey_response.status_code}, count={len(passkeys)}")
+        if passkeys:
+            logger.info(f"Sample passkey data: {passkeys[0]}")
+        
+        # Filter for passkeys that belong to this user
+        # The API seems to return all passkeys regardless of user filter, so we need to filter manually
+        user_passkeys = []
         
         for passkey in passkeys:
-            # Only include confirmed passkeys that have actual credential data
-            if (passkey.get('confirmed') and 
-                passkey.get('credential_id') and 
+            # Check if this passkey belongs to the requested user
+            if passkey.get('user') == user_id:
+                user_passkeys.append(passkey)
+        
+        logger.info(f"Found {len(user_passkeys)} passkeys for user {user_id} after manual filtering")
+        
+        # Further filter for valid passkeys
+        # Don't require 'confirmed' to be True since Authentik might not set this field properly
+        valid_passkeys = []
+        
+        for passkey in user_passkeys:
+            # Include passkeys that have actual credential data, regardless of confirmed status
+            if (passkey.get('credential_id') and 
                 passkey.get('name')):
                 valid_passkeys.append(passkey)
+                logger.info(f"Valid passkey for user {user_id}: {passkey.get('name')} (confirmed={passkey.get('confirmed')})")
+            else:
+                logger.info(f"Rejected passkey for user {user_id}: name={passkey.get('name')} credential_id={bool(passkey.get('credential_id'))}")
         
         # Log the raw data for debugging
         logger.info(f"Found {len(passkeys)} total WebAuthn authenticators for user {user_id}")
