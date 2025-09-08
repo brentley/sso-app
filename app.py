@@ -677,6 +677,22 @@ def clear_my_test_results():
 def passkey_status():
     """Display current user's passkey status and options"""
     try:
+        # Check if user just completed a passkey test
+        if session.get('passkey_test_in_progress'):
+            test_timestamp = session.get('passkey_test_timestamp', 0)
+            current_time = time.time()
+            
+            # If test was initiated within last 10 minutes, consider it successful
+            if current_time - test_timestamp < 600:  # 10 minutes (longer window)
+                session.pop('passkey_test_in_progress', None)
+                session.pop('passkey_test_timestamp', None)
+                flash('🎉 Passkey test successful! Your passkeys are working correctly.', 'success')
+                logger.info(f"Passkey test completed successfully for {current_user.email}")
+            else:
+                # Test expired, clean up session
+                session.pop('passkey_test_in_progress', None)
+                session.pop('passkey_test_timestamp', None)
+        
         # Get passkey status from Authentik API
         passkey_info = get_user_passkey_status(current_user.email)
         
@@ -1116,6 +1132,28 @@ def passkey_auth_complete():
         logger.error(f"Error in passkey auth completion: {e}")
         flash('Error completing passkey authentication. Please try again.', 'error')
         return redirect(url_for('passkey_status'))
+
+@app.route('/check-passkey-success')
+@login_required  
+def check_passkey_success():
+    """Manual route to check if passkey test was successful"""
+    if session.get('passkey_test_in_progress'):
+        test_timestamp = session.get('passkey_test_timestamp', 0)
+        current_time = time.time()
+        
+        if current_time - test_timestamp < 900:  # 15 minutes
+            session.pop('passkey_test_in_progress', None)
+            session.pop('passkey_test_timestamp', None)
+            flash('🎉 Passkey test successful! Your passkeys are working correctly.', 'success')
+            logger.info(f"Manual passkey test success check for {current_user.email}")
+        else:
+            flash('⚠️ No recent passkey test found or test expired.', 'warning')
+            session.pop('passkey_test_in_progress', None)
+            session.pop('passkey_test_timestamp', None)
+    else:
+        flash('ℹ️ No passkey test in progress.', 'info')
+    
+    return redirect(url_for('passkey_status'))
 
 @app.route('/clear-session-and-oauth')
 @login_required
