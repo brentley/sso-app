@@ -1870,8 +1870,11 @@ def admin_metrics():
     
     users = User.query.all()
     
+    not_started_users = [u for u in users if not u.saml_tested and not u.oidc_tested and not u.passkey_tested]
+    
     metrics = {
         'total_users': len(users),
+        'not_started': len(not_started_users),
         'saml_tested': len([u for u in users if u.saml_tested]),
         'oidc_tested': len([u for u in users if u.oidc_tested]),
         'passkey_tested': len([u for u in users if u.passkey_tested]),

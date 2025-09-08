@@ -29,46 +29,66 @@
 
         <!-- Summary Cards -->
         <div class="row mb-4" id="metrics-summary">
-            <div class="col-md-3">
-                <div class="card">
+            <div class="col-lg-2 col-md-3 mb-3">
+                <div class="card metric-card" data-filter="all" style="cursor: pointer;">
                     <div class="card-body text-center">
-                        <h5 class="card-title">Total Users</h5>
-                        <h2 class="text-primary">{{ (active_users|length) + (inactive_users|length) }}</h2>
+                        <h6 class="card-title">Total Users</h6>
+                        <h3 class="text-primary">{{ (active_users|length) + (inactive_users|length) }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="card">
+            <div class="col-lg-2 col-md-3 mb-3">
+                <div class="card metric-card" data-filter="not-started" style="cursor: pointer;">
                     <div class="card-body text-center">
-                        <h5 class="card-title">SAML Tested</h5>
-                        <h2 class="text-success">{{ (active_users + inactive_users)|selectattr("saml_tested")|list|length }}</h2>
+                        <h6 class="card-title">Not Started</h6>
+                        <h3 class="text-warning">{{ inactive_users|length }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="card">
+            <div class="col-lg-2 col-md-3 mb-3">
+                <div class="card metric-card" data-filter="saml" style="cursor: pointer;">
                     <div class="card-body text-center">
-                        <h5 class="card-title">OIDC Tested</h5>
-                        <h2 class="text-success">{{ (active_users + inactive_users)|selectattr("oidc_tested")|list|length }}</h2>
+                        <h6 class="card-title">SAML Tested</h6>
+                        <h3 class="text-success">{{ (active_users + inactive_users)|selectattr("saml_tested")|list|length }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="card">
+            <div class="col-lg-2 col-md-3 mb-3">
+                <div class="card metric-card" data-filter="oidc" style="cursor: pointer;">
                     <div class="card-body text-center">
-                        <h5 class="card-title">Passkey Tested</h5>
-                        <h2 class="text-success">{{ (active_users + inactive_users)|selectattr("passkey_tested")|list|length }}</h2>
+                        <h6 class="card-title">OIDC Tested</h6>
+                        <h3 class="text-success">{{ (active_users + inactive_users)|selectattr("oidc_tested")|list|length }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card">
+            <div class="col-lg-2 col-md-3 mb-3">
+                <div class="card metric-card" data-filter="passkey" style="cursor: pointer;">
                     <div class="card-body text-center">
-                        <h5 class="card-title">All Methods Tested</h5>
-                        <h2 class="text-success">
+                        <h6 class="card-title">Passkey Tested</h6>
+                        <h3 class="text-success">{{ (active_users + inactive_users)|selectattr("passkey_tested")|list|length }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-3 mb-3">
+                <div class="card metric-card" data-filter="complete" style="cursor: pointer;">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">All Complete</h6>
+                        <h3 class="text-success">
                             {{ (active_users + inactive_users)|selectattr("saml_tested")|selectattr("oidc_tested")|selectattr("passkey_tested")|list|length }}
-                        </h2>
+                        </h3>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Status and Clear Button -->
+        <div class="row mb-3" id="filter-status" style="display: none;">
+            <div class="col-12">
+                <div class="alert alert-info d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-filter me-2"></i>Filtering users: <span id="filter-description"></span></span>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-filter">
+                        <i class="fas fa-times me-1"></i>Clear Filter
+                    </button>
                 </div>
             </div>
         </div>
@@ -319,6 +339,7 @@ function checkMetricsChanged(newMetrics) {
     
     return (
         lastMetrics.total_users !== newMetrics.total_users ||
+        lastMetrics.not_started !== newMetrics.not_started ||
         lastMetrics.saml_tested !== newMetrics.saml_tested ||
         lastMetrics.oidc_tested !== newMetrics.oidc_tested ||
         lastMetrics.passkey_tested !== newMetrics.passkey_tested ||
@@ -394,18 +415,146 @@ function updateMetricsDisplay(metrics) {
             totalUsersCard.textContent = metrics.total_users;
         }
         
-        // Update SAML tested count
-        const samlCards = metricsElement.querySelectorAll('.text-success');
-        if (samlCards[0]) samlCards[0].textContent = metrics.saml_tested;
-        if (samlCards[1]) samlCards[1].textContent = metrics.oidc_tested;
-        if (samlCards[2]) samlCards[2].textContent = metrics.passkey_tested;
-        if (samlCards[3]) samlCards[3].textContent = metrics.all_methods_tested;
+        // Update not started count
+        const notStartedCard = metricsElement.querySelector('.text-warning');
+        if (notStartedCard) {
+            notStartedCard.textContent = metrics.not_started;
+        }
+        
+        // Update tested counts
+        const successCards = metricsElement.querySelectorAll('.text-success');
+        if (successCards[0]) successCards[0].textContent = metrics.saml_tested;
+        if (successCards[1]) successCards[1].textContent = metrics.oidc_tested;
+        if (successCards[2]) successCards[2].textContent = metrics.passkey_tested;
+        if (successCards[3]) successCards[3].textContent = metrics.all_methods_tested;
+    }
+}
+
+// Filtering functionality
+let currentFilter = null;
+
+function applyFilter(filterType) {
+    currentFilter = filterType;
+    
+    // Update card appearances
+    document.querySelectorAll('.metric-card').forEach(card => {
+        card.classList.remove('border-primary', 'bg-light');
+        if (card.dataset.filter === filterType) {
+            card.classList.add('border-primary', 'bg-light');
+        }
+    });
+    
+    // Show filter status
+    const filterStatus = document.getElementById('filter-status');
+    const filterDescription = document.getElementById('filter-description');
+    
+    const filterDescriptions = {
+        'all': 'All users',
+        'not-started': 'Users who haven\'t started testing (0% completion)',
+        'saml': 'Users who have completed SAML testing',
+        'oidc': 'Users who have completed OIDC testing', 
+        'passkey': 'Users who have completed Passkey testing',
+        'complete': 'Users who have completed all testing methods'
+    };
+    
+    filterDescription.textContent = filterDescriptions[filterType] || 'Unknown filter';
+    filterStatus.style.display = filterType === 'all' ? 'none' : 'block';
+    
+    // Filter the user tables
+    filterUserTables(filterType);
+}
+
+function clearFilter() {
+    currentFilter = null;
+    
+    // Remove card highlighting
+    document.querySelectorAll('.metric-card').forEach(card => {
+        card.classList.remove('border-primary', 'bg-light');
+    });
+    
+    // Hide filter status
+    document.getElementById('filter-status').style.display = 'none';
+    
+    // Show all users
+    filterUserTables('all');
+}
+
+function filterUserTables(filterType) {
+    const activeUsersSection = document.querySelector('.card.mb-4');
+    const inactiveUsersSection = document.querySelector('.card:not(.mb-4)');
+    
+    if (filterType === 'all') {
+        // Show all sections
+        if (activeUsersSection) activeUsersSection.style.display = 'block';
+        if (inactiveUsersSection) inactiveUsersSection.style.display = 'block';
+        
+        // Show all user rows
+        document.querySelectorAll('tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+    } else if (filterType === 'not-started') {
+        // Only show inactive users section
+        if (activeUsersSection) activeUsersSection.style.display = 'none';
+        if (inactiveUsersSection) {
+            inactiveUsersSection.style.display = 'block';
+            // Expand the collapse if it's closed
+            const collapseElement = document.getElementById('inactiveUsersCollapse');
+            if (collapseElement && !collapseElement.classList.contains('show')) {
+                new bootstrap.Collapse(collapseElement, {show: true});
+            }
+        }
+    } else {
+        // Show active users section, filter rows based on criteria
+        if (activeUsersSection) activeUsersSection.style.display = 'block';
+        if (inactiveUsersSection) inactiveUsersSection.style.display = 'none';
+        
+        // Filter rows based on the selected criteria
+        const activeUserRows = activeUsersSection ? activeUsersSection.querySelectorAll('tbody tr') : [];
+        
+        activeUserRows.forEach(row => {
+            const samlBadge = row.querySelector('td:nth-child(4) .badge');
+            const oidcBadge = row.querySelector('td:nth-child(5) .badge');
+            const passkeyBadge = row.querySelector('td:nth-child(6) .badge');
+            
+            const hasSaml = samlBadge && samlBadge.classList.contains('bg-success');
+            const hasOidc = oidcBadge && oidcBadge.classList.contains('bg-success');
+            const hasPasskey = passkeyBadge && passkeyBadge.classList.contains('bg-success');
+            
+            let showRow = false;
+            
+            switch (filterType) {
+                case 'saml':
+                    showRow = hasSaml;
+                    break;
+                case 'oidc':
+                    showRow = hasOidc;
+                    break;
+                case 'passkey':
+                    showRow = hasPasskey;
+                    break;
+                case 'complete':
+                    showRow = hasSaml && hasOidc && hasPasskey;
+                    break;
+            }
+            
+            row.style.display = showRow ? '' : 'none';
+        });
     }
 }
 
 // Start auto-refresh when page loads
 document.addEventListener('DOMContentLoaded', function() {
     startMetricsRefresh();
+    
+    // Handle metric card clicks
+    document.querySelectorAll('.metric-card').forEach(card => {
+        card.addEventListener('click', function() {
+            applyFilter(this.dataset.filter);
+        });
+    });
+    
+    // Handle clear filter button
+    document.getElementById('clear-filter').addEventListener('click', clearFilter);
     
     // Handle collapsible chevron rotation
     const collapseButton = document.querySelector('[data-bs-toggle="collapse"]');
