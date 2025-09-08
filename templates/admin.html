@@ -285,8 +285,9 @@
 
 {% block extra_scripts %}
 <script>
-// Auto-refresh metrics every 30 seconds
+// Auto-refresh metrics every 10 seconds
 let metricsRefreshInterval;
+let lastMetrics = null;
 
 function startMetricsRefresh() {
     metricsRefreshInterval = setInterval(async function() {
@@ -294,12 +295,94 @@ function startMetricsRefresh() {
             const response = await fetch('/admin/metrics');
             if (response.ok) {
                 const metrics = await response.json();
+                const hasChanged = checkMetricsChanged(metrics);
                 updateMetricsDisplay(metrics);
+                
+                // If metrics changed, refresh the user tables
+                if (hasChanged) {
+                    console.log('Metrics changed, refreshing user tables...');
+                    await refreshUserTables();
+                }
+                
+                lastMetrics = metrics;
             }
         } catch (error) {
             console.warn('Failed to refresh metrics:', error);
         }
-    }, 30000); // 30 seconds
+    }, 10000); // 10 seconds
+}
+
+function checkMetricsChanged(newMetrics) {
+    if (!lastMetrics) {
+        return false; // First load, don't refresh
+    }
+    
+    return (
+        lastMetrics.total_users !== newMetrics.total_users ||
+        lastMetrics.saml_tested !== newMetrics.saml_tested ||
+        lastMetrics.oidc_tested !== newMetrics.oidc_tested ||
+        lastMetrics.passkey_tested !== newMetrics.passkey_tested ||
+        lastMetrics.all_methods_tested !== newMetrics.all_methods_tested
+    );
+}
+
+async function refreshUserTables() {
+    try {
+        const response = await fetch('/admin/users-data');
+        if (response.ok) {
+            const data = await response.json();
+            updateUserTables(data.active_users, data.inactive_users);
+        }
+    } catch (error) {
+        console.warn('Failed to refresh user tables:', error);
+    }
+}
+
+function updateUserTables(activeUsers, inactiveUsers) {
+    // Update active users count in header
+    const activeUsersHeaders = document.querySelectorAll('h5');
+    for (const header of activeUsersHeaders) {
+        if (header.textContent.includes('Active Users')) {
+            header.textContent = `Active Users (${activeUsers.length} users with >0% completion)`;
+            break;
+        }
+    }
+    
+    // Update inactive users count in header
+    const inactiveUsersHeader = document.querySelector('[data-bs-target="#inactiveUsersCollapse"] span');
+    if (inactiveUsersHeader) {
+        inactiveUsersHeader.textContent = `Inactive Users (${inactiveUsers.length} users with 0% completion)`;
+    }
+    
+    // For now, just show a subtle notification that data was refreshed
+    // Full table rebuild would be complex and potentially disruptive
+    showRefreshNotification();
+}
+
+function showRefreshNotification() {
+    // Create a small, temporary notification
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-sync-alt me-2"></i>
+        User data refreshed
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 150);
+        }
+    }, 3000);
 }
 
 function updateMetricsDisplay(metrics) {

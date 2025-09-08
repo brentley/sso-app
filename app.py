@@ -1881,6 +1881,64 @@ def admin_metrics():
     return jsonify(metrics)
 
 
+@app.route('/admin/users-data')
+@login_required
+def admin_users_data():
+    """API endpoint to get user data for table refresh"""
+    if not (current_user.is_admin or current_user.is_auditor):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    users = User.query.all()
+    
+    # Separate users by completion status
+    active_users = []  # Users with > 0% completion
+    inactive_users = []  # Users with 0% completion
+    
+    for user in users:
+        completion = calculate_test_completion(user)
+        if completion > 0:
+            active_users.append({
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'is_admin': user.is_admin,
+                'is_auditor': user.is_auditor,
+                'active': user.active,
+                'saml_tested': user.saml_tested,
+                'oidc_tested': user.oidc_tested,
+                'passkey_tested': user.passkey_tested,
+                'scim_provisioned': user.scim_provisioned,
+                'external_id': user.external_id,
+                'created_at': user.created_at.isoformat(),
+                'completion': completion
+            })
+        else:
+            inactive_users.append({
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'is_admin': user.is_admin,
+                'is_auditor': user.is_auditor,
+                'active': user.active,
+                'saml_tested': user.saml_tested,
+                'oidc_tested': user.oidc_tested,
+                'passkey_tested': user.passkey_tested,
+                'scim_provisioned': user.scim_provisioned,
+                'external_id': user.external_id,
+                'created_at': user.created_at.isoformat(),
+                'completion': completion
+            })
+    
+    # Sort both lists by name
+    active_users = sorted(active_users, key=lambda user: user['name'].lower())
+    inactive_users = sorted(inactive_users, key=lambda user: user['name'].lower())
+    
+    return jsonify({
+        'active_users': active_users,
+        'inactive_users': inactive_users
+    })
+
+
 @app.route('/admin/config', methods=['GET', 'POST'])
 @login_required
 def admin_config():
