@@ -899,8 +899,8 @@ def test_passkey():
         }
         
         from urllib.parse import urlencode
-        # Try using the direct flow executor to force our custom passkey flow
-        auth_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(auth_params)}"
+        # Use standard OAuth endpoint with new provider
+        auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
         
         # Use the logout flow with OAuth context preservation
         from urllib.parse import quote
