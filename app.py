@@ -635,8 +635,8 @@ def passkey_status():
         
         # Authentik URLs for passkey management
         setup_url = "https://id.visiquate.com/if/flow/default-authenticator-webauthn-setup/"
-        test_url = "https://id.visiquate.com/if/flow/default-authenticator-webauthn-setup/"  # Same as setup - allows testing existing or adding new
-        user_dashboard_url = "https://id.visiquate.com/if/user/"
+        test_url = "https://id.visiquate.com/if/user/#/settings;page-device-webauthn"  # User settings page for managing existing passkeys
+        user_dashboard_url = "https://id.visiquate.com/if/user/#/settings"  # User settings dashboard
         
         return render_template('passkey_status.html', 
                              passkey_info=passkey_info, 
