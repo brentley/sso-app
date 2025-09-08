@@ -889,7 +889,7 @@ def test_passkey():
             'client_id': passkey_client_id,
             'response_type': 'code',
             'scope': 'openid email profile',
-            'redirect_uri': 'https://sso-app.visiquate.com/passkey-callback',
+            'redirect_uri': 'https://sso-app.visiquate.com/oauth/callback/passkey-test-app',
             'state': state,
             'nonce': nonce,
             'prompt': 'login',  # Force authentication even if already logged in
