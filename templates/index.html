@@ -306,7 +306,7 @@
                                             <small class="text-muted">Groups:</small>
                                             <div class="d-flex flex-wrap gap-1 mt-1">
                                                 {% for group in oidc_metadata.groups[:3] %}
-                                                    <span class="badge group-badge bg-primary">{{ group }}</span>
+                                                    <span class="badge group-badge bg-secondary text-white">{{ group }}</span>
                                                 {% endfor %}
                                                 {% if oidc_metadata.groups|length > 3 %}
                                                     <span class="badge group-badge text-muted">+{{ oidc_metadata.groups|length - 3 }} more</span>

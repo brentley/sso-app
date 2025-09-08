@@ -525,10 +525,35 @@ def get_user_passkey_status(user_email):
             
             # Check if this passkey has been used recently with our flow
             auth_check = check_passkey_authentication_logs(user_id, passkey.get('pk'), authentik_token)
+            
+            # Also check our local database for recent passkey tests
+            from flask_login import current_user
+            local_tested = False
+            local_test_date = None
+            local_test_flow = None
+            
+            if current_user and current_user.is_authenticated:
+                if current_user.passkey_tested:
+                    local_tested = True
+                    # Get metadata from our database
+                    passkey_meta = current_user.get_passkey_metadata_dict()
+                    if passkey_meta and passkey_meta.get('tested_at'):
+                        local_test_date = passkey_meta.get('tested_at')
+                        local_test_flow = passkey_meta.get('test_method', 'oauth_flow')
+            
+            # Use local database info if it's more recent or if API check failed
+            api_tested = auth_check.get('tested', False)
+            api_test_date = auth_check.get('test_date')
+            
+            # Prefer local database results if available
+            final_tested = local_tested or api_tested
+            final_test_date = local_test_date or api_test_date
+            final_test_flow = local_test_flow or auth_check.get('flow_used')
+            
             passkey_info.update({
-                'tested': auth_check.get('tested', False),
-                'last_test_date': auth_check.get('test_date'),
-                'test_flow': auth_check.get('flow_used'),
+                'tested': final_tested,
+                'last_test_date': final_test_date,
+                'test_flow': final_test_flow,
                 'test_error': auth_check.get('error')
             })
             
@@ -705,6 +730,44 @@ def index():
         if current_time - test_timestamp < 300:  # 5 minutes
             session.pop('passkey_test_in_progress', None)
             session.pop('passkey_test_timestamp', None)
+            
+            # Update database if not already updated
+            if not current_user.passkey_tested:
+                # Mark passkey as tested in database
+                current_user.passkey_tested = True
+                
+                # Store passkey test metadata with timestamp
+                import json
+                passkey_metadata = {
+                    'tested_at': datetime.utcnow().isoformat(),
+                    'test_method': 'oauth_flow',
+                    'success': True
+                }
+                current_user.passkey_metadata = json.dumps(passkey_metadata)
+                
+                # Log the successful passkey authentication
+                auth_log = AuthLog(
+                    user_id=current_user.id,
+                    auth_method='passkey',
+                    success=True,
+                    transaction_data=json.dumps({
+                        'test_type': 'oauth_flow',
+                        'user_agent': request.headers.get('User-Agent', 'Unknown'),
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'source': 'sso_app_test'
+                    }),
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent', 'Unknown')[:500]
+                )
+                db.session.add(auth_log)
+                
+                try:
+                    db.session.commit()
+                    logger.info(f"Passkey test completed successfully for {current_user.email}, database updated from home page")
+                except Exception as e:
+                    logger.error(f"Failed to update passkey test status from home page: {e}")
+                    db.session.rollback()
+            
             flash('🎉 Passkey test successful! Your passkeys are working correctly.', 'success')
             logger.info(f"Passkey test completed successfully for {current_user.email}")
             return redirect(url_for('passkey_status'))
