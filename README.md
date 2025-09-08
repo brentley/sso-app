@@ -4,13 +4,17 @@ A comprehensive SSO authentication testing platform that guides users through te
 
 ## ✨ Recent Updates (September 2024)
 
+- **🎯 Enhanced Admin Dashboard**: Interactive metric cards with user filtering and real-time updates
+- **📊 Real-Time Analytics**: Auto-refreshing metrics every 10 seconds with change detection
+- **🔍 Smart User Filtering**: Click metric cards to filter users by testing status (SAML, OIDC, Passkey, Complete, Not Started)
+- **📂 Collapsible User Management**: Inactive users (0% completion) collapsed by default to improve page performance
+- **🔐 Passkey Reconciliation**: Automated sync with Authentik for accurate passkey status tracking
 - **🎓 Instructional Testing Guide**: Complete redesign of login page with step-by-step guidance
 - **📊 Persistent Metadata Display**: Authentication data persists across sessions for both SAML and OIDC
 - **🔄 Auto-Redirect with Success Messages**: 2-second success confirmation before returning to testing
 - **⚙️ Admin Test Management**: Administrators can clear user test status for re-testing
 - **🌙 Dark Mode Improvements**: Better readability in dark mode across all components
 - **🧹 Cookie Management**: One-click site cookie clearing for clean testing states
-- **🔧 Enhanced Build Process**: Improved timestamp display and provider name mapping
 
 ## Features
 
@@ -32,8 +36,13 @@ A comprehensive SSO authentication testing platform that guides users through te
 - **Enhanced Success Page**: Group badges and detailed transaction data
 
 ### Admin Features
+- **Interactive Dashboard**: Real-time metrics with clickable filtering by testing status
+- **Smart User Management**: Collapsible sections for inactive users to optimize page performance
+- **Auto-Refresh Analytics**: Metrics update every 10 seconds with change detection
+- **One-Click Filtering**: Filter users by Total, Not Started, SAML, OIDC, Passkey, or All Complete
+- **Passkey Reconciliation**: Manual and automated sync with Authentik for accurate status tracking
 - **Configuration Management**: Web interface for SAML, OIDC, SCIM, and app settings
-- **Metadata Import**: Automatic SAML metadata and OIDC discovery import
+- **Metadata Import**: Automatic SAML metadata and OIDC discovery import  
 - **User Oversight**: View all users and their authentication test status
 - **SCIM Provisioning**: Automatic user provisioning from Authentik
 - **Real-time Logs**: Detailed authentication logs with accurate IP addresses
@@ -150,7 +159,12 @@ Returns service health status with database and configuration checks.
 - `POST /saml/acs` - SAML assertion consumer service
 - `GET /oauth/{provider}` - OIDC authentication (authentik)
 
-### Debug Endpoints
+### Admin API Endpoints
+- `GET /admin/metrics` - Get real-time user metrics for dashboard auto-refresh (admin/auditor only)
+- `GET /admin/users-data` - Get structured user data for table updates (admin/auditor only)
+- `POST /admin/reconcile-passkeys` - Trigger passkey reconciliation with Authentik (admin/auditor only)
+
+### Debug Endpoints  
 - `GET /debug/saml-config` - Check SAML configuration status (admin only)
 - `GET /debug/headers` - View request headers for troubleshooting (admin only)
 
@@ -253,11 +267,13 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 - Authentication data persists across sessions for review
 
 ### Debug Resources
-- **Admin Dashboard**: `/admin` - User and authentication log overview
+- **Admin Dashboard**: `/admin` - Interactive user metrics with real-time filtering and analytics
+- **Passkey Status**: `/passkey-status` - Individual user passkey management and status
 - **Configuration Panel**: `/admin/config` - SAML/OIDC settings
 - **Health Endpoint**: `/health` - Service health and database status
 - **SAML Config Debug**: `/debug/saml-config` - SAML configuration status
 - **Headers Debug**: `/debug/headers` - Request headers and proxy detection
+- **Admin Metrics API**: `/admin/metrics` - Real-time metrics JSON for monitoring
 
 ## Support
 
