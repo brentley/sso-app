@@ -901,10 +901,12 @@ def test_passkey():
         from urllib.parse import urlencode
         auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
         
-        # Store the auth URL in session and redirect to cookie clearing page
-        session['pending_oauth_url'] = auth_url
-        logger.info(f"Preparing session clear for passkey test: {current_user.email}")
-        return redirect(url_for('clear_session_and_oauth'))
+        # Use the logout flow with OAuth context preservation
+        from urllib.parse import quote
+        logout_url = f"{passkey_server_url}/api/v3/flows/executor/default-invalidation-flow/?next={quote(auth_url)}"
+        
+        logger.info(f"Clearing session and redirecting to OAuth: {current_user.email}")
+        return redirect(logout_url)
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
