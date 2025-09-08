@@ -773,13 +773,17 @@ def index():
             session.pop('passkey_test_timestamp', None)
     
     # Automatically reconcile user's passkey status when they visit home page
+    # Only reconcile for users who have >20% test completion to avoid unnecessary API calls
     try:
-        success, message, changed = reconcile_passkey_status_for_user(current_user)
-        if success and changed:
-            logger.info(f"Auto-reconciled passkey status on home page for {current_user.email}: {message}")
-            db.session.commit()
-        elif not success:
-            logger.warning(f"Failed to auto-reconcile passkey status on home page for {current_user.email}: {message}")
+        if should_reconcile_user(current_user):
+            success, message, changed = reconcile_passkey_status_for_user(current_user)
+            if success and changed:
+                logger.info(f"Auto-reconciled passkey status on home page for {current_user.email}: {message}")
+                db.session.commit()
+            elif not success:
+                logger.warning(f"Failed to auto-reconcile passkey status on home page for {current_user.email}: {message}")
+        else:
+            logger.debug(f"Skipping auto-reconciliation for {current_user.email} - insufficient test completion")
     except Exception as e:
         logger.error(f"Error during home page auto-reconciliation for {current_user.email}: {e}")
         # Don't let reconciliation errors break the page
@@ -921,16 +925,20 @@ def passkey_status():
         passkey_info = get_user_passkey_status(current_user.email)
         
         # Automatically reconcile user's passkey status based on actual Authentik data
+        # Only reconcile for users who have >20% test completion to avoid unnecessary API calls
         try:
-            success, message, changed = reconcile_passkey_status_for_user(current_user)
-            if success and changed:
-                logger.info(f"Auto-reconciled passkey status for {current_user.email}: {message}")
-                # Commit the reconciliation changes
-                db.session.commit()
-                # Re-fetch passkey status after reconciliation to show updated data
-                passkey_info = get_user_passkey_status(current_user.email)
-            elif not success:
-                logger.warning(f"Failed to auto-reconcile passkey status for {current_user.email}: {message}")
+            if should_reconcile_user(current_user):
+                success, message, changed = reconcile_passkey_status_for_user(current_user)
+                if success and changed:
+                    logger.info(f"Auto-reconciled passkey status for {current_user.email}: {message}")
+                    # Commit the reconciliation changes
+                    db.session.commit()
+                    # Re-fetch passkey status after reconciliation to show updated data
+                    passkey_info = get_user_passkey_status(current_user.email)
+                elif not success:
+                    logger.warning(f"Failed to auto-reconcile passkey status for {current_user.email}: {message}")
+            else:
+                logger.debug(f"Skipping auto-reconciliation for {current_user.email} - insufficient test completion")
         except Exception as e:
             logger.error(f"Error during auto-reconciliation for {current_user.email}: {e}")
             # Don't let reconciliation errors break the page
@@ -3649,6 +3657,19 @@ def export_config():
     except Exception as e:
         logger.error(f"Failed to export configuration: {e}")
         return jsonify({'error': f'Export failed: {str(e)}'}), 500
+
+def should_reconcile_user(user):
+    """
+    Check if user has enough test completion (>20%) to warrant automatic reconciliation.
+    Users with 0% completion likely haven't started testing yet.
+    """
+    tests_completed = sum([
+        1 if user.saml_tested else 0,
+        1 if user.oidc_tested else 0,
+        1 if user.passkey_tested else 0
+    ])
+    completion_percentage = (tests_completed / 3.0) * 100
+    return completion_percentage > 20  # More than 20% complete (at least 1 test done)
 
 def reconcile_passkey_status_for_user(user):
     """

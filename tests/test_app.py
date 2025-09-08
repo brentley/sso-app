@@ -388,3 +388,49 @@ def test_reconcile_all_passkey_statuses(client):
             assert user1.passkey_tested is False  # Should be cleared
             assert user2.passkey_tested is True   # Should be marked as tested
             assert user3.passkey_tested is True   # Should remain unchanged
+
+
+def test_should_reconcile_user(client):
+    """Test the logic for determining if a user should be reconciled"""
+    with app.app_context():
+        from app import should_reconcile_user
+        
+        # User with 0% completion (no tests done) - should not reconcile
+        user0 = User(
+            email='user0@example.com', 
+            name='User 0',
+            saml_tested=False,
+            oidc_tested=False, 
+            passkey_tested=False
+        )
+        assert should_reconcile_user(user0) is False
+        
+        # User with 33% completion (1 test done) - should reconcile
+        user33 = User(
+            email='user33@example.com',
+            name='User 33',
+            saml_tested=True,
+            oidc_tested=False,
+            passkey_tested=False
+        )
+        assert should_reconcile_user(user33) is True
+        
+        # User with 67% completion (2 tests done) - should reconcile
+        user67 = User(
+            email='user67@example.com',
+            name='User 67', 
+            saml_tested=True,
+            oidc_tested=True,
+            passkey_tested=False
+        )
+        assert should_reconcile_user(user67) is True
+        
+        # User with 100% completion (all tests done) - should reconcile
+        user100 = User(
+            email='user100@example.com',
+            name='User 100',
+            saml_tested=True,
+            oidc_tested=True,
+            passkey_tested=True
+        )
+        assert should_reconcile_user(user100) is True
