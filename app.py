@@ -384,16 +384,26 @@ def get_user_passkey_status(user_email):
         
         passkeys = passkey_response.json().get('results', [])
         
+        # Filter for only confirmed/active passkeys if possible
+        # Note: confirmed field might be null for all, so we'll show all but log the details
+        confirmed_passkeys = [pk for pk in passkeys if pk.get('confirmed') is not False]
+        
+        # Log the raw data for debugging
+        logger.info(f"Found {len(passkeys)} total WebAuthn authenticators for user {user_id}")
+        for i, pk in enumerate(passkeys, 1):
+            logger.info(f"Passkey {i}: name={pk.get('name')}, confirmed={pk.get('confirmed')}, created={pk.get('created_on')}")
+        
         return {
-            'has_passkey': len(passkeys) > 0,
-            'passkey_count': len(passkeys),
+            'has_passkey': len(confirmed_passkeys) > 0,
+            'passkey_count': len(confirmed_passkeys),
             'passkeys': [
                 {
                     'name': passkey.get('name'),
                     'device_type': passkey.get('device_type', {}).get('description', 'Unknown'),
-                    'created_on': passkey.get('created_on')
+                    'created_on': passkey.get('created_on'),
+                    'confirmed': passkey.get('confirmed')
                 }
-                for passkey in passkeys
+                for passkey in confirmed_passkeys
             ]
         }
         
@@ -946,6 +956,47 @@ def test_passkey():
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
         flash('Error starting passkey test. Please try again.', 'error')
         return redirect(url_for('passkey_status'))
+
+@app.route('/debug-webauthn-data')
+@login_required 
+def debug_webauthn_data():
+    """Debug route to show raw WebAuthn data from Authentik"""
+    try:
+        token = get_config('authentik_token')
+        if not token:
+            return "No Authentik token configured"
+            
+        headers = {'Authorization': f'Bearer {token}'}
+        
+        # Get user info
+        user_response = requests.get(
+            'https://id.visiquate.com/api/v3/core/users/me/',
+            headers=headers,
+            timeout=10
+        )
+        user_data = user_response.json()
+        user_id = user_data.get('pk')
+        
+        # Get WebAuthn authenticators
+        webauthn_response = requests.get(
+            f'https://id.visiquate.com/api/v3/authenticators/webauthn/',
+            headers=headers,
+            params={'user': user_id},
+            timeout=10
+        )
+        
+        webauthn_data = webauthn_response.json()
+        
+        return f"""
+        <h1>WebAuthn Debug Data</h1>
+        <h2>User ID: {user_id}</h2>
+        <h2>WebAuthn Authenticators ({len(webauthn_data.get('results', []))})</h2>
+        <pre>{json.dumps(webauthn_data, indent=2)}</pre>
+        <p><a href="/passkey-status">Back to Passkey Status</a></p>
+        """
+        
+    except Exception as e:
+        return f"Error: {e}"
 
 @app.route('/debug-passkey-flow')
 @login_required
