@@ -384,18 +384,33 @@ def get_user_passkey_status(user_email):
         
         passkeys = passkey_response.json().get('results', [])
         
-        # Filter for only confirmed/active passkeys if possible
-        # Note: confirmed field might be null for all, so we'll show all but log the details
-        confirmed_passkeys = [pk for pk in passkeys if pk.get('confirmed') is not False]
+        # Filter for only valid passkeys
+        # Remove duplicates and keep only the most recent entry per device type
+        valid_passkeys = []
+        seen_devices = {}
+        
+        # Sort by creation date (newest first)
+        sorted_passkeys = sorted(passkeys, key=lambda x: x.get('created_on', ''), reverse=True)
+        
+        for passkey in sorted_passkeys:
+            device_desc = passkey.get('device_type', {}).get('description', 'Unknown')
+            device_key = f"{device_desc}_{passkey.get('name', '')}"
+            
+            # Keep only the most recent entry for each device/name combination
+            if device_key not in seen_devices:
+                valid_passkeys.append(passkey)
+                seen_devices[device_key] = passkey.get('created_on')
         
         # Log the raw data for debugging
         logger.info(f"Found {len(passkeys)} total WebAuthn authenticators for user {user_id}")
         for i, pk in enumerate(passkeys, 1):
             logger.info(f"Passkey {i}: name={pk.get('name')}, confirmed={pk.get('confirmed')}, created={pk.get('created_on')}")
         
+        logger.info(f"After deduplication: {len(valid_passkeys)} valid passkeys")
+        
         return {
-            'has_passkey': len(confirmed_passkeys) > 0,
-            'passkey_count': len(confirmed_passkeys),
+            'has_passkey': len(valid_passkeys) > 0,
+            'passkey_count': len(valid_passkeys),
             'passkeys': [
                 {
                     'name': passkey.get('name'),
@@ -403,7 +418,7 @@ def get_user_passkey_status(user_email):
                     'created_on': passkey.get('created_on'),
                     'confirmed': passkey.get('confirmed')
                 }
-                for passkey in confirmed_passkeys
+                for passkey in valid_passkeys
             ]
         }
         
@@ -942,11 +957,9 @@ def test_passkey():
         session['passkey_test_timestamp'] = time.time()
         session.permanent = True  # Make session persistent across redirects
         
-        # Try with a simple next parameter - just redirect to home
-        passkey_flow_params = {
-            'next': 'https://sso-app.visiquate.com/'
-        }
-        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
+        # Remove next parameter to avoid "Invalid next URL" error
+        # User will land on Authentik's default success page after passkey auth
+        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/"
         
         logger.info(f"Testing passkey authentication for {current_user.email}")
         logger.info(f"Direct URL: {direct_passkey_url}")
