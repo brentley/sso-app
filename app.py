@@ -665,7 +665,7 @@ def debug_oauth_urls():
         passkey_server_url = get_config('passkey_server_url', 'https://id.visiquate.com')
         passkey_client_id = get_config('passkey_client_id')
         
-        callback_url = url_for('passkey_callback', _external=True)
+        callback_url = url_for('passkey_callback', _external=True, _scheme='https')
         
         # Generate the OAuth URL for testing
         import secrets
@@ -824,7 +824,7 @@ def test_passkey():
             'client_id': passkey_client_id,
             'response_type': 'code',
             'scope': 'openid email profile',
-            'redirect_uri': url_for('passkey_callback', _external=True),
+            'redirect_uri': url_for('passkey_callback', _external=True, _scheme='https'),
             'state': state,
             'nonce': nonce,
             'prompt': 'login',  # Force authentication even if already logged in
@@ -878,7 +878,7 @@ def passkey_callback():
                 token_data = {
                     'grant_type': 'authorization_code',
                     'code': auth_code,
-                    'redirect_uri': url_for('passkey_callback', _external=True),
+                    'redirect_uri': url_for('passkey_callback', _external=True, _scheme='https'),
                     'client_id': passkey_client_id,
                     'client_secret': passkey_client_secret
                 }
