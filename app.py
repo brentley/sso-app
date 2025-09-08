@@ -649,6 +649,51 @@ def passkey_status():
         flash('Error retrieving passkey status. Please try again.', 'error')
         return redirect(url_for('index'))
 
+@app.route('/debug/oauth-urls')
+@login_required
+def debug_oauth_urls():
+    """Debug OAuth URLs being generated"""
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    try:
+        passkey_server_url = get_config('passkey_server_url', 'https://id.visiquate.com')
+        passkey_client_id = get_config('passkey_client_id')
+        
+        callback_url = url_for('passkey_callback', _external=True)
+        
+        # Generate the OAuth URL for testing
+        import secrets
+        from urllib.parse import urlencode
+        
+        state = secrets.token_urlsafe(32)
+        nonce = secrets.token_urlsafe(32)
+        
+        auth_params = {
+            'client_id': passkey_client_id,
+            'response_type': 'code',
+            'scope': 'openid email profile',
+            'redirect_uri': callback_url,
+            'state': state,
+            'nonce': nonce,
+            'prompt': 'login',
+            'acr_values': 'urn:oasis:names:tc:SAML:2.0:ac:classes:AuthenticatorPresentedKey'
+        }
+        
+        auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
+        
+        return jsonify({
+            'callback_url': callback_url,
+            'auth_url': auth_url,
+            'client_id': passkey_client_id,
+            'server_url': passkey_server_url,
+            'message': f'Add this redirect URI to your Authentik OAuth provider: {callback_url}'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/debug/devices')
 @login_required
 def debug_devices():
