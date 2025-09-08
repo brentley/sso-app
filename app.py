@@ -354,26 +354,52 @@ def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
         
         events = events_response.json().get('results', [])
         
+        # Debug: Log what events we're seeing
+        logger.info(f"Checking {len(events)} recent events for user {user_id}")
+        for i, event in enumerate(events[:5]):  # Log first 5 events
+            context = event.get('context', {})
+            auth_method = context.get('auth_method', 'none')
+            action = event.get('action', 'unknown')
+            created = event.get('created', 'unknown')
+            logger.info(f"Event {i+1}: action={action}, auth_method={auth_method}, created={created}")
+        
         # Look for recent passkey authentication in our custom flow
         for event in events[:10]:  # Check last 10 login events
             context = event.get('context', {})
             auth_method = context.get('auth_method')
             
-            # Check if this was WebAuthn authentication
-            if auth_method == 'webauthn' or auth_method == 'passkey':
+            # Check for multiple possible WebAuthn identifiers
+            webauthn_methods = ['webauthn', 'passkey', 'fido2', 'authenticator_webauthn']
+            if auth_method in webauthn_methods:
                 # Check if it was in the last 30 days and with our flow
                 created = event.get('created')
                 if created:
                     from datetime import datetime, timedelta
-                    event_time = datetime.fromisoformat(created.replace('Z', '+00:00'))
-                    thirty_days_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(days=30)
+                    try:
+                        event_time = datetime.fromisoformat(created.replace('Z', '+00:00'))
+                        thirty_days_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(days=30)
+                        
+                        if event_time > thirty_days_ago:
+                            logger.info(f"Found WebAuthn authentication: {auth_method} on {created}")
+                            return {
+                                'tested': True, 
+                                'test_date': created,
+                                'flow_used': context.get('flow', 'unknown')
+                            }
+                    except Exception as e:
+                        logger.error(f"Error parsing event date {created}: {e}")
+            
+            # Also check if any authentication happened recently, regardless of method
+            if event.get('action') == 'login' and event.get('created'):
+                try:
+                    from datetime import datetime, timedelta
+                    event_time = datetime.fromisoformat(event.get('created').replace('Z', '+00:00'))
+                    five_minutes_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(minutes=5)
                     
-                    if event_time > thirty_days_ago:
-                        return {
-                            'tested': True, 
-                            'test_date': created,
-                            'flow_used': context.get('flow', 'unknown')
-                        }
+                    if event_time > five_minutes_ago:
+                        logger.info(f"Recent login found: method={auth_method}, created={event.get('created')}")
+                except Exception as e:
+                    logger.error(f"Error parsing recent event: {e}")
         
         return {'tested': False, 'test_date': None}
         
