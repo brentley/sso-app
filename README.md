@@ -4,7 +4,8 @@ A comprehensive SSO authentication testing platform that guides users through te
 
 ## ✨ Recent Updates (September 2024)
 
-- **🎯 Enhanced Admin Dashboard**: Interactive metric cards with user filtering and real-time updates
+- **🚀 Authentik Client Integration**: Migrated from manual HTTP requests to official authentik-client library for improved reliability and type safety
+- **🎯 Enhanced Admin Dashboard**: Interactive metric cards with user filtering and real-time updates  
 - **📊 Real-Time Analytics**: Auto-refreshing metrics every 10 seconds with change detection
 - **🔍 Smart User Filtering**: Click metric cards to filter users by testing status (SAML, OIDC, Passkey, Complete, Not Started)
 - **📂 Collapsible User Management**: Inactive users (0% completion) collapsed by default to improve page performance
@@ -203,10 +204,10 @@ make shell
 
 ## Architecture
 
-### Technology Stack
+### Technology Stack  
 - **Backend**: Flask with SQLAlchemy, Gunicorn WSGI server
 - **Database**: SQLite (production), PostgreSQL (optional)
-- **Authentication**: python-saml, Authlib (OIDC)
+- **Authentication**: python-saml, Authlib (OIDC), authentik-client for API integration
 - **Frontend**: Bootstrap 5 with ES5-compatible JavaScript
 - **Deployment**: Docker, Watchtower, Cloudflare Tunnel
 - **Reverse Proxy**: Cloudflare with SSL termination

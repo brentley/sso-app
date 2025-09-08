@@ -20,6 +20,11 @@ from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.config import Config as Saml2Config
 
+# Authentik client imports
+import authentik_client
+from authentik_client.api import core_api, authenticators_api
+from authentik_client.rest import ApiException
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -266,6 +271,49 @@ def get_config(key, default=None):
     return default
 
 
+def get_authentik_client(authentik_token=None):
+    """Create and return configured authentik API client"""
+    if not authentik_token:
+        authentik_token = get_config('authentik_token')
+        if not authentik_token:
+            raise ValueError("Authentik token not configured")
+    
+    # Validate token format (basic check)
+    if not authentik_token or len(authentik_token) < 20:
+        raise ValueError("Authentik token appears invalid or too short")
+    
+    # Get configurable authentik host
+    authentik_host = get_config('authentik_host', 'https://id.visiquate.com')
+    if not authentik_host.startswith('https://'):
+        raise ValueError("Authentik host must use HTTPS")
+        
+    api_host = f"{authentik_host.rstrip('/')}/api/v3"
+    
+    config = authentik_client.Configuration(
+        host=api_host,
+        access_token=authentik_token
+    )
+    
+    # Set reasonable timeouts for production use
+    config.timeout = int(get_config('authentik_timeout', '30'))  # 30 second timeout
+    config.retries = int(get_config('authentik_retries', '3'))   # 3 retries
+    
+    return authentik_client.ApiClient(config)
+
+
+def test_authentik_connectivity():
+    """Test connectivity to Authentik API (for health checks)"""
+    try:
+        with get_authentik_client() as api_client:
+            core_instance = core_api.CoreApi(api_client)
+            # Simple API call to verify connectivity
+            core_instance.core_users_me_retrieve()
+            return True
+    except Exception as e:
+        logger.error(f"Authentik connectivity test failed: {e}")
+        return False
+
+
 def calculate_test_completion(user):
     """Calculate test completion percentage for a user"""
     tests_completed = sum([
@@ -342,47 +390,66 @@ def set_config(key, value, description=None, user_id=None):
     except Exception as e:
         logger.error(f"Failed to update config file for {key}: {e}")
 
-def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
-    """Check if a specific passkey was used in our custom flow recently"""
+def check_passkey_authentication_logs(user_id, passkey_id, authentik_token=None, api_client=None):
+    """Check if a specific passkey was used in our custom flow recently using authentik client"""
     try:
-        headers = {'Authorization': f'Bearer {authentik_token}'}
-        
-        # Look for recent events for this user (all types, not just login)
-        # Remove action filter to see all event types including WebAuthn events
-        events_response = requests.get(
-            'https://id.visiquate.com/api/v3/events/events/',
-            headers=headers,
-            params={
-                'user': user_id,
-                'ordering': '-created'  # Most recent first
-            },
-            timeout=10
-        )
-        
-        if events_response.status_code != 200:
-            logger.warning(f"Could not fetch authentication events: {events_response.status_code}")
-            return {'tested': False, 'test_date': None, 'error': 'Could not check logs'}
-        
-        events = events_response.json().get('results', [])
-        
-        # Debug: Log what events we're seeing
-        logger.info(f"Checking {len(events)} recent events for user {user_id}")
-        for i, event in enumerate(events[:10]):  # Log first 10 events for better debugging
-            context = event.get('context', {})
-            auth_method = context.get('auth_method', 'none')
-            action = event.get('action', 'unknown')
-            created = event.get('created', 'unknown')
-            logger.info(f"Event {i+1}: action={action}, auth_method={auth_method}, created={created}")
+        # Use provided client or create new one
+        if api_client:
+            # Reuse existing client (more efficient)
+            core_instance = core_api.CoreApi(api_client)
+            user = core_instance.core_users_retrieve(id=user_id)
+            username = user.username
             
-            # Log more context for debugging
-            if context:
-                logger.info(f"  Full context: {context}")
+            # Get events for this user using the events API
+            from authentik_client.api.events_api import EventsApi
+            events_instance = EventsApi(api_client)
+            
+            events_response = events_instance.events_events_list(
+                username=username,
+                ordering='-created',  # Most recent first
+                page_size=100  # Get more events to check
+            )
+            
+            events = events_response.results
+        else:
+            # Create new client (backward compatibility)
+            with get_authentik_client(authentik_token) as api_client:
+                # First get the user to find their username for events filtering
+                core_instance = core_api.CoreApi(api_client)
+                user = core_instance.core_users_retrieve(id=user_id)
+                username = user.username
+                
+                # Get events for this user using the events API
+                from authentik_client.api.events_api import EventsApi
+                events_instance = EventsApi(api_client)
+                
+                events_response = events_instance.events_events_list(
+                    username=username,
+                    ordering='-created',  # Most recent first
+                    page_size=100  # Get more events to check
+                )
+                
+                events = events_response.results
+        
+        # Debug: Log what events we're seeing (detailed logging only in debug mode)
+        logger.info(f"Checking {len(events)} recent events for user {user_id}")
+        if logger.isEnabledFor(logging.DEBUG):
+            for i, event in enumerate(events[:10]):  # Log first 10 events for better debugging
+                context = event.context or {}
+                auth_method = context.get('auth_method', 'none')
+                action = event.action.value if event.action else 'unknown'
+                created = str(event.created) if event.created else 'unknown'
+                logger.debug(f"Event {i+1}: action={action}, auth_method={auth_method}, created={created}")
+                
+                # Log more context for debugging (only in debug mode)
+                if context:
+                    logger.debug(f"  Full context: {context}")
         
         # Look for recent passkey authentication in our custom flow
         # Check more events and look for various WebAuthn/passkey indicators
         for event in events[:50]:  # Check last 50 events to catch more possibilities
-            context = event.get('context', {})
-            action = event.get('action', 'unknown')
+            context = event.context or {}
+            action = event.action.value if event.action else 'unknown'
             auth_method = context.get('auth_method')
             
             # Check for multiple possible WebAuthn identifiers
@@ -401,39 +468,40 @@ def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
             
             if is_webauthn:
                 # Check if it was in the last 30 days and with our flow
-                created = event.get('created')
+                created = event.created
                 if created:
                     from datetime import datetime, timedelta
                     try:
-                        event_time = datetime.fromisoformat(created.replace('Z', '+00:00'))
+                        # Event.created is already a datetime object, no need to parse
+                        event_time = created
                         thirty_days_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(days=30)
                         
                         if event_time > thirty_days_ago:
                             logger.info(f"Found WebAuthn authentication: action={action}, auth_method={auth_method} on {created}")
                             return {
                                 'tested': True, 
-                                'test_date': created,
+                                'test_date': str(created),
                                 'flow_used': context.get('flow', 'unknown'),
                                 'test_flow': f"{action}/{auth_method}"
                             }
                     except Exception as e:
-                        logger.error(f"Error parsing event date {created}: {e}")
+                        logger.error(f"Error processing event date {created}: {e}")
             
             # Also check if any authentication happened very recently in our custom flow
-            if event.get('created'):
+            if event.created:
                 try:
                     from datetime import datetime, timedelta
-                    event_time = datetime.fromisoformat(event.get('created').replace('Z', '+00:00'))
+                    event_time = event.created
                     five_minutes_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(minutes=5)
                     
                     if event_time > five_minutes_ago:
                         # Check if this event relates to our custom passkey flow
                         flow = context.get('flow', '')
                         if 'passkey' in flow.lower() or action in ['authenticate', 'authorize']:
-                            logger.info(f"Recent authentication in potential passkey flow: action={action}, flow={flow}, created={event.get('created')}")
+                            logger.info(f"Recent authentication in potential passkey flow: action={action}, flow={flow}, created={event.created}")
                             return {
                                 'tested': True, 
-                                'test_date': event.get('created'),
+                                'test_date': str(event.created),
                                 'flow_used': flow,
                                 'test_flow': f"recent_{action}"
                             }
@@ -442,157 +510,130 @@ def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
         
         return {'tested': False, 'test_date': None}
         
-    except Exception as e:
-        logger.error(f"Error checking authentication logs: {e}")
+    except ValueError as e:
+        logger.error(f"Configuration error checking authentication logs for user {user_id}: {e}")
         return {'tested': False, 'test_date': None, 'error': str(e)}
+    except ApiException as e:
+        logger.error(f"Authentik API error checking authentication logs for user {user_id}: {e}")
+        return {'tested': False, 'test_date': None, 'error': f'Authentik API error: {str(e)}'}
+    except Exception as e:
+        logger.error(f"Unexpected error checking authentication logs for user {user_id}: {e}")
+        return {'tested': False, 'test_date': None, 'error': f'Unexpected error: {str(e)}'}
 
 def get_user_passkey_status(user_email):
-    """Check if a user has passkeys configured in Authentik"""
+    """Check if a user has passkeys configured in Authentik using the authentik client"""
     try:
-        # First, find the user in Authentik by email
-        authentik_token = get_config('authentik_token')
-        if not authentik_token:
-            return {'error': 'Authentik token not configured', 'has_passkey': False}
-        
-        # Search for user by email
-        headers = {
-            'Authorization': f'Bearer {authentik_token}',
-            'Content-Type': 'application/json'
-        }
-        
-        user_response = requests.get(
-            'https://id.visiquate.com/api/v3/core/users/',
-            headers=headers,
-            params={'search': user_email},
-            timeout=10
-        )
-        
-        if user_response.status_code != 200:
-            logger.error(f"Failed to search for user {user_email}: {user_response.status_code}")
-            return {'error': 'Failed to search user in Authentik', 'has_passkey': False}
-        
-        users = user_response.json().get('results', [])
-        authentik_user = None
-        
-        # Find exact email match
-        for user in users:
-            if user.get('email', '').lower() == user_email.lower():
-                authentik_user = user
-                break
-        
-        if not authentik_user:
-            return {'error': 'User not found in Authentik', 'has_passkey': False}
-        
-        user_id = authentik_user.get('pk')
-        
-        # Check for WebAuthn authenticators for this user
-        passkey_response = requests.get(
-            f'https://id.visiquate.com/api/v3/authenticators/webauthn/',
-            headers=headers,
-            params={'user': user_id},
-            timeout=10
-        )
-        
-        if passkey_response.status_code != 200:
-            logger.error(f"Failed to check passkeys for user {user_id}: {passkey_response.status_code}")
-            return {'error': 'Failed to check passkeys', 'has_passkey': False}
-        
-        passkeys = passkey_response.json().get('results', [])
-        
-        # Log debug information to understand the API response
-        logger.info(f"Raw API response for user {user_id}: status={passkey_response.status_code}, count={len(passkeys)}")
-        if passkeys:
-            logger.info(f"Sample passkey data: {passkeys[0]}")
-        
-        # Filter for passkeys that belong to this user
-        # The API seems to return all passkeys regardless of user filter, so we need to filter manually
-        user_passkeys = []
-        
-        for passkey in passkeys:
-            # Check if this passkey belongs to the requested user
-            # The user field is a nested object with pk, not just the ID
-            if passkey.get('user', {}).get('pk') == user_id:
-                user_passkeys.append(passkey)
-        
-        logger.info(f"Found {len(user_passkeys)} passkeys for user {user_id} after manual filtering")
-        
-        # Further filter for valid passkeys
-        # Don't require 'confirmed' to be True since Authentik might not set this field properly
-        valid_passkeys = []
-        
-        for passkey in user_passkeys:
-            # Include passkeys that have a name (credential_id field doesn't exist in API)
-            if passkey.get('name'):
-                valid_passkeys.append(passkey)
-                logger.info(f"Valid passkey for user {user_id}: {passkey.get('name')} (pk={passkey.get('pk')})")
-            else:
-                logger.info(f"Rejected passkey for user {user_id}: missing name (pk={passkey.get('pk')})")
-        
-        # Log the raw data for debugging
-        logger.info(f"Found {len(passkeys)} total WebAuthn authenticators for user {user_id}")
-        for i, pk in enumerate(passkeys, 1):
-            logger.info(f"Passkey {i}: name={pk.get('name')}, confirmed={pk.get('confirmed')}, created={pk.get('created_on')}")
-        
-        logger.info(f"After deduplication: {len(valid_passkeys)} valid passkeys")
-        
-        # Check authentication logs for each passkey
-        passkeys_with_status = []
-        for passkey in valid_passkeys:
-            passkey_info = {
-                'id': passkey.get('pk'),
-                'name': passkey.get('name'),
-                'device_type': passkey.get('device_type', {}).get('description', 'Unknown'),
-                'created_on': passkey.get('created_on'),
-                'confirmed': passkey.get('confirmed')
+        with get_authentik_client() as api_client:
+            # Initialize API instances
+            core_instance = core_api.CoreApi(api_client)
+            auth_instance = authenticators_api.AuthenticatorsApi(api_client)
+            
+            # Search for user by email
+            users = core_instance.core_users_list(search=user_email)
+            
+            authentik_user = None
+            # Find exact email match
+            for user in users.results:
+                if user.email.lower() == user_email.lower():
+                    authentik_user = user
+                    break
+            
+            if not authentik_user:
+                return {'error': 'User not found in Authentik', 'has_passkey': False}
+            
+            user_id = authentik_user.pk
+            
+            # Get all WebAuthn authenticators (admin endpoint required to see all users' devices)
+            passkeys = auth_instance.authenticators_admin_webauthn_list()
+            
+            # Log debug information
+            logger.info(f"Found {len(passkeys.results)} WebAuthn devices for user {user_id}")
+            if passkeys.results:
+                logger.info(f"Sample passkey data: name={passkeys.results[0].name}, user_pk={passkeys.results[0].user.pk if passkeys.results[0].user else 'None'}")
+            
+            # Filter for passkeys that belong to this user (manual filtering due to API behavior)
+            user_passkeys = []
+            for passkey in passkeys.results:
+                if passkey.user and passkey.user.pk == user_id:
+                    user_passkeys.append(passkey)
+            
+            logger.info(f"Found {len(user_passkeys)} passkeys for user {user_id} after manual filtering")
+            
+            # Filter for valid passkeys with names
+            valid_passkeys = []
+            for passkey in user_passkeys:
+                if passkey.name:
+                    valid_passkeys.append(passkey)
+                    logger.info(f"Valid passkey for user {user_id}: {passkey.name} (pk={passkey.pk})")
+                else:
+                    logger.info(f"Rejected passkey for user {user_id}: missing name (pk={passkey.pk})")
+            
+            # Log detailed passkey information
+            logger.info(f"After validation: {len(valid_passkeys)} valid passkeys")
+            for i, pk in enumerate(valid_passkeys, 1):
+                logger.info(f"Passkey {i}: name={pk.name}, created={pk.created_on}")
+            
+            # Check authentication logs for each passkey
+            passkeys_with_status = []
+            for passkey in valid_passkeys:
+                passkey_info = {
+                    'id': passkey.pk,
+                    'name': passkey.name,
+                    'device_type': passkey.device_type.description if hasattr(passkey.device_type, 'description') else 'Unknown',
+                    'created_on': str(passkey.created_on) if passkey.created_on else None,
+                    'confirmed': getattr(passkey, 'confirmed', None)
+                }
+                
+                # Check if this passkey has been used recently with our flow (reuse API client)
+                auth_check = check_passkey_authentication_logs(user_id, passkey.pk, api_client=api_client)
+                
+                # Use API check results for individual passkey status
+                api_tested = auth_check.get('tested', False)
+                api_test_date = auth_check.get('test_date')
+                api_test_flow = auth_check.get('flow_used')
+                
+                # Also check our local database for recent passkey tests
+                # But only apply it if we don't have specific API results for this passkey
+                from flask_login import current_user
+                local_tested = False
+                local_test_date = None
+                local_test_flow = None
+                
+                if (current_user and current_user.is_authenticated and 
+                    current_user.passkey_tested and not api_tested):
+                    # Only use local database info if API didn't find any specific usage
+                    passkey_meta = current_user.get_passkey_metadata_dict()
+                    if passkey_meta and passkey_meta.get('tested_at'):
+                        local_tested = True
+                        local_test_date = passkey_meta.get('tested_at')
+                        local_test_flow = passkey_meta.get('test_method', 'oauth_flow')
+                
+                # Prefer API results, fall back to local database if no API data
+                final_tested = api_tested or local_tested
+                final_test_date = api_test_date or local_test_date
+                final_test_flow = api_test_flow or local_test_flow
+                
+                passkey_info.update({
+                    'tested': final_tested,
+                    'last_test_date': final_test_date,
+                    'test_flow': final_test_flow,
+                    'test_error': auth_check.get('error')
+                })
+                
+                passkeys_with_status.append(passkey_info)
+            
+            return {
+                'has_passkey': len(valid_passkeys) > 0,
+                'passkey_count': len(valid_passkeys),
+                'passkeys': passkeys_with_status
             }
             
-            # Check if this passkey has been used recently with our flow
-            auth_check = check_passkey_authentication_logs(user_id, passkey.get('pk'), authentik_token)
-            
-            # Use API check results for individual passkey status
-            api_tested = auth_check.get('tested', False)
-            api_test_date = auth_check.get('test_date')
-            api_test_flow = auth_check.get('flow_used')
-            
-            # Also check our local database for recent passkey tests
-            # But only apply it if we don't have specific API results for this passkey
-            from flask_login import current_user
-            local_tested = False
-            local_test_date = None
-            local_test_flow = None
-            
-            if (current_user and current_user.is_authenticated and 
-                current_user.passkey_tested and not api_tested):
-                # Only use local database info if API didn't find any specific usage
-                passkey_meta = current_user.get_passkey_metadata_dict()
-                if passkey_meta and passkey_meta.get('tested_at'):
-                    local_tested = True
-                    local_test_date = passkey_meta.get('tested_at')
-                    local_test_flow = passkey_meta.get('test_method', 'oauth_flow')
-            
-            # Prefer API results, fall back to local database if no API data
-            final_tested = api_tested or local_tested
-            final_test_date = api_test_date or local_test_date
-            final_test_flow = api_test_flow or local_test_flow
-            
-            passkey_info.update({
-                'tested': final_tested,
-                'last_test_date': final_test_date,
-                'test_flow': final_test_flow,
-                'test_error': auth_check.get('error')
-            })
-            
-            passkeys_with_status.append(passkey_info)
-        
-        return {
-            'has_passkey': len(valid_passkeys) > 0,
-            'passkey_count': len(valid_passkeys),
-            'passkeys': passkeys_with_status
-        }
-        
-    except requests.RequestException as e:
-        logger.error(f"Network error checking passkey status for {user_email}: {e}")
-        return {'error': f'Network error: {str(e)}', 'has_passkey': False}
+    except ValueError as e:
+        logger.error(f"Configuration error checking passkey status for {user_email}: {e}")
+        return {'error': str(e), 'has_passkey': False}
+    except ApiException as e:
+        logger.error(f"Authentik API error checking passkey status for {user_email}: {e}")
+        return {'error': f'Authentik API error: {str(e)}', 'has_passkey': False}
     except Exception as e:
         logger.error(f"Unexpected error checking passkey status for {user_email}: {e}")
         return {'error': f'Unexpected error: {str(e)}', 'has_passkey': False}
@@ -736,6 +777,17 @@ def health():
     except Exception as e:
         health_status['checks']['database'] = f'unhealthy: {str(e)}'
         health_status['status'] = 'unhealthy'
+    
+    # Check Authentik connectivity (with shorter timeout for health checks)
+    try:
+        if test_authentik_connectivity():
+            health_status['checks']['authentik'] = 'healthy'
+        else:
+            health_status['checks']['authentik'] = 'unhealthy: connection failed'
+            health_status['status'] = 'degraded'  # API issues shouldn't make entire service unhealthy
+    except Exception as e:
+        health_status['checks']['authentik'] = f'unhealthy: {str(e)}'
+        health_status['status'] = 'degraded'
     
     response = jsonify(health_status)
     response.headers['Content-Type'] = 'application/json'
