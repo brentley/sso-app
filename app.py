@@ -1831,7 +1831,7 @@ def admin():
     
     users = User.query.all()
     
-    # Calculate test completion percentage and sort users
+    # Calculate test completion percentage and separate users
     def calculate_test_completion(user):
         tests_completed = sum([
             1 if user.saml_tested else 0,
@@ -1840,10 +1840,46 @@ def admin():
         ])
         return (tests_completed / 3.0) * 100  # 3 total test methods
     
-    # Sort users by test completion percentage (descending), then by name (ascending)
-    sorted_users = sorted(users, key=lambda user: (-calculate_test_completion(user), user.name.lower()))
+    # Separate users by completion status
+    active_users = []  # Users with > 0% completion
+    inactive_users = []  # Users with 0% completion
     
-    return render_template('admin.html', users=sorted_users)
+    for user in users:
+        completion = calculate_test_completion(user)
+        if completion > 0:
+            active_users.append(user)
+        else:
+            inactive_users.append(user)
+    
+    # Sort each group
+    active_users = sorted(active_users, key=lambda user: (-calculate_test_completion(user), user.name.lower()))
+    inactive_users = sorted(inactive_users, key=lambda user: user.name.lower())
+    
+    return render_template('admin.html', 
+                         users=users,  # All users for metrics
+                         active_users=active_users,
+                         inactive_users=inactive_users)
+
+
+@app.route('/admin/metrics')
+@login_required
+def admin_metrics():
+    """API endpoint to get current metrics for auto-refresh"""
+    if not (current_user.is_admin or current_user.is_auditor):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    users = User.query.all()
+    
+    metrics = {
+        'total_users': len(users),
+        'saml_tested': len([u for u in users if u.saml_tested]),
+        'oidc_tested': len([u for u in users if u.oidc_tested]),
+        'passkey_tested': len([u for u in users if u.passkey_tested]),
+        'all_methods_tested': len([u for u in users if u.saml_tested and u.oidc_tested and u.passkey_tested])
+    }
+    
+    return jsonify(metrics)
+
 
 @app.route('/admin/config', methods=['GET', 'POST'])
 @login_required

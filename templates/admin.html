@@ -28,12 +28,12 @@
         </div>
 
         <!-- Summary Cards -->
-        <div class="row mb-4">
+        <div class="row mb-4" id="metrics-summary">
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-body text-center">
                         <h5 class="card-title">Total Users</h5>
-                        <h2 class="text-primary">{{ users|length }}</h2>
+                        <h2 class="text-primary">{{ (active_users|length) + (inactive_users|length) }}</h2>
                     </div>
                 </div>
             </div>
@@ -41,7 +41,7 @@
                 <div class="card">
                     <div class="card-body text-center">
                         <h5 class="card-title">SAML Tested</h5>
-                        <h2 class="text-success">{{ users|selectattr("saml_tested")|list|length }}</h2>
+                        <h2 class="text-success">{{ (active_users + inactive_users)|selectattr("saml_tested")|list|length }}</h2>
                     </div>
                 </div>
             </div>
@@ -49,7 +49,7 @@
                 <div class="card">
                     <div class="card-body text-center">
                         <h5 class="card-title">OIDC Tested</h5>
-                        <h2 class="text-success">{{ users|selectattr("oidc_tested")|list|length }}</h2>
+                        <h2 class="text-success">{{ (active_users + inactive_users)|selectattr("oidc_tested")|list|length }}</h2>
                     </div>
                 </div>
             </div>
@@ -57,7 +57,7 @@
                 <div class="card">
                     <div class="card-body text-center">
                         <h5 class="card-title">Passkey Tested</h5>
-                        <h2 class="text-success">{{ users|selectattr("passkey_tested")|list|length }}</h2>
+                        <h2 class="text-success">{{ (active_users + inactive_users)|selectattr("passkey_tested")|list|length }}</h2>
                     </div>
                 </div>
             </div>
@@ -66,16 +66,18 @@
                     <div class="card-body text-center">
                         <h5 class="card-title">All Methods Tested</h5>
                         <h2 class="text-success">
-                            {{ users|selectattr("saml_tested")|selectattr("oidc_tested")|selectattr("passkey_tested")|list|length }}
+                            {{ (active_users + inactive_users)|selectattr("saml_tested")|selectattr("oidc_tested")|selectattr("passkey_tested")|list|length }}
                         </h2>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card">
+        <!-- Active Users (>0% completion) -->
+        {% if active_users %}
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">User Authentication Status</h5>
+                <h5 class="mb-0">Active Users ({{ active_users|length }} users with >0% completion)</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -93,7 +95,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for user in users %}
+                            {% for user in active_users %}
                             <tr class="{{ 'table-warning' if not user.active else '' }}">
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -161,6 +163,99 @@
                 </div>
             </div>
         </div>
+        {% endif %}
+
+        <!-- Inactive Users (0% completion) - Collapsible -->
+        {% if inactive_users %}
+        <div class="card">
+            <div class="card-header">
+                <button class="btn btn-link text-decoration-none p-0 text-start w-100" type="button" data-bs-toggle="collapse" data-bs-target="#inactiveUsersCollapse" aria-expanded="false" aria-controls="inactiveUsersCollapse">
+                    <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                        <span>Inactive Users ({{ inactive_users|length }} users with 0% completion)</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </h5>
+                </button>
+            </div>
+            <div class="collapse" id="inactiveUsersCollapse">
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        These users haven't completed any authentication tests yet (SAML, OIDC, or Passkey).
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>SCIM Provisioned</th>
+                                    <th>SAML</th>
+                                    <th>OIDC</th>
+                                    <th>Passkey</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in inactive_users %}
+                                <tr class="table-light {{ 'table-warning' if not user.active else '' }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="fw-bold">{{ user.name }}</div>
+                                                {% if user.is_admin %}
+                                                    <small class="badge bg-danger">Admin</small>
+                                                {% elif user.is_auditor %}
+                                                    <small class="badge bg-info">Auditor</small>
+                                                {% endif %}
+                                                {% if not user.active %}
+                                                    <small class="badge bg-warning">Inactive</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <code>{{ user.email }}</code>
+                                        {% if user.external_id %}
+                                            <br><small class="text-muted">External ID: {{ user.external_id[:10] }}...</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if user.scim_provisioned else 'bg-secondary' }}">
+                                            {{ 'Yes' if user.scim_provisioned else 'No' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">Not Tested</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">Not Tested</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">Not Tested</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewUserLogs({{ user.id }})">
+                                            View Logs
+                                        </button>
+                                        {% if current_user.is_admin %}
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ user.id }}, '{{ user.email }}')">
+                                                <i class="fas fa-trash me-1"></i>Delete
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
     </div>
 </div>
@@ -190,6 +285,69 @@
 
 {% block extra_scripts %}
 <script>
+// Auto-refresh metrics every 30 seconds
+let metricsRefreshInterval;
+
+function startMetricsRefresh() {
+    metricsRefreshInterval = setInterval(async function() {
+        try {
+            const response = await fetch('/admin/metrics');
+            if (response.ok) {
+                const metrics = await response.json();
+                updateMetricsDisplay(metrics);
+            }
+        } catch (error) {
+            console.warn('Failed to refresh metrics:', error);
+        }
+    }, 30000); // 30 seconds
+}
+
+function updateMetricsDisplay(metrics) {
+    const metricsElement = document.getElementById('metrics-summary');
+    if (metricsElement) {
+        // Update total users
+        const totalUsersCard = metricsElement.querySelector('.text-primary');
+        if (totalUsersCard) {
+            totalUsersCard.textContent = metrics.total_users;
+        }
+        
+        // Update SAML tested count
+        const samlCards = metricsElement.querySelectorAll('.text-success');
+        if (samlCards[0]) samlCards[0].textContent = metrics.saml_tested;
+        if (samlCards[1]) samlCards[1].textContent = metrics.oidc_tested;
+        if (samlCards[2]) samlCards[2].textContent = metrics.passkey_tested;
+        if (samlCards[3]) samlCards[3].textContent = metrics.all_methods_tested;
+    }
+}
+
+// Start auto-refresh when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    startMetricsRefresh();
+    
+    // Handle collapsible chevron rotation
+    const collapseButton = document.querySelector('[data-bs-toggle="collapse"]');
+    const chevronIcon = document.querySelector('.fa-chevron-down');
+    const collapseElement = document.getElementById('inactiveUsersCollapse');
+    
+    if (collapseElement && chevronIcon) {
+        collapseElement.addEventListener('show.bs.collapse', function () {
+            chevronIcon.classList.remove('fa-chevron-down');
+            chevronIcon.classList.add('fa-chevron-up');
+        });
+        
+        collapseElement.addEventListener('hide.bs.collapse', function () {
+            chevronIcon.classList.remove('fa-chevron-up');
+            chevronIcon.classList.add('fa-chevron-down');
+        });
+    }
+});
+
+// Clean up interval when page unloads
+window.addEventListener('beforeunload', function() {
+    if (metricsRefreshInterval) {
+        clearInterval(metricsRefreshInterval);
+    }
+});
 async function viewUserLogs(userId) {
     const modal = new bootstrap.Modal(document.getElementById('userLogsModal'));
     const content = document.getElementById('userLogsContent');
