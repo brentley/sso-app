@@ -919,11 +919,10 @@ def test_passkey():
         }
         direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
         
-        # Clear session first to ensure fresh authentication
-        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(direct_passkey_url)}"
-        
-        logger.info(f"Testing passkey authentication for {current_user.email}")
-        return redirect(logout_url)
+        # Go directly to passkey flow without logout step
+        logger.info(f"Testing passkey authentication directly for {current_user.email}")
+        logger.info(f"Direct URL: {direct_passkey_url}")
+        return redirect(direct_passkey_url)
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
