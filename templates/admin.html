@@ -22,6 +22,52 @@
             </div>
         </div>
 
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Users</h5>
+                        <h2 class="text-primary">{{ users|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">SAML Tested</h5>
+                        <h2 class="text-success">{{ users|selectattr("saml_tested")|list|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">OIDC Tested</h5>
+                        <h2 class="text-success">{{ users|selectattr("oidc_tested")|list|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Passkey Tested</h5>
+                        <h2 class="text-success">{{ users|selectattr("passkey_tested")|list|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">All Methods Tested</h5>
+                        <h2 class="text-success">
+                            {{ users|selectattr("saml_tested")|selectattr("oidc_tested")|selectattr("passkey_tested")|list|length }}
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">User Authentication Status</h5>
@@ -111,42 +157,6 @@
             </div>
         </div>
 
-        <div class="row mt-4">
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Total Users</h5>
-                        <h2 class="text-primary">{{ users|length }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">SAML Tested</h5>
-                        <h2 class="text-success">{{ users|selectattr("saml_tested")|list|length }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">OIDC Tested</h5>
-                        <h2 class="text-success">{{ users|selectattr("oidc_tested")|list|length }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">All Methods Tested</h5>
-                        <h2 class="text-success">
-                            {{ users|selectattr("saml_tested")|selectattr("oidc_tested")|list|length }}
-                        </h2>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 

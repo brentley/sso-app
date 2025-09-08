@@ -1781,7 +1781,20 @@ def admin():
         return redirect(url_for('index'))
     
     users = User.query.all()
-    return render_template('admin.html', users=users)
+    
+    # Calculate test completion percentage and sort users
+    def calculate_test_completion(user):
+        tests_completed = sum([
+            1 if user.saml_tested else 0,
+            1 if user.oidc_tested else 0,
+            1 if user.passkey_tested else 0
+        ])
+        return (tests_completed / 3.0) * 100  # 3 total test methods
+    
+    # Sort users by test completion percentage (descending), then by name (ascending)
+    sorted_users = sorted(users, key=lambda user: (-calculate_test_completion(user), user.name.lower()))
+    
+    return render_template('admin.html', users=sorted_users)
 
 @app.route('/admin/config', methods=['GET', 'POST'])
 @login_required
@@ -2965,6 +2978,19 @@ def saml_acs():
         
         # Update SAML tested flag
         user.saml_tested = True
+        
+        # Auto-promote maintenance_team members to auditor
+        if 'maintenance_team' in [g.lower() for g in groups]:
+            if not user.is_auditor:
+                user.is_auditor = True
+                logger.info(f"Auto-promoted {email} to auditor due to maintenance_team membership")
+        
+        # Special case: always make Yuliia.lutai an auditor
+        if email.lower() == 'yuliia.lutai@visiquate.com':
+            if not user.is_auditor:
+                user.is_auditor = True
+                logger.info(f"Auto-promoted {email} to auditor (special user)")
+        
         db.session.commit()
         
         # Login user
@@ -3208,6 +3234,19 @@ def oauth_callback(provider):
             user.oidc_tested = True
         elif provider == 'passkey-test-app':
             user.passkey_tested = True
+        
+        # Auto-promote maintenance_team members to auditor
+        if 'maintenance_team' in [g.lower() for g in groups]:
+            if not user.is_auditor:
+                user.is_auditor = True
+                logger.info(f"Auto-promoted {email} to auditor due to maintenance_team membership")
+        
+        # Special case: always make Yuliia.lutai an auditor
+        if email.lower() == 'yuliia.lutai@visiquate.com':
+            if not user.is_auditor:
+                user.is_auditor = True
+                logger.info(f"Auto-promoted {email} to auditor (special user)")
+        
         db.session.commit()
         
         # Login user
