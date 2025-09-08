@@ -14,6 +14,11 @@
                 <a href="{{ url_for('admin_scim_logs') }}" class="btn btn-info">
                     <i class="fas fa-list-alt me-2"></i>SCIM Logs
                 </a>
+                {% if current_user.is_admin or current_user.is_auditor %}
+                    <button onclick="reconcilePasskeys()" class="btn btn-warning">
+                        <i class="fas fa-sync-alt me-2"></i>Reconcile Passkeys
+                    </button>
+                {% endif %}
                 {% if current_user.is_super_admin %}
                     <a href="{{ url_for('admin_impersonate') }}" class="btn btn-warning">
                         <i class="fas fa-user-secret me-2"></i>User Impersonation
@@ -313,6 +318,53 @@ async function deleteUser(userId, userEmail) {
         }
     } catch (error) {
         alert('Error deleting user: ' + error.message);
+    }
+}
+
+async function reconcilePasskeys() {
+    if (!confirm('This will check all users against Authentik and update passkey statuses to match reality. Continue?')) {
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Reconciling...';
+    
+    try {
+        const response = await fetch('/admin/reconcile-passkeys', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            let message = `Reconciliation completed:\n\n`;
+            message += `• Users checked: ${data.results.users_checked}\n`;
+            message += `• Users updated: ${data.results.users_updated}\n`;
+            message += `• Errors: ${data.results.errors}`;
+            
+            if (data.results.changes.length > 0) {
+                message += `\n\nChanges made:\n`;
+                data.results.changes.forEach(change => {
+                    message += `• ${change}\n`;
+                });
+            }
+            
+            alert(message);
+            
+            if (data.results.users_updated > 0) {
+                // Refresh the page to show updated status
+                window.location.reload();
+            }
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error during reconciliation: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
     }
 }
 </script>

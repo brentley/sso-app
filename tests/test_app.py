@@ -230,3 +230,161 @@ def test_clear_my_test_results_route_exists(client):
     # Test without login - should redirect to login page
     response = client.post('/clear-my-test-results')
     assert response.status_code == 302  # Redirect due to @login_required
+
+
+def test_reconcile_passkey_status_for_user(client):
+    """Test passkey status reconciliation for individual users"""
+    with app.app_context():
+        from app import reconcile_passkey_status_for_user
+        from unittest.mock import patch
+        
+        # Create a test user with incorrect passkey status
+        user = User(
+            email='test-reconcile@example.com',
+            name='Test Reconcile User',
+            passkey_tested=True  # Currently marked as tested
+        )
+        db.session.add(user)
+        db.session.commit()
+        
+        # Mock get_user_passkey_status to return no passkeys (should clear status)
+        with patch('app.get_user_passkey_status') as mock_get_status:
+            mock_get_status.return_value = {
+                'has_passkey': False,
+                'passkey_count': 0,
+                'passkeys': []
+            }
+            
+            success, message, changed = reconcile_passkey_status_for_user(user)
+            
+            assert success is True
+            assert changed is True
+            assert "Cleared test status" in message
+            assert user.passkey_tested is False
+            
+            # Check that metadata was updated
+            metadata = user.get_passkey_metadata_dict()
+            assert metadata.get('source') == 'reconciliation_job'
+            assert 'reconciled_at' in metadata
+        
+        # Test case where user doesn't have passkeys but should be marked as tested
+        user.passkey_tested = False
+        with patch('app.get_user_passkey_status') as mock_get_status:
+            mock_get_status.return_value = {
+                'has_passkey': True,
+                'passkey_count': 2,
+                'passkeys': [{'name': 'test1'}, {'name': 'test2'}]
+            }
+            
+            success, message, changed = reconcile_passkey_status_for_user(user)
+            
+            assert success is True
+            assert changed is True
+            assert "Marked as tested" in message
+            assert user.passkey_tested is True
+            
+            # Check metadata
+            metadata = user.get_passkey_metadata_dict()
+            assert metadata.get('authentik_passkey_count') == 2
+
+
+def test_admin_reconcile_passkeys_route_permissions(client):
+    """Test that reconcile passkeys route has proper permissions"""
+    with app.app_context():
+        # Test without login - should redirect
+        response = client.post('/admin/reconcile-passkeys')
+        assert response.status_code == 302  # Redirect due to @login_required
+        
+        # Create regular user (not admin or auditor)
+        regular_user = User(
+            email='regular@example.com',
+            name='Regular User',
+            is_admin=False,
+            is_auditor=False
+        )
+        db.session.add(regular_user)
+        db.session.commit()
+        
+        with client.session_transaction() as sess:
+            sess['user_id'] = regular_user.id
+        
+        # Regular user should be denied
+        response = client.post('/admin/reconcile-passkeys')
+        assert response.status_code == 403
+        
+        # Admin user should have access
+        regular_user.is_admin = True
+        db.session.commit()
+        
+        with patch('app.reconcile_all_passkey_statuses') as mock_reconcile:
+            mock_reconcile.return_value = {
+                'users_updated': 2,
+                'users_checked': 5,
+                'errors': 0,
+                'changes': ['user@example.com: Marked as tested (found 1 passkeys)']
+            }
+            
+            response = client.post('/admin/reconcile-passkeys')
+            assert response.status_code == 200
+            
+            data = json.loads(response.data)
+            assert data['success'] is True
+            assert 'Reconciliation complete' in data['message']
+        
+        # Auditor should also have access
+        regular_user.is_admin = False
+        regular_user.is_auditor = True
+        db.session.commit()
+        
+        with patch('app.reconcile_all_passkey_statuses') as mock_reconcile:
+            mock_reconcile.return_value = {
+                'users_updated': 0,
+                'users_checked': 3,
+                'errors': 0,
+                'changes': []
+            }
+            
+            response = client.post('/admin/reconcile-passkeys')
+            assert response.status_code == 200
+
+
+def test_reconcile_all_passkey_statuses(client):
+    """Test bulk reconciliation of all users' passkey statuses"""
+    with app.app_context():
+        from app import reconcile_all_passkey_statuses
+        from unittest.mock import patch
+        
+        # Create test users with different scenarios
+        user1 = User(email='user1@example.com', name='User 1', passkey_tested=True)
+        user2 = User(email='user2@example.com', name='User 2', passkey_tested=False)
+        user3 = User(email='user3@example.com', name='User 3', passkey_tested=True)
+        
+        db.session.add_all([user1, user2, user3])
+        db.session.commit()
+        
+        # Mock different responses for different users
+        def mock_get_passkey_status(email):
+            if email == 'user1@example.com':
+                return {'has_passkey': False, 'passkey_count': 0}  # Should clear status
+            elif email == 'user2@example.com':
+                return {'has_passkey': True, 'passkey_count': 1}   # Should mark as tested
+            else:  # user3@example.com
+                return {'has_passkey': True, 'passkey_count': 2}   # Already correct, no change
+        
+        with patch('app.get_user_passkey_status', side_effect=mock_get_passkey_status):
+            results = reconcile_all_passkey_statuses()
+            
+            assert results['total_users'] == 3
+            assert results['users_checked'] == 3
+            assert results['users_updated'] == 2  # user1 and user2 should be updated
+            assert results['errors'] == 0
+            assert len(results['changes']) == 2
+            
+            # Verify the changes were applied
+            db.session.refresh(user1)
+            db.session.refresh(user2)
+            db.session.refresh(user3)
+            
+            assert user1.passkey_tested is False  # Should be cleared
+            assert user2.passkey_tested is True   # Should be marked as tested
+            assert user3.passkey_tested is True   # Should remain unchanged

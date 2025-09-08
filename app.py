@@ -772,6 +772,18 @@ def index():
             session.pop('passkey_test_in_progress', None)
             session.pop('passkey_test_timestamp', None)
     
+    # Automatically reconcile user's passkey status when they visit home page
+    try:
+        success, message, changed = reconcile_passkey_status_for_user(current_user)
+        if success and changed:
+            logger.info(f"Auto-reconciled passkey status on home page for {current_user.email}: {message}")
+            db.session.commit()
+        elif not success:
+            logger.warning(f"Failed to auto-reconcile passkey status on home page for {current_user.email}: {message}")
+    except Exception as e:
+        logger.error(f"Error during home page auto-reconciliation for {current_user.email}: {e}")
+        # Don't let reconciliation errors break the page
+    
     return render_template('index.html')
 
 @app.route('/login')
@@ -907,6 +919,21 @@ def passkey_status():
         
         # Get passkey status from Authentik API
         passkey_info = get_user_passkey_status(current_user.email)
+        
+        # Automatically reconcile user's passkey status based on actual Authentik data
+        try:
+            success, message, changed = reconcile_passkey_status_for_user(current_user)
+            if success and changed:
+                logger.info(f"Auto-reconciled passkey status for {current_user.email}: {message}")
+                # Commit the reconciliation changes
+                db.session.commit()
+                # Re-fetch passkey status after reconciliation to show updated data
+                passkey_info = get_user_passkey_status(current_user.email)
+            elif not success:
+                logger.warning(f"Failed to auto-reconcile passkey status for {current_user.email}: {message}")
+        except Exception as e:
+            logger.error(f"Error during auto-reconciliation for {current_user.email}: {e}")
+            # Don't let reconciliation errors break the page
         
         # Authentik URLs for passkey management
         setup_url = "https://id.visiquate.com/if/flow/default-authenticator-webauthn-setup/"
@@ -3622,6 +3649,117 @@ def export_config():
     except Exception as e:
         logger.error(f"Failed to export configuration: {e}")
         return jsonify({'error': f'Export failed: {str(e)}'}), 500
+
+def reconcile_passkey_status_for_user(user):
+    """
+    Reconcile passkey status for a single user by checking Authentik API
+    Returns tuple: (success: bool, message: str, changed: bool)
+    """
+    try:
+        # Get user's actual passkey status from Authentik
+        passkey_info = get_user_passkey_status(user.email)
+        
+        if 'error' in passkey_info:
+            return False, f"API error: {passkey_info['error']}", False
+        
+        # Determine if user actually has passkeys in Authentik
+        has_actual_passkeys = passkey_info.get('has_passkey', False)
+        current_status = user.passkey_tested
+        
+        # If status doesn't match reality, update it
+        if has_actual_passkeys and not current_status:
+            # User has passkeys but we show "Not Tested" - mark as tested
+            user.passkey_tested = True
+            user.passkey_metadata = json.dumps({
+                'reconciled_at': datetime.utcnow().isoformat(),
+                'source': 'reconciliation_job',
+                'authentik_passkey_count': passkey_info.get('passkey_count', 0),
+                'note': 'Automatically marked as tested due to existing passkeys in Authentik'
+            })
+            return True, f"Marked as tested (found {passkey_info.get('passkey_count', 0)} passkeys)", True
+            
+        elif not has_actual_passkeys and current_status:
+            # User shows "Tested" but has no passkeys - clear the status
+            user.passkey_tested = False
+            user.passkey_metadata = json.dumps({
+                'reconciled_at': datetime.utcnow().isoformat(),
+                'source': 'reconciliation_job',
+                'note': 'Automatically cleared - no passkeys found in Authentik'
+            })
+            return True, f"Cleared test status (no passkeys found)", True
+        else:
+            # Status is already correct
+            status_desc = "has passkeys and marked tested" if has_actual_passkeys else "no passkeys and marked not tested"
+            return True, f"Already correct ({status_desc})", False
+            
+    except Exception as e:
+        logger.error(f"Error reconciling passkey status for {user.email}: {e}")
+        return False, f"Exception: {str(e)}", False
+
+def reconcile_all_passkey_statuses():
+    """
+    Reconcile passkey status for all users by checking actual Authentik API status
+    Returns summary statistics
+    """
+    results = {
+        'total_users': 0,
+        'users_checked': 0,
+        'users_updated': 0,
+        'errors': 0,
+        'changes': []
+    }
+    
+    try:
+        with app.app_context():
+            users = User.query.all()
+            results['total_users'] = len(users)
+            
+            for user in users:
+                success, message, changed = reconcile_passkey_status_for_user(user)
+                results['users_checked'] += 1
+                
+                if success:
+                    if changed:
+                        results['users_updated'] += 1
+                        results['changes'].append(f"{user.email}: {message}")
+                        logger.info(f"Reconciliation updated {user.email}: {message}")
+                else:
+                    results['errors'] += 1
+                    logger.error(f"Reconciliation failed for {user.email}: {message}")
+            
+            # Commit all changes at once
+            if results['users_updated'] > 0:
+                db.session.commit()
+                logger.info(f"Passkey reconciliation completed: {results['users_updated']} users updated")
+            else:
+                logger.info("Passkey reconciliation completed: no changes needed")
+                
+    except Exception as e:
+        logger.error(f"Error in passkey reconciliation job: {e}")
+        db.session.rollback()
+        results['errors'] += 1
+    
+    return results
+
+@app.route('/admin/reconcile-passkeys', methods=['POST'])
+@login_required
+def admin_reconcile_passkeys():
+    """Manual admin route to reconcile passkey statuses"""
+    if not (current_user.is_admin or current_user.is_auditor):
+        return jsonify({'error': 'Admin or auditor privileges required'}), 403
+    
+    try:
+        results = reconcile_all_passkey_statuses()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Reconciliation complete: {results["users_updated"]} users updated, {results["errors"]} errors',
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"Admin reconcile passkeys failed: {e}")
+        return jsonify({'error': f'Reconciliation failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=False)
