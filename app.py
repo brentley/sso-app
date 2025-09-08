@@ -336,12 +336,12 @@ def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
     try:
         headers = {'Authorization': f'Bearer {authentik_token}'}
         
-        # Look for recent authentication events for this user with WebAuthn
+        # Look for recent events for this user (all types, not just login)
+        # Remove action filter to see all event types including WebAuthn events
         events_response = requests.get(
             'https://id.visiquate.com/api/v3/events/events/',
             headers=headers,
             params={
-                'action': 'login',
                 'user': user_id,
                 'ordering': '-created'  # Most recent first
             },
@@ -356,21 +356,39 @@ def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
         
         # Debug: Log what events we're seeing
         logger.info(f"Checking {len(events)} recent events for user {user_id}")
-        for i, event in enumerate(events[:5]):  # Log first 5 events
+        for i, event in enumerate(events[:10]):  # Log first 10 events for better debugging
             context = event.get('context', {})
             auth_method = context.get('auth_method', 'none')
             action = event.get('action', 'unknown')
             created = event.get('created', 'unknown')
             logger.info(f"Event {i+1}: action={action}, auth_method={auth_method}, created={created}")
+            
+            # Log more context for debugging
+            if context:
+                logger.info(f"  Full context: {context}")
         
         # Look for recent passkey authentication in our custom flow
-        for event in events[:10]:  # Check last 10 login events
+        # Check more events and look for various WebAuthn/passkey indicators
+        for event in events[:50]:  # Check last 50 events to catch more possibilities
             context = event.get('context', {})
+            action = event.get('action', 'unknown')
             auth_method = context.get('auth_method')
             
             # Check for multiple possible WebAuthn identifiers
             webauthn_methods = ['webauthn', 'passkey', 'fido2', 'authenticator_webauthn']
-            if auth_method in webauthn_methods:
+            webauthn_actions = ['authenticate', 'webauthn_authenticate', 'passkey_authenticate', 'fido_authenticate']
+            
+            # Look for WebAuthn in both auth_method and action
+            is_webauthn = (auth_method in webauthn_methods) or (action in webauthn_actions)
+            
+            # Also check if the event context contains WebAuthn-related data
+            if not is_webauthn:
+                context_str = str(context).lower()
+                if any(term in context_str for term in ['webauthn', 'passkey', 'fido', 'authenticator']):
+                    is_webauthn = True
+                    logger.info(f"Found WebAuthn in context: {context}")
+            
+            if is_webauthn:
                 # Check if it was in the last 30 days and with our flow
                 created = event.get('created')
                 if created:
@@ -380,24 +398,34 @@ def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
                         thirty_days_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(days=30)
                         
                         if event_time > thirty_days_ago:
-                            logger.info(f"Found WebAuthn authentication: {auth_method} on {created}")
+                            logger.info(f"Found WebAuthn authentication: action={action}, auth_method={auth_method} on {created}")
                             return {
                                 'tested': True, 
                                 'test_date': created,
-                                'flow_used': context.get('flow', 'unknown')
+                                'flow_used': context.get('flow', 'unknown'),
+                                'test_flow': f"{action}/{auth_method}"
                             }
                     except Exception as e:
                         logger.error(f"Error parsing event date {created}: {e}")
             
-            # Also check if any authentication happened recently, regardless of method
-            if event.get('action') == 'login' and event.get('created'):
+            # Also check if any authentication happened very recently in our custom flow
+            if event.get('created'):
                 try:
                     from datetime import datetime, timedelta
                     event_time = datetime.fromisoformat(event.get('created').replace('Z', '+00:00'))
                     five_minutes_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(minutes=5)
                     
                     if event_time > five_minutes_ago:
-                        logger.info(f"Recent login found: method={auth_method}, created={event.get('created')}")
+                        # Check if this event relates to our custom passkey flow
+                        flow = context.get('flow', '')
+                        if 'passkey' in flow.lower() or action in ['authenticate', 'authorize']:
+                            logger.info(f"Recent authentication in potential passkey flow: action={action}, flow={flow}, created={event.get('created')}")
+                            return {
+                                'tested': True, 
+                                'test_date': event.get('created'),
+                                'flow_used': flow,
+                                'test_flow': f"recent_{action}"
+                            }
                 except Exception as e:
                     logger.error(f"Error parsing recent event: {e}")
         
