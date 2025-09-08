@@ -699,6 +699,70 @@ def debug_oauth_urls():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/debug/passkey-config')
+@login_required  
+def debug_passkey_config():
+    """Debug passkey OAuth configuration and user access"""
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    try:
+        authentik_token = get_config('authentik_token')
+        passkey_client_id = get_config('passkey_client_id')
+        
+        if not authentik_token or not passkey_client_id:
+            return jsonify({'error': 'Missing configuration'}), 500
+        
+        headers = {
+            'Authorization': f'Bearer {authentik_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Find the OAuth provider
+        provider_response = requests.get(
+            'https://id.visiquate.com/api/v3/providers/oauth2/',
+            headers=headers,
+            params={'client_id': passkey_client_id},
+            timeout=10
+        )
+        
+        # Find the application
+        app_response = requests.get(
+            'https://id.visiquate.com/api/v3/core/applications/',
+            headers=headers,
+            params={'search': 'passkey'},
+            timeout=10
+        )
+        
+        # Find user details
+        user_response = requests.get(
+            'https://id.visiquate.com/api/v3/core/users/',
+            headers=headers,
+            params={'search': current_user.email},
+            timeout=10
+        )
+        
+        return jsonify({
+            'user_email': current_user.email,
+            'client_id': passkey_client_id,
+            'provider_search': {
+                'status': provider_response.status_code,
+                'data': provider_response.json() if provider_response.status_code == 200 else provider_response.text
+            },
+            'application_search': {
+                'status': app_response.status_code,
+                'data': app_response.json() if app_response.status_code == 200 else app_response.text
+            },
+            'user_search': {
+                'status': user_response.status_code,
+                'data': user_response.json() if user_response.status_code == 200 else user_response.text
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/debug/devices')
 @login_required
 def debug_devices():
