@@ -15,7 +15,7 @@
                     <i class="fas fa-list-alt me-2"></i>SCIM Logs
                 </a>
                 {% if current_user.is_admin or current_user.is_auditor %}
-                    <button onclick="reconcilePasskeys()" class="btn btn-warning">
+                    <button onclick="reconcilePasskeys()" class="btn btn-warning" title="Reconcile passkey status for users who have completed SAML or OIDC testing">
                         <i class="fas fa-sync-alt me-2"></i>Reconcile Passkeys
                     </button>
                 {% endif %}
@@ -322,7 +322,7 @@ async function deleteUser(userId, userEmail) {
 }
 
 async function reconcilePasskeys() {
-    if (!confirm('This will check all users against Authentik and update passkey statuses to match reality. Continue?')) {
+    if (!confirm('This will check users who have completed SAML or OIDC testing against Authentik and update passkey statuses to match reality. Continue?')) {
         return;
     }
     
@@ -340,7 +340,10 @@ async function reconcilePasskeys() {
         
         if (response.ok) {
             let message = `Reconciliation completed:\n\n`;
+            message += `• Total users: ${data.results.total_users}\n`;
+            message += `• Eligible users (>20% completion): ${data.results.eligible_users}\n`;
             message += `• Users checked: ${data.results.users_checked}\n`;
+            message += `• Users skipped: ${data.results.users_skipped}\n`;
             message += `• Users updated: ${data.results.users_updated}\n`;
             message += `• Errors: ${data.results.errors}`;
             

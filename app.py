@@ -3737,13 +3737,16 @@ def reconcile_passkey_status_for_user(user):
 
 def reconcile_all_passkey_statuses():
     """
-    Reconcile passkey status for all users by checking actual Authentik API status
+    Reconcile passkey status for users with >20% test completion by checking actual Authentik API status
+    Only processes users who have completed at least SAML or OIDC testing
     Returns summary statistics
     """
     results = {
         'total_users': 0,
+        'eligible_users': 0,
         'users_checked': 0,
         'users_updated': 0,
+        'users_skipped': 0,
         'errors': 0,
         'changes': []
     }
@@ -3754,8 +3757,15 @@ def reconcile_all_passkey_statuses():
             results['total_users'] = len(users)
             
             for user in users:
-                success, message, changed = reconcile_passkey_status_for_user(user)
-                results['users_checked'] += 1
+                # Only reconcile users with >20% completion to avoid unnecessary API calls
+                if should_reconcile_user(user):
+                    results['eligible_users'] += 1
+                    success, message, changed = reconcile_passkey_status_for_user(user)
+                    results['users_checked'] += 1
+                else:
+                    results['users_skipped'] += 1
+                    logger.debug(f"Skipping reconciliation for {user.email} - insufficient test completion")
+                    continue
                 
                 if success:
                     if changed:
