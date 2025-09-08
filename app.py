@@ -876,6 +876,230 @@ def debug_oauth_urls():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/fix-webauthn-config')
+@login_required  
+def fix_webauthn_config():
+    """Fix WebAuthn configuration based on GitHub issue workaround"""
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    try:
+        authentik_token = get_config('authentik_token')
+        
+        if not authentik_token:
+            return jsonify({'error': 'Missing authentik_token'}), 500
+        
+        headers = {
+            'Authorization': f'Bearer {authentik_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Find all WebAuthn authenticator setup stages
+        stages_response = requests.get(
+            'https://id.visiquate.com/api/v3/stages/authenticator_webauthn/',
+            headers=headers,
+            timeout=10
+        )
+        
+        if stages_response.status_code != 200:
+            return jsonify({'error': f'Could not fetch WebAuthn stages: {stages_response.status_code}'}), 500
+        
+        stages = stages_response.json().get('results', [])
+        fixes_applied = []
+        
+        for stage in stages:
+            stage_id = stage.get('pk')
+            current_config = {
+                'resident_key_requirement': stage.get('resident_key_requirement', 'preferred'),
+                'user_verification': stage.get('user_verification', 'preferred')
+            }
+            
+            # Apply the GitHub issue fix: change from "preferred" to "required"
+            needs_update = False
+            updated_config = {}
+            
+            if current_config['resident_key_requirement'] == 'preferred':
+                updated_config['resident_key_requirement'] = 'required'
+                needs_update = True
+            
+            if current_config['user_verification'] == 'preferred':
+                updated_config['user_verification'] = 'required'
+                needs_update = True
+            
+            if needs_update:
+                # Update the stage configuration
+                update_response = requests.patch(
+                    f'https://id.visiquate.com/api/v3/stages/authenticator_webauthn/{stage_id}/',
+                    headers=headers,
+                    json=updated_config,
+                    timeout=10
+                )
+                
+                if update_response.status_code == 200:
+                    fixes_applied.append({
+                        'stage_name': stage.get('name', f'Stage {stage_id}'),
+                        'stage_id': stage_id,
+                        'changes': updated_config,
+                        'status': 'updated'
+                    })
+                else:
+                    fixes_applied.append({
+                        'stage_name': stage.get('name', f'Stage {stage_id}'),
+                        'stage_id': stage_id,
+                        'changes': updated_config,
+                        'status': f'failed: {update_response.status_code}'
+                    })
+            else:
+                fixes_applied.append({
+                    'stage_name': stage.get('name', f'Stage {stage_id}'),
+                    'stage_id': stage_id,
+                    'status': 'already_correct'
+                })
+        
+        return jsonify({
+            'message': 'WebAuthn configuration fix applied based on GitHub issue workaround',
+            'stages_checked': len(stages),
+            'fixes_applied': fixes_applied,
+            'note': 'Users may need to re-register their passkeys after this change'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/add-identification-stage')
+@login_required  
+def add_identification_stage():
+    """Add identification stage to custom passkey flow (GitHub issue workaround option 1)"""
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    try:
+        authentik_token = get_config('authentik_token')
+        
+        if not authentik_token:
+            return jsonify({'error': 'Missing authentik_token'}), 500
+        
+        headers = {
+            'Authorization': f'Bearer {authentik_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Find the custom passkey authentication flow
+        flows_response = requests.get(
+            'https://id.visiquate.com/api/v3/flows/instances/',
+            headers=headers,
+            params={'search': 'passkey'},
+            timeout=10
+        )
+        
+        if flows_response.status_code != 200:
+            return jsonify({'error': f'Could not fetch flows: {flows_response.status_code}'}), 500
+        
+        flows = flows_response.json().get('results', [])
+        passkey_flow = None
+        
+        for flow in flows:
+            if 'passkey' in flow.get('name', '').lower() and flow.get('designation') == 'authentication':
+                passkey_flow = flow
+                break
+        
+        if not passkey_flow:
+            return jsonify({'error': 'Could not find custom passkey authentication flow'}), 500
+        
+        # Check if identification stage already exists in the flow
+        flow_id = passkey_flow.get('pk')
+        bindings_response = requests.get(
+            'https://id.visiquate.com/api/v3/flows/bindings/',
+            headers=headers,
+            params={'target': flow_id},
+            timeout=10
+        )
+        
+        if bindings_response.status_code != 200:
+            return jsonify({'error': f'Could not fetch flow bindings: {bindings_response.status_code}'}), 500
+        
+        bindings = bindings_response.json().get('results', [])
+        has_identification = any(
+            'identification' in binding.get('stage_obj', {}).get('name', '').lower() 
+            for binding in bindings
+        )
+        
+        if has_identification:
+            return jsonify({
+                'message': 'Identification stage already exists in passkey flow',
+                'flow_name': passkey_flow.get('name'),
+                'flow_id': flow_id
+            })
+        
+        # Find or create an identification stage
+        id_stages_response = requests.get(
+            'https://id.visiquate.com/api/v3/stages/identification/',
+            headers=headers,
+            timeout=10
+        )
+        
+        if id_stages_response.status_code != 200:
+            return jsonify({'error': f'Could not fetch identification stages: {id_stages_response.status_code}'}), 500
+        
+        id_stages = id_stages_response.json().get('results', [])
+        id_stage = None
+        
+        # Look for existing identification stage
+        for stage in id_stages:
+            if 'default' in stage.get('name', '').lower():
+                id_stage = stage
+                break
+        
+        if not id_stage and id_stages:
+            id_stage = id_stages[0]  # Use first available
+        
+        if not id_stage:
+            return jsonify({'error': 'No identification stage found to add to flow'}), 500
+        
+        # Add the identification stage to the beginning of the passkey flow
+        binding_data = {
+            'target': flow_id,
+            'stage': id_stage.get('pk'),
+            'order': 0,  # Put it first
+            're_evaluate_policies': True
+        }
+        
+        create_binding_response = requests.post(
+            'https://id.visiquate.com/api/v3/flows/bindings/',
+            headers=headers,
+            json=binding_data,
+            timeout=10
+        )
+        
+        if create_binding_response.status_code == 201:
+            # Update other bindings to have higher order numbers
+            for binding in bindings:
+                current_order = binding.get('order', 0)
+                requests.patch(
+                    f'https://id.visiquate.com/api/v3/flows/bindings/{binding.get("pk")}/',
+                    headers=headers,
+                    json={'order': current_order + 10},
+                    timeout=10
+                )
+            
+            return jsonify({
+                'message': 'Identification stage added to custom passkey flow',
+                'flow_name': passkey_flow.get('name'),
+                'flow_id': flow_id,
+                'stage_added': id_stage.get('name'),
+                'note': 'Users will now be prompted for username before passkey authentication'
+            })
+        else:
+            return jsonify({
+                'error': f'Failed to add identification stage: {create_binding_response.status_code}',
+                'response': create_binding_response.text
+            }), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/debug/passkey-config')
 @login_required  
 def debug_passkey_config():
