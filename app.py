@@ -649,6 +649,223 @@ def passkey_status():
         flash('Error retrieving passkey status. Please try again.', 'error')
         return redirect(url_for('index'))
 
+@app.route('/debug/devices')
+@login_required
+def debug_devices():
+    """Debug endpoint to compare different device API responses"""
+    if not current_user.is_admin:
+        flash('Access denied')
+        return redirect(url_for('index'))
+    
+    try:
+        authentik_token = get_config('authentik_token')
+        if not authentik_token:
+            return jsonify({'error': 'Authentik token not configured'}), 500
+        
+        headers = {
+            'Authorization': f'Bearer {authentik_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Find user
+        user_response = requests.get(
+            'https://id.visiquate.com/api/v3/core/users/',
+            headers=headers,
+            params={'search': current_user.email},
+            timeout=10
+        )
+        
+        if user_response.status_code != 200:
+            return jsonify({'error': f'Failed to find user: {user_response.status_code}'}), 500
+        
+        users = user_response.json().get('results', [])
+        user_id = None
+        for user in users:
+            if user.get('email', '').lower() == current_user.email.lower():
+                user_id = user.get('pk')
+                break
+        
+        if not user_id:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Try different device API endpoints
+        api_results = {}
+        
+        # 1. WebAuthn specific
+        webauthn_response = requests.get(
+            'https://id.visiquate.com/api/v3/authenticators/webauthn/',
+            headers=headers,
+            params={'user': user_id},
+            timeout=10
+        )
+        api_results['webauthn'] = {
+            'status': webauthn_response.status_code,
+            'data': webauthn_response.json() if webauthn_response.status_code == 200 else webauthn_response.text
+        }
+        
+        # 2. All authenticators
+        all_auth_response = requests.get(
+            'https://id.visiquate.com/api/v3/authenticators/all/',
+            headers=headers,
+            params={'user': user_id},
+            timeout=10
+        )
+        api_results['all_authenticators'] = {
+            'status': all_auth_response.status_code,
+            'data': all_auth_response.json() if all_auth_response.status_code == 200 else all_auth_response.text
+        }
+        
+        # 3. User's devices (if different endpoint exists)
+        devices_response = requests.get(
+            f'https://id.visiquate.com/api/v3/core/users/{user_id}/devices/',
+            headers=headers,
+            timeout=10
+        )
+        api_results['user_devices'] = {
+            'status': devices_response.status_code,
+            'data': devices_response.json() if devices_response.status_code == 200 else devices_response.text
+        }
+        
+        # 4. Try stages/authenticators
+        stages_response = requests.get(
+            'https://id.visiquate.com/api/v3/stages/authenticator/webauthn/',
+            headers=headers,
+            timeout=10
+        )
+        api_results['webauthn_stages'] = {
+            'status': stages_response.status_code,
+            'data': stages_response.json() if stages_response.status_code == 200 else stages_response.text
+        }
+        
+        return jsonify({
+            'user_id': user_id,
+            'user_email': current_user.email,
+            'api_results': api_results
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in debug_devices: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/test-passkey')
+@login_required
+def test_passkey():
+    """Test passkey authentication by triggering Authentik OIDC flow"""
+    try:
+        # Get passkey OAuth configuration
+        passkey_server_url = get_config('passkey_server_url', 'https://id.visiquate.com')
+        passkey_client_id = get_config('passkey_client_id')
+        
+        if not passkey_client_id:
+            flash('Passkey authentication not configured', 'error')
+            return redirect(url_for('passkey_status'))
+        
+        # Generate state and nonce for security
+        import secrets
+        state = secrets.token_urlsafe(32)
+        nonce = secrets.token_urlsafe(32)
+        
+        # Store state in session for verification
+        session['passkey_test_state'] = state
+        session['passkey_test_nonce'] = nonce
+        session['passkey_test_user'] = current_user.email
+        
+        # Create OAuth authorization URL that will trigger WebAuthn
+        auth_params = {
+            'client_id': passkey_client_id,
+            'response_type': 'code',
+            'scope': 'openid email profile',
+            'redirect_uri': url_for('passkey_callback', _external=True),
+            'state': state,
+            'nonce': nonce,
+            'prompt': 'login',  # Force authentication even if already logged in
+            'acr_values': 'urn:oasis:names:tc:SAML:2.0:ac:classes:AuthenticatorPresentedKey'  # Request WebAuthn
+        }
+        
+        from urllib.parse import urlencode
+        auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
+        
+        logger.info(f"Redirecting user {current_user.email} to passkey test: {auth_url}")
+        return redirect(auth_url)
+        
+    except Exception as e:
+        logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
+        flash('Error starting passkey test. Please try again.', 'error')
+        return redirect(url_for('passkey_status'))
+
+@app.route('/passkey-callback')
+def passkey_callback():
+    """Handle OAuth callback from passkey authentication test"""
+    try:
+        # Verify state parameter
+        received_state = request.args.get('state')
+        expected_state = session.get('passkey_test_state')
+        
+        if not received_state or received_state != expected_state:
+            flash('Invalid passkey test state. Please try again.', 'error')
+            return redirect(url_for('passkey_status'))
+        
+        # Check for errors
+        error = request.args.get('error')
+        if error:
+            error_description = request.args.get('error_description', 'Unknown error')
+            logger.warning(f"Passkey test failed for {session.get('passkey_test_user')}: {error} - {error_description}")
+            flash(f'Passkey authentication failed: {error_description}', 'error')
+            return redirect(url_for('passkey_status'))
+        
+        # Get authorization code
+        auth_code = request.args.get('code')
+        if not auth_code:
+            flash('No authorization code received from passkey test', 'error')
+            return redirect(url_for('passkey_status'))
+        
+        # Exchange code for token (optional - just for verification)
+        passkey_server_url = get_config('passkey_server_url', 'https://id.visiquate.com')
+        passkey_client_id = get_config('passkey_client_id')
+        passkey_client_secret = get_config('passkey_client_secret')
+        
+        if passkey_client_secret:
+            try:
+                token_data = {
+                    'grant_type': 'authorization_code',
+                    'code': auth_code,
+                    'redirect_uri': url_for('passkey_callback', _external=True),
+                    'client_id': passkey_client_id,
+                    'client_secret': passkey_client_secret
+                }
+                
+                token_response = requests.post(
+                    f"{passkey_server_url}/application/o/token/",
+                    data=token_data,
+                    timeout=10
+                )
+                
+                if token_response.status_code == 200:
+                    logger.info(f"Passkey test successful for {session.get('passkey_test_user')}")
+                    flash('✅ Passkey authentication test successful! Your passkey is working correctly.', 'success')
+                else:
+                    logger.warning(f"Token exchange failed for passkey test: {token_response.status_code}")
+                    flash('⚠️ Passkey authentication completed but token verification failed.', 'warning')
+                    
+            except Exception as e:
+                logger.error(f"Error during passkey token exchange: {e}")
+                flash('⚠️ Passkey authentication completed but verification had issues.', 'warning')
+        else:
+            logger.info(f"Passkey test completed for {session.get('passkey_test_user')} (no token verification)")
+            flash('✅ Passkey authentication test completed successfully!', 'success')
+        
+        # Clean up session
+        session.pop('passkey_test_state', None)
+        session.pop('passkey_test_nonce', None) 
+        session.pop('passkey_test_user', None)
+        
+        return redirect(url_for('passkey_status'))
+        
+    except Exception as e:
+        logger.error(f"Error in passkey callback: {e}")
+        flash('Error processing passkey test result.', 'error')
+        return redirect(url_for('passkey_status'))
+
 @app.route('/admin')
 @login_required
 def admin():
