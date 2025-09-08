@@ -1,0 +1,211 @@
+{
+  "original_name": "duo_sso_db_team (from AD sync \"AD-visiquate\")",
+  "clean_name": "db_team",
+  "group_id": "DGIYGRYJXTM053P8C9NP",
+  "member_count": 29,
+  "members": [
+    {
+      "user_id": "DU7YH6SC94NVS9CSS041",
+      "username": "vitalii.gontovoi",
+      "email": "vitalii.gontovoi@visiquate.com",
+      "realname": "Vitalii Gontovoi",
+      "status": "active"
+    },
+    {
+      "user_id": "DUQ5M2RT1B993SOU9L8W",
+      "username": "sergii.shykhovtsov",
+      "email": "sergii.shykhovtsov@visiquate.com",
+      "realname": "Sergii Shykhovtsov",
+      "status": "active"
+    },
+    {
+      "user_id": "DUF9VF69TM31VTJPQ7MJ",
+      "username": "svitlana.zatolokina",
+      "email": "svitlana.zatolokina@visiquate.com",
+      "realname": "Svitlana Zatolokina",
+      "status": "active"
+    },
+    {
+      "user_id": "DUVQTYW0LU0VPCY110JR",
+      "username": "andrii.svydlo",
+      "email": "andrii.svydlo@visiquate.com",
+      "realname": "Andrii Svydlo",
+      "status": "active"
+    },
+    {
+      "user_id": "DUWU4BHQ3P1B1QTBBWM7",
+      "username": "valeriy.zinovjev",
+      "email": "valeriy.zinovjev@visiquate.com",
+      "realname": "Valeriy Zinovjev",
+      "status": "active"
+    },
+    {
+      "user_id": "DUK7JHAMNKXVRTVUSHTP",
+      "username": "nataliia.zinovieva",
+      "email": "nataliia.zinovieva@visiquate.com",
+      "realname": "Nataliia Zinovieva",
+      "status": "active"
+    },
+    {
+      "user_id": "DUE2DDA7HTSESG0V5TDA",
+      "username": "yevhen.zelenyi",
+      "email": "yevhen.zelenyi@visiquate.com",
+      "realname": "Yevhen Zelenyi",
+      "status": "active"
+    },
+    {
+      "user_id": "DU4TRZU32N982ZGBC70W",
+      "username": "nataliia.lakoshko",
+      "email": "nataliia.lakoshko@visiquate.com",
+      "realname": "Nataliia Lakoshko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUUSY4IR623HXDJXWQWK",
+      "username": "iryna.vaskiv",
+      "email": "iryna.vaskiv@visiquate.com",
+      "realname": "Iryna Vaskiv",
+      "status": "active"
+    },
+    {
+      "user_id": "DURNXIE270G44V0MVQ0I",
+      "username": "anton.strup",
+      "email": "anton.strup@visiquate.com",
+      "realname": "Anton Strup",
+      "status": "active"
+    },
+    {
+      "user_id": "DUPMTMJIURGL4VV4N7BF",
+      "username": "oleksandr.krasnobryz",
+      "email": "oleksandr.krasnobryzhyi@visiquate.com",
+      "realname": "Oleksandr Krasnobryzhyi",
+      "status": "active"
+    },
+    {
+      "user_id": "DURKRSKEGJ4CPW0XYFCP",
+      "username": "oleksii.podorozhnyi",
+      "email": "oleksii.podorozhnyi@visiquate.com",
+      "realname": "Oleksii Podorozhnyi",
+      "status": "active"
+    },
+    {
+      "user_id": "DU8V2E3IUCYE3G83Y629",
+      "username": "ivan.terenkovskiy",
+      "email": "ivan.terenkovskiy@visiquate.com",
+      "realname": "Ivan Terenkovskiy",
+      "status": "active"
+    },
+    {
+      "user_id": "DUHY3Z1ZHV61U84MZ2LJ",
+      "username": "vadym.drobotenko",
+      "email": "vadym.drobotenko@visiquate.com",
+      "realname": "Vadym Drobotenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DULMR2KHTFPPRK3EVQSY",
+      "username": "denys.korniukhin",
+      "email": "denys.korniukhin@visiquate.com",
+      "realname": "Denys Korniukhin",
+      "status": "active"
+    },
+    {
+      "user_id": "DUYKFAQYX6FZNDS785R5",
+      "username": "denys.lazurko",
+      "email": "denys.lazurko@visiquate.com",
+      "realname": "Denys Lazurko",
+      "status": "active"
+    },
+    {
+      "user_id": "DU00EQPPPLEO3MCOHUOZ",
+      "username": "anastasiia.levchenko",
+      "email": "anastasiia.levchenko@visiquate.com",
+      "realname": "Anastasiia Levchenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUMTLL8IRACEZCSOOG3P",
+      "username": "oleksandr.kochkovyi",
+      "email": "oleksandr.kochkovyi@visiquate.com",
+      "realname": "Oleksandr Kochkovyi",
+      "status": "active"
+    },
+    {
+      "user_id": "DUI9WX79JT9XMV6WRILD",
+      "username": "sergiy.vats",
+      "email": "sergiy.vats@visiquate.com",
+      "realname": "Sergiy Vats",
+      "status": "active"
+    },
+    {
+      "user_id": "DUR5R8UMNIUHDNW3Z9X6",
+      "username": "oleh.butryi",
+      "email": "oleh.butryi@visiquate.com",
+      "realname": "Oleh Butryi",
+      "status": "active"
+    },
+    {
+      "user_id": "DU2YSBC348L73B8AP8XB",
+      "username": "mykhailo.kryvenok",
+      "email": "mykhailo.kryvenok@visiquate.com",
+      "realname": "Mykhailo Kryvenok",
+      "status": "active"
+    },
+    {
+      "user_id": "DUOOCL2DUZWQN3XR4C9G",
+      "username": "iryna.mashtalir",
+      "email": "iryna.mashtalir@visiquate.com",
+      "realname": "Iryna Mashtalir",
+      "status": "active"
+    },
+    {
+      "user_id": "DUIT7ZTCBVK8QKYMCG5B",
+      "username": "artur.okhrimenko",
+      "email": "artur.okhrimenko@visiquate.com",
+      "realname": "Artur Okhrimenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUFMO91GOSXY0OL5D1CL",
+      "username": "svitlana.onyshchenko",
+      "email": "svitlana.onyshchenko@visiquate.com",
+      "realname": "Svitlana Onyshchenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUYD96HWNR274ZH17Y2B",
+      "username": "kseniia.berezina",
+      "email": "kseniia.berezina@visiquate.com",
+      "realname": "Kseniia Berezina",
+      "status": "active"
+    },
+    {
+      "user_id": "DUQHCBF3OFTESHMM3S50",
+      "username": "oleksandr.kiliushyk",
+      "email": "oleksandr.kiliushyk@visiquate.com",
+      "realname": "Oleksandr Kiliushyk",
+      "status": "active"
+    },
+    {
+      "user_id": "DUWJDXIOFYRW8I87Y0D5",
+      "username": "vitalii.myshchyshyn",
+      "email": "vitalii.myshchyshyn@visiquate.com",
+      "realname": "Vitalii Myshchyshyn",
+      "status": "active"
+    },
+    {
+      "user_id": "DUCJ9CMMNSB7YQ4N6YHS",
+      "username": "roman.horoshko",
+      "email": "roman.horoshko@visiquate.com",
+      "realname": "Roman Horoshko",
+      "status": "active"
+    },
+    {
+      "user_id": "DU8EG11YAOSFHYTOYMOZ",
+      "username": "kostiantyn.yehurnov",
+      "email": "kostiantyn.yehurnov@visiquate.com",
+      "realname": "Kostiantyn Yehurnov",
+      "status": "active"
+    }
+  ]
+}

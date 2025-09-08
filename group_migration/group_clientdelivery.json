@@ -1,0 +1,71 @@
+{
+  "original_name": "duo_sso_clientdelivery (from AD sync \"AD-visiquate\")",
+  "clean_name": "clientdelivery",
+  "group_id": "DGXQ1G922U07CNG9UHS0",
+  "member_count": 9,
+  "members": [
+    {
+      "user_id": "DUQAYY97PVOB9A1V3D39",
+      "username": "julie.martucci",
+      "email": "julie.martucci@visiquate.com",
+      "realname": "Julie Martucci",
+      "status": "active"
+    },
+    {
+      "user_id": "DU9D6ETAQBR8362P93V4",
+      "username": "peyton.meroney",
+      "email": "peyton.meroney@visiquate.com",
+      "realname": "Peyton Meroney",
+      "status": "active"
+    },
+    {
+      "user_id": "DUELPAQXB6ZM8LUXSS67",
+      "username": "rebecca.ellis",
+      "email": "rebecca.ellis@visiquate.com",
+      "realname": "Rebecca Ellis",
+      "status": "active"
+    },
+    {
+      "user_id": "DULLT6U2CYM2827AQ65D",
+      "username": "felix.lee",
+      "email": "felix.lee@visiquate.com",
+      "realname": "Felix Lee",
+      "status": "active"
+    },
+    {
+      "user_id": "DUHQAO34YLHU80CEO8VI",
+      "username": "olena.kutsenko",
+      "email": "olena.kutsenko@visiquate.com",
+      "realname": "Olena Kutsenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DU073D8G3UVZJSS5FHNE",
+      "username": "ezra.gebreyesus",
+      "email": "ezra.gebreyesus@visiquate.com",
+      "realname": "Ezra Gebreyesus",
+      "status": "active"
+    },
+    {
+      "user_id": "DU5QAZYPFREGS6IBADCL",
+      "username": "asa.britson",
+      "email": "asa.britson@visiquate.com",
+      "realname": "Asa Britson",
+      "status": "active"
+    },
+    {
+      "user_id": "DUTHL7TVKBG8GA8PPSVS",
+      "username": "shawn.sharkey",
+      "email": "shawn.sharkey@visiquate.com",
+      "realname": "Shawn Sharkey",
+      "status": "active"
+    },
+    {
+      "user_id": "DUXY61ZQC9E9K4XL58BH",
+      "username": "madison.welch",
+      "email": "madison.welch@visiquate.com",
+      "realname": "Madison Welch",
+      "status": "active"
+    }
+  ]
+}

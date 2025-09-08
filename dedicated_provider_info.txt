@@ -1,0 +1,6 @@
+New dedicated passkey provider created:
+Client ID: STkHfIhZfAURs5KjgCjLR90v8LJL1C8BZyPPir3j
+Provider ID: 14
+Application: dedicated-passkey-test-app
+
+Need to update SSO app configuration to use this provider instead of the old one.

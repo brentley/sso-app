@@ -1,0 +1,40 @@
+{
+  "user_id": "DUQ36UY1KT7RHZZZJXBU",
+  "username": "oleksii.koriagin",
+  "email": "oleksii.koriagin@visiquate.com",
+  "realname": "Oleksii Koriagin",
+  "status": "active",
+  "group_count": 6,
+  "groups": [
+    {
+      "original_name": "duo-ukr (from AD sync \"AD-visiquate\")",
+      "clean_name": "ukr",
+      "group_id": "DGZVKFTD1C5N37VDJISW"
+    },
+    {
+      "original_name": "duo_sso_aws (from AD sync \"AD-visiquate\")",
+      "clean_name": "aws",
+      "group_id": "DGO5AXS77S10DWYQKXY4"
+    },
+    {
+      "original_name": "duo_sso_ba_team (from AD sync \"AD-visiquate\")",
+      "clean_name": "ba_team",
+      "group_id": "DGIY1V14JTXRG785PKDF"
+    },
+    {
+      "original_name": "duo_sso_platform_pro (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_pro",
+      "group_id": "DGJELYEZLRSYQ91CY35M"
+    },
+    {
+      "original_name": "duo_sso_platform_stg (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg",
+      "group_id": "DGI8QJPAQX883YKLWKVO"
+    },
+    {
+      "original_name": "duo_sso_platform_uat (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_uat",
+      "group_id": "DG9EXX8KZ4OEN7TOOLS0"
+    }
+  ]
+}

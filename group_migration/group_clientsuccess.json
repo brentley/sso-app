@@ -1,0 +1,71 @@
+{
+  "original_name": "duo_sso_clientsuccess (from AD sync \"AD-visiquate\")",
+  "clean_name": "clientsuccess",
+  "group_id": "DGAOWM5LSPHXYNE0S1TZ",
+  "member_count": 9,
+  "members": [
+    {
+      "user_id": "DUI4T2VO7LYUQS1XGUFR",
+      "username": "case.hodges",
+      "email": "case.hodges@visiquate.com",
+      "realname": "Case Hodges",
+      "status": "active"
+    },
+    {
+      "user_id": "DUZNYE3YFLHL73A8I2NY",
+      "username": "janet.ha",
+      "email": "janet.ha@visiquate.com",
+      "realname": "Janet Ha",
+      "status": "active"
+    },
+    {
+      "user_id": "DU83MB0F4UJET5VY4M9U",
+      "username": "marcos.baeza",
+      "email": "marcos.baeza@visiquate.com",
+      "realname": "Marcos Baeza",
+      "status": "active"
+    },
+    {
+      "user_id": "DUX6KSKMR1Q5L7LWVKXE",
+      "username": "chris.haskins",
+      "email": "chris.haskins@visiquate.com",
+      "realname": "Chris Haskins",
+      "status": "active"
+    },
+    {
+      "user_id": "DUGP41K4L492INFOO0LU",
+      "username": "marcus.rosendahl",
+      "email": "marcus.rosendahl@visiquate.com",
+      "realname": "Marcus Rosendahl",
+      "status": "active"
+    },
+    {
+      "user_id": "DUBKT6SR8IWAN58IX49S",
+      "username": "lauren.davis",
+      "email": "lauren.davis@visiquate.com",
+      "realname": "Lauren Davis",
+      "status": "active"
+    },
+    {
+      "user_id": "DU2ZGO5FVQTHJ5EERIET",
+      "username": "brian.campbell",
+      "email": "brian.campbell@visiquate.com",
+      "realname": "brian campbell",
+      "status": "active"
+    },
+    {
+      "user_id": "DUI0J2EOZX74AS8HO9F3",
+      "username": "robin.gates",
+      "email": "robin.gates@visiquate.com",
+      "realname": "Robin Gates",
+      "status": "active"
+    },
+    {
+      "user_id": "DUYLBHSXRVMQ6D6A5H7L",
+      "username": "lindsey.stablein",
+      "email": "lindsey.stablein@visiquate.com",
+      "realname": "Lindsey Stablein",
+      "status": "active"
+    }
+  ]
+}

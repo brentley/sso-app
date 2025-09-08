@@ -1,0 +1,113 @@
+{
+  "original_name": "duo_sso_ba_team (from AD sync \"AD-visiquate\")",
+  "clean_name": "ba_team",
+  "group_id": "DGIY1V14JTXRG785PKDF",
+  "member_count": 15,
+  "members": [
+    {
+      "user_id": "DUY8BU371UAUBZWH2TJ8",
+      "username": "nadiia.zabluda",
+      "email": "nadiia.zabluda@visiquate.com",
+      "realname": "Nadiia Zabluda",
+      "status": "active"
+    },
+    {
+      "user_id": "DUUQDGFDMZDPABRYN29C",
+      "username": "daria.komarova",
+      "email": "daria.komarova@visiquate.com",
+      "realname": "Daria Komarova",
+      "status": "active"
+    },
+    {
+      "user_id": "DUQ36UY1KT7RHZZZJXBU",
+      "username": "oleksii.koriagin",
+      "email": "oleksii.koriagin@visiquate.com",
+      "realname": "Oleksii Koriagin",
+      "status": "active"
+    },
+    {
+      "user_id": "DUMVESA1KDJASSMBPJ31",
+      "username": "tetiana.trunova",
+      "email": "tetiana.trunova@visiquate.com",
+      "realname": "Tetiana Trunova",
+      "status": "active"
+    },
+    {
+      "user_id": "DUYDMD3Q7PLA5RIJBAON",
+      "username": "oksana.shekh",
+      "email": "oksana.shekh@visiquate.com",
+      "realname": "Oksana Shekh",
+      "status": "active"
+    },
+    {
+      "user_id": "DUFT3OMG755D89HOGWIN",
+      "username": "olena.sokol",
+      "email": "olena.sokol@visiquate.com",
+      "realname": "Olena Sokol",
+      "status": "active"
+    },
+    {
+      "user_id": "DU1ZTTEMZVXKZRVVSHLE",
+      "username": "sofiya.koval",
+      "email": "sofiya.koval@visiquate.com",
+      "realname": "Sofiya Koval",
+      "status": "active"
+    },
+    {
+      "user_id": "DUXBWGGV7ONSD9GV1B7H",
+      "username": "anatolii.popov",
+      "email": "anatolii.popov@visiquate.com",
+      "realname": "Anatolii Popov",
+      "status": "active"
+    },
+    {
+      "user_id": "DUSS40NAAVOXG8FIOQCQ",
+      "username": "olha.khomenko",
+      "email": "olha.khomenko@visiquate.com",
+      "realname": "Olha Khomenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUSB3AGGX5TK9LN8RYPT",
+      "username": "anzhelika.sukhovii",
+      "email": "anzhelika.sukhovii@visiquate.com",
+      "realname": "Anzhelika Sukhovii",
+      "status": "active"
+    },
+    {
+      "user_id": "DUB1CHWKCU87ZC9D6PTO",
+      "username": "anastasiia.sirko",
+      "email": "anastasiia.sirko@visiquate.com",
+      "realname": "Anastasiia Sirko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUXOY131SEHW0UD9ZAWI",
+      "username": "sergii.semenov",
+      "email": "sergii.semenov@visiquate.com",
+      "realname": "Sergii Semenov",
+      "status": "active"
+    },
+    {
+      "user_id": "DURLI0UIKRHN2XEIM7U6",
+      "username": "mariya.hasiuk",
+      "email": "mariya.hasiuk@visiquate.com",
+      "realname": "Mariya Hasiuk",
+      "status": "active"
+    },
+    {
+      "user_id": "DUX8SZL1DTXG6HFOOS3D",
+      "username": "yuliia.slipets",
+      "email": "yuliia.slipets@visiquate.com",
+      "realname": "Yuliia Slipets",
+      "status": "active"
+    },
+    {
+      "user_id": "DUC63QWSGPQE1P8LT6V5",
+      "username": "olena.loiko",
+      "email": "olena.loiko@visiquate.com",
+      "realname": "Olena Loiko",
+      "status": "active"
+    }
+  ]
+}

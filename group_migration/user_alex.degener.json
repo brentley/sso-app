@@ -1,0 +1,15 @@
+{
+  "user_id": "DUQYI2WBC1WRAIRQ15ZS",
+  "username": "alex.degener",
+  "email": "alex.degener@envisionhealth.com",
+  "realname": "Alex Degener",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

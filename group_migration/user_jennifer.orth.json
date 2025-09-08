@@ -1,0 +1,15 @@
+{
+  "user_id": "DUXVWAGXNR1AN5C46WEW",
+  "username": "jennifer.orth",
+  "email": "jennifer.orth@freseniusmedicalcare.com",
+  "realname": "Jennifer Orth",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

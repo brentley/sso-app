@@ -1,0 +1,65 @@
+{
+  "user_id": "DUG4UZHSIG6OWCORV2ME",
+  "username": "megan.langston",
+  "email": "megan.langston@visiquate.com",
+  "realname": "Megan Langston",
+  "status": "active",
+  "group_count": 11,
+  "groups": [
+    {
+      "original_name": "duo-usa (from AD sync \"AD-visiquate\")",
+      "clean_name": "usa",
+      "group_id": "DGB3I9ZX3XECW3XR7H01"
+    },
+    {
+      "original_name": "duo_sso_airfocus (from AD sync \"AD-visiquate\")",
+      "clean_name": "airfocus",
+      "group_id": "DGXQWXYAMJXBKQ6VPW1H"
+    },
+    {
+      "original_name": "duo_sso_amazon-business (from AD sync \"AD-visiquate\")",
+      "clean_name": "amazon-business",
+      "group_id": "DGN5TX34C6VU0772VEO8"
+    },
+    {
+      "original_name": "duo_sso_aws (from AD sync \"AD-visiquate\")",
+      "clean_name": "aws",
+      "group_id": "DGO5AXS77S10DWYQKXY4"
+    },
+    {
+      "original_name": "duo_sso_dropbox (from AD sync \"AD-visiquate\")",
+      "clean_name": "dropbox",
+      "group_id": "DGMIP8YHLYL5UCUWYIDT"
+    },
+    {
+      "original_name": "duo_sso_miro (from AD sync \"AD-visiquate\")",
+      "clean_name": "miro",
+      "group_id": "DGMBJ37E4F0WX0CCOG15"
+    },
+    {
+      "original_name": "duo_sso_n8n (from AD sync \"AD-visiquate\")",
+      "clean_name": "n8n",
+      "group_id": "DGWRKEQWPPWL2SRDNB8K"
+    },
+    {
+      "original_name": "duo_sso_platform_pro (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_pro",
+      "group_id": "DGJELYEZLRSYQ91CY35M"
+    },
+    {
+      "original_name": "duo_sso_platform_stg (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg",
+      "group_id": "DGI8QJPAQX883YKLWKVO"
+    },
+    {
+      "original_name": "duo_sso_platform_uat (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_uat",
+      "group_id": "DG9EXX8KZ4OEN7TOOLS0"
+    },
+    {
+      "original_name": "duo_sso_salesforce (from AD sync \"AD-visiquate\")",
+      "clean_name": "salesforce",
+      "group_id": "DGFU2KFT99DM5PM60IS0"
+    }
+  ]
+}

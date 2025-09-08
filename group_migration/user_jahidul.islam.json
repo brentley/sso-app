@@ -1,0 +1,15 @@
+{
+  "user_id": "DU5PF3NZT5Y7KO9VV7G9",
+  "username": "jahidul.islam",
+  "email": "jahidul.islam@envisionhealth.com",
+  "realname": "Jahidul Islam",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

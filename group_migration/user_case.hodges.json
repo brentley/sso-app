@@ -1,0 +1,45 @@
+{
+  "user_id": "DUI4T2VO7LYUQS1XGUFR",
+  "username": "case.hodges",
+  "email": "case.hodges@visiquate.com",
+  "realname": "Case Hodges",
+  "status": "active",
+  "group_count": 7,
+  "groups": [
+    {
+      "original_name": "duo-usa (from AD sync \"AD-visiquate\")",
+      "clean_name": "usa",
+      "group_id": "DGB3I9ZX3XECW3XR7H01"
+    },
+    {
+      "original_name": "duo_sso_aws (from AD sync \"AD-visiquate\")",
+      "clean_name": "aws",
+      "group_id": "DGO5AXS77S10DWYQKXY4"
+    },
+    {
+      "original_name": "duo_sso_clientsuccess (from AD sync \"AD-visiquate\")",
+      "clean_name": "clientsuccess",
+      "group_id": "DGAOWM5LSPHXYNE0S1TZ"
+    },
+    {
+      "original_name": "duo_sso_platform_pro (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_pro",
+      "group_id": "DGJELYEZLRSYQ91CY35M"
+    },
+    {
+      "original_name": "duo_sso_platform_stg (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg",
+      "group_id": "DGI8QJPAQX883YKLWKVO"
+    },
+    {
+      "original_name": "duo_sso_platform_uat (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_uat",
+      "group_id": "DG9EXX8KZ4OEN7TOOLS0"
+    },
+    {
+      "original_name": "duo_sso_salesforce (from AD sync \"AD-visiquate\")",
+      "clean_name": "salesforce",
+      "group_id": "DGFU2KFT99DM5PM60IS0"
+    }
+  ]
+}

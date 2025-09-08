@@ -1,0 +1,22 @@
+{
+  "original_name": "duo_sso_aws_stg-eps-01-dev-data (from AD sync \"AD-visiquate\")",
+  "clean_name": "aws_stg-eps-01-dev-data",
+  "group_id": "DGSH3GEJ4S6BHX4LGCZI",
+  "member_count": 2,
+  "members": [
+    {
+      "user_id": "DU2YXAL8VYHCN2ISEIF7",
+      "username": "roman.vinnichenko",
+      "email": "roman.vinnichenko@visiquate.com",
+      "realname": "Roman Vinnichenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUTPE8YF98DXGGNWASGP",
+      "username": "oleksii.voitenko",
+      "email": "oleksii.voitenko@visiquate.com",
+      "realname": "Oleksii Voitenko",
+      "status": "active"
+    }
+  ]
+}

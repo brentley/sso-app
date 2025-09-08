@@ -1,0 +1,22 @@
+{
+  "original_name": "duo_sso_platform_ba_team (from AD sync \"AD-visiquate\")",
+  "clean_name": "platform_ba_team",
+  "group_id": "DGAX1LN6QY6FFXOF3IFI",
+  "member_count": 2,
+  "members": [
+    {
+      "user_id": "DUGIMFU569CH80PMDU53",
+      "username": "ganna.krasnobryzha",
+      "email": "ganna.krasnobryzha@visiquate.com",
+      "realname": "Ganna Krasnobryzha",
+      "status": "active"
+    },
+    {
+      "user_id": "DU382S3VLD1JOKNMO7OV",
+      "username": "olena.nikonenko",
+      "email": "olena.nikonenko@visiquate.com",
+      "realname": "Olena Nikonenko",
+      "status": "active"
+    }
+  ]
+}

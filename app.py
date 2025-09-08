@@ -331,6 +331,56 @@ def set_config(key, value, description=None, user_id=None):
     except Exception as e:
         logger.error(f"Failed to update config file for {key}: {e}")
 
+def check_passkey_authentication_logs(user_id, passkey_id, authentik_token):
+    """Check if a specific passkey was used in our custom flow recently"""
+    try:
+        headers = {'Authorization': f'Bearer {authentik_token}'}
+        
+        # Look for recent authentication events for this user with WebAuthn
+        events_response = requests.get(
+            'https://id.visiquate.com/api/v3/events/events/',
+            headers=headers,
+            params={
+                'action': 'login',
+                'user': user_id,
+                'ordering': '-created'  # Most recent first
+            },
+            timeout=10
+        )
+        
+        if events_response.status_code != 200:
+            logger.warning(f"Could not fetch authentication events: {events_response.status_code}")
+            return {'tested': False, 'test_date': None, 'error': 'Could not check logs'}
+        
+        events = events_response.json().get('results', [])
+        
+        # Look for recent passkey authentication in our custom flow
+        for event in events[:10]:  # Check last 10 login events
+            context = event.get('context', {})
+            auth_method = context.get('auth_method')
+            
+            # Check if this was WebAuthn authentication
+            if auth_method == 'webauthn' or auth_method == 'passkey':
+                # Check if it was in the last 30 days and with our flow
+                created = event.get('created')
+                if created:
+                    from datetime import datetime, timedelta
+                    event_time = datetime.fromisoformat(created.replace('Z', '+00:00'))
+                    thirty_days_ago = datetime.now().replace(tzinfo=event_time.tzinfo) - timedelta(days=30)
+                    
+                    if event_time > thirty_days_ago:
+                        return {
+                            'tested': True, 
+                            'test_date': created,
+                            'flow_used': context.get('flow', 'unknown')
+                        }
+        
+        return {'tested': False, 'test_date': None}
+        
+    except Exception as e:
+        logger.error(f"Error checking authentication logs: {e}")
+        return {'tested': False, 'test_date': None, 'error': str(e)}
+
 def get_user_passkey_status(user_email):
     """Check if a user has passkeys configured in Authentik"""
     try:
@@ -408,18 +458,32 @@ def get_user_passkey_status(user_email):
         
         logger.info(f"After deduplication: {len(valid_passkeys)} valid passkeys")
         
+        # Check authentication logs for each passkey
+        passkeys_with_status = []
+        for passkey in valid_passkeys:
+            passkey_info = {
+                'id': passkey.get('pk'),
+                'name': passkey.get('name'),
+                'device_type': passkey.get('device_type', {}).get('description', 'Unknown'),
+                'created_on': passkey.get('created_on'),
+                'confirmed': passkey.get('confirmed')
+            }
+            
+            # Check if this passkey has been used recently with our flow
+            auth_check = check_passkey_authentication_logs(user_id, passkey.get('pk'), authentik_token)
+            passkey_info.update({
+                'tested': auth_check.get('tested', False),
+                'last_test_date': auth_check.get('test_date'),
+                'test_flow': auth_check.get('flow_used'),
+                'test_error': auth_check.get('error')
+            })
+            
+            passkeys_with_status.append(passkey_info)
+        
         return {
             'has_passkey': len(valid_passkeys) > 0,
             'passkey_count': len(valid_passkeys),
-            'passkeys': [
-                {
-                    'name': passkey.get('name'),
-                    'device_type': passkey.get('device_type', {}).get('description', 'Unknown'),
-                    'created_on': passkey.get('created_on'),
-                    'confirmed': passkey.get('confirmed')
-                }
-                for passkey in valid_passkeys
-            ]
+            'passkeys': passkeys_with_status
         }
         
     except requests.RequestException as e:

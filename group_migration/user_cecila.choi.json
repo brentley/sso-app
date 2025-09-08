@@ -1,0 +1,15 @@
+{
+  "user_id": "DUIKAYG9ZQQCE54I3N20",
+  "username": "cecila.choi",
+  "email": "cecila.choi@pediatrix.com",
+  "realname": "Ceci Choi",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo_sso_aws (from AD sync \"AD-visiquate\")",
+      "clean_name": "aws",
+      "group_id": "DGO5AXS77S10DWYQKXY4"
+    }
+  ]
+}

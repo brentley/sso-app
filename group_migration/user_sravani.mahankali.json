@@ -1,0 +1,15 @@
+{
+  "user_id": "DUEUE5SWBJV2HIB6CTNR",
+  "username": "sravani.mahankali",
+  "email": "sravani.mahankali@envisionhealth.com",
+  "realname": "Sravani Mahankali",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

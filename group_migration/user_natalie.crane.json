@@ -1,0 +1,15 @@
+{
+  "user_id": "DU0SPL6UJL9F9U9EMSBP",
+  "username": "natalie.crane",
+  "email": "natalie.crane@visiquate.com",
+  "realname": "Natalie Crane",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo_sso_dropbox (from AD sync \"AD-visiquate\")",
+      "clean_name": "dropbox",
+      "group_id": "DGMIP8YHLYL5UCUWYIDT"
+    }
+  ]
+}

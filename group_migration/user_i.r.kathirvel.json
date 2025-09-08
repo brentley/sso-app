@@ -1,0 +1,15 @@
+{
+  "user_id": "DU28S03XQP1ABABVVV7U",
+  "username": "i.r.kathirvel",
+  "email": "isvarya.ramasamy.kathirvel@freseniusmedicalcare.com",
+  "realname": "Isvarya Ramasamy Kathirvel",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

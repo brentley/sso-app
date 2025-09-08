@@ -1,0 +1,15 @@
+{
+  "user_id": "DU5ROVPFR02A9JGBC2D6",
+  "username": "aaron.prose",
+  "email": "aprose@valenzhealth.com",
+  "realname": "Aaron Prose",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

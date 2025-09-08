@@ -1,0 +1,20 @@
+{
+  "user_id": "DUIRVIBTVENVV5ZB0SYW",
+  "username": "ryan.cali",
+  "email": "rcali@valenzhealth.com",
+  "realname": "Ryan Cali",
+  "status": "active",
+  "group_count": 2,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    },
+    {
+      "original_name": "duo_sso_aws (from AD sync \"AD-visiquate\")",
+      "clean_name": "aws",
+      "group_id": "DGO5AXS77S10DWYQKXY4"
+    }
+  ]
+}

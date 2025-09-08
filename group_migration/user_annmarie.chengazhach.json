@@ -1,0 +1,15 @@
+{
+  "user_id": "DUM3ZC9NCZQXFP6LARI2",
+  "username": "annmarie.chengazhach",
+  "email": "annmarie.chengazhacherril@freseniusmedicalcare.com",
+  "realname": "Annmarie Chengazhacherril",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

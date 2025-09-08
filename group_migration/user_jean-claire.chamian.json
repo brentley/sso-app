@@ -1,0 +1,40 @@
+{
+  "user_id": "DUWYOVCJL41IJ65LVETM",
+  "username": "jean-claire.chamian",
+  "email": "jean-claire.chamian@visiquate.com",
+  "realname": "Jean-Claire Chamian",
+  "status": "active",
+  "group_count": 6,
+  "groups": [
+    {
+      "original_name": "duo-usa (from AD sync \"AD-visiquate\")",
+      "clean_name": "usa",
+      "group_id": "DGB3I9ZX3XECW3XR7H01"
+    },
+    {
+      "original_name": "duo_sso_blissfully (from AD sync \"AD-visiquate\")",
+      "clean_name": "blissfully",
+      "group_id": "DGZ6YSLHQ30WECG9EL3K"
+    },
+    {
+      "original_name": "duo_sso_knowbe4 (from AD sync \"AD-visiquate\")",
+      "clean_name": "knowbe4",
+      "group_id": "DG1RKQQJ1KI1NJ6LTXY9"
+    },
+    {
+      "original_name": "duo_sso_platform_pro (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_pro",
+      "group_id": "DGJELYEZLRSYQ91CY35M"
+    },
+    {
+      "original_name": "duo_sso_platform_stg (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg",
+      "group_id": "DGI8QJPAQX883YKLWKVO"
+    },
+    {
+      "original_name": "duo_sso_platform_uat (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_uat",
+      "group_id": "DG9EXX8KZ4OEN7TOOLS0"
+    }
+  ]
+}

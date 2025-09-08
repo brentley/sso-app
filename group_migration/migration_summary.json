@@ -1,0 +1,62 @@
+{
+  "duo_stats": {
+    "total_groups_found": 77,
+    "total_users_found": 315,
+    "groups_processed": 0,
+    "users_with_groups": 0
+  },
+  "authentik_stats": {
+    "total_users_found": 17700,
+    "total_groups_found": 0
+  },
+  "migration_results": {
+    "groups_created": 0,
+    "groups_skipped": 37,
+    "users_added_to_groups": 0,
+    "users_not_found": 0,
+    "errors": [
+      "Failed to create group: end-users",
+      "Failed to create group: ukr",
+      "Failed to create group: usa",
+      "Failed to create group: airfocus",
+      "Failed to create group: amazon-business",
+      "Failed to create group: aws",
+      "Failed to create group: aws_dev-eps-01-dev-data",
+      "Failed to create group: aws_stg-eps-01-dev-data",
+      "Failed to create group: ba_team",
+      "Failed to create group: bi_team",
+      "Failed to create group: blissfully",
+      "Failed to create group: clientdelivery",
+      "Failed to create group: clientsuccess",
+      "Failed to create group: cursor",
+      "Failed to create group: db_team",
+      "Failed to create group: dropbox",
+      "Failed to create group: jamf",
+      "Failed to create group: knowbe4",
+      "Failed to create group: maintenance_team",
+      "Failed to create group: megaport",
+      "Failed to create group: microsoft_entra_id",
+      "Failed to create group: miro",
+      "Failed to create group: n8n",
+      "Failed to create group: outlook",
+      "Failed to create group: platform_ba_team",
+      "Failed to create group: platform_dev",
+      "Failed to create group: platform_local",
+      "Failed to create group: platform_pro",
+      "Failed to create group: platform_qa",
+      "Failed to create group: platform_qa_pr",
+      "Failed to create group: platform_stg",
+      "Failed to create group: platform_stg_pr",
+      "Failed to create group: platform_uat",
+      "Failed to create group: pm_team",
+      "Failed to create group: qa_team",
+      "Failed to create group: ra_team",
+      "Failed to create group: salesforce",
+      "Failed to create group: ts",
+      "Failed to create group: wiz",
+      "Failed to create group: sso_aws_core-vsqt-01-admins"
+    ]
+  },
+  "processed_groups": [],
+  "timestamp": "2025-09-07 18:35:48 UTC"
+}

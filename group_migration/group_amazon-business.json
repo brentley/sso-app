@@ -1,0 +1,43 @@
+{
+  "original_name": "duo_sso_amazon-business (from AD sync \"AD-visiquate\")",
+  "clean_name": "amazon-business",
+  "group_id": "DGN5TX34C6VU0772VEO8",
+  "member_count": 5,
+  "members": [
+    {
+      "user_id": "DUG4UZHSIG6OWCORV2ME",
+      "username": "megan.langston",
+      "email": "megan.langston@visiquate.com",
+      "realname": "Megan Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DU9D6ETAQBR8362P93V4",
+      "username": "peyton.meroney",
+      "email": "peyton.meroney@visiquate.com",
+      "realname": "Peyton Meroney",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJBXNM1X440RFRLVBUD",
+      "username": "brent.langston",
+      "email": "brent.langston@visiquate.com",
+      "realname": "Brent Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DU6467MXAZANSZ6J4EFY",
+      "username": "matt.kelley",
+      "email": "matt.kelley@visiquate.com",
+      "realname": "Matt Kelley",
+      "status": "active"
+    },
+    {
+      "user_id": "DUI9WX79JT9XMV6WRILD",
+      "username": "sergiy.vats",
+      "email": "sergiy.vats@visiquate.com",
+      "realname": "Sergiy Vats",
+      "status": "active"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "original_name": "duo_sso_ts (from AD sync \"AD-visiquate\")",
+  "clean_name": "ts",
+  "group_id": "DGXEURWJM7H2WJ36KHIG",
+  "member_count": 1,
+  "members": [
+    {
+      "user_id": "DUUWMD28J7Q4S1BIH1UE",
+      "username": "maksym.umanets",
+      "email": "maksym.umanets@visiquate.com",
+      "realname": "Maksym Umanets",
+      "status": "active"
+    }
+  ]
+}

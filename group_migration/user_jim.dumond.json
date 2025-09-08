@@ -1,0 +1,65 @@
+{
+  "user_id": "DUNS4OUESJCUX79TFT4H",
+  "username": "jim.dumond",
+  "email": "jim.dumond@visiquate.com",
+  "realname": "Jim Dumond",
+  "status": "active",
+  "group_count": 11,
+  "groups": [
+    {
+      "original_name": "duo-usa (from AD sync \"AD-visiquate\")",
+      "clean_name": "usa",
+      "group_id": "DGB3I9ZX3XECW3XR7H01"
+    },
+    {
+      "original_name": "duo_sso_airfocus (from AD sync \"AD-visiquate\")",
+      "clean_name": "airfocus",
+      "group_id": "DGXQWXYAMJXBKQ6VPW1H"
+    },
+    {
+      "original_name": "duo_sso_aws (from AD sync \"AD-visiquate\")",
+      "clean_name": "aws",
+      "group_id": "DGO5AXS77S10DWYQKXY4"
+    },
+    {
+      "original_name": "duo_sso_platform_dev (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_dev",
+      "group_id": "DGE74GVVIAF3RNWJZ2DU"
+    },
+    {
+      "original_name": "duo_sso_platform_pro (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_pro",
+      "group_id": "DGJELYEZLRSYQ91CY35M"
+    },
+    {
+      "original_name": "duo_sso_platform_qa (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_qa",
+      "group_id": "DGDNYAWMDJOJS9DB0M9M"
+    },
+    {
+      "original_name": "duo_sso_platform_qa_pr (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_qa_pr",
+      "group_id": "DGTUZ8OIM9QRO38EVFBW"
+    },
+    {
+      "original_name": "duo_sso_platform_stg (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg",
+      "group_id": "DGI8QJPAQX883YKLWKVO"
+    },
+    {
+      "original_name": "duo_sso_platform_stg_pr (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg_pr",
+      "group_id": "DG0ZY60Y9FPTG628DU2K"
+    },
+    {
+      "original_name": "duo_sso_platform_uat (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_uat",
+      "group_id": "DG9EXX8KZ4OEN7TOOLS0"
+    },
+    {
+      "original_name": "duo_sso_salesforce (from AD sync \"AD-visiquate\")",
+      "clean_name": "salesforce",
+      "group_id": "DGFU2KFT99DM5PM60IS0"
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "original_name": "duo_sso_salesforce (from AD sync \"AD-visiquate\")",
+  "clean_name": "salesforce",
+  "group_id": "DGFU2KFT99DM5PM60IS0",
+  "member_count": 46,
+  "members": [
+    {
+      "user_id": "DUG4UZHSIG6OWCORV2ME",
+      "username": "megan.langston",
+      "email": "megan.langston@visiquate.com",
+      "realname": "Megan Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DUZTFZGZG7HISEK13O9E",
+      "username": "lacy.kendrick",
+      "email": "lacy.kendrick@visiquate.com",
+      "realname": "Lacy Kendrick",
+      "status": "active"
+    },
+    {
+      "user_id": "DUL7EYLWUVP6R0K6J06D",
+      "username": "brian.robertson",
+      "email": "brian.robertson@visiquate.com",
+      "realname": "Brian Robertson",
+      "status": "active"
+    },
+    {
+      "user_id": "DU79YW74F487UT1J3ISG",
+      "username": "jennie.martucci",
+      "email": "jennie.martucci@visiquate.com",
+      "realname": "Jennie Martucci",
+      "status": "active"
+    },
+    {
+      "user_id": "DUQAYY97PVOB9A1V3D39",
+      "username": "julie.martucci",
+      "email": "julie.martucci@visiquate.com",
+      "realname": "Julie Martucci",
+      "status": "active"
+    },
+    {
+      "user_id": "DUZ574JNFY5E494ARIWT",
+      "username": "stephen.delaney",
+      "email": "stephen.delaney@visiquate.com",
+      "realname": "Stephen Delaney",
+      "status": "active"
+    },
+    {
+      "user_id": "DUW9Z1NP5TYO9Q8HA1CN",
+      "username": "scott.shamblin",
+      "email": "scott.shamblin@visiquate.com",
+      "realname": "Scott Shamblin",
+      "status": "active"
+    },
+    {
+      "user_id": "DUSQGGBQVJKJZM6FIK90",
+      "username": "sean.kirby",
+      "email": "sean.kirby@visiquate.com",
+      "realname": "Sean Kirby",
+      "status": "active"
+    },
+    {
+      "user_id": "DU9D6ETAQBR8362P93V4",
+      "username": "peyton.meroney",
+      "email": "peyton.meroney@visiquate.com",
+      "realname": "Peyton Meroney",
+      "status": "active"
+    },
+    {
+      "user_id": "DUY837RHO4AOW8R1BNJI",
+      "username": "jenn.roberts",
+      "email": "jenn.roberts@visiquate.com",
+      "realname": "Jenn Roberts",
+      "status": "active"
+    },
+    {
+      "user_id": "DUI4T2VO7LYUQS1XGUFR",
+      "username": "case.hodges",
+      "email": "case.hodges@visiquate.com",
+      "realname": "Case Hodges",
+      "status": "active"
+    },
+    {
+      "user_id": "DURNXIE270G44V0MVQ0I",
+      "username": "anton.strup",
+      "email": "anton.strup@visiquate.com",
+      "realname": "Anton Strup",
+      "status": "active"
+    },
+    {
+      "user_id": "DUELPAQXB6ZM8LUXSS67",
+      "username": "rebecca.ellis",
+      "email": "rebecca.ellis@visiquate.com",
+      "realname": "Rebecca Ellis",
+      "status": "active"
+    },
+    {
+      "user_id": "DULLT6U2CYM2827AQ65D",
+      "username": "felix.lee",
+      "email": "felix.lee@visiquate.com",
+      "realname": "Felix Lee",
+      "status": "active"
+    },
+    {
+      "user_id": "DUVRVXV50FL4H10NEDRZ",
+      "username": "tommy.thornton",
+      "email": "tommy.thornton@visiquate.com",
+      "realname": "Tommy Thornton",
+      "status": "active"
+    },
+    {
+      "user_id": "DUZNYE3YFLHL73A8I2NY",
+      "username": "janet.ha",
+      "email": "janet.ha@visiquate.com",
+      "realname": "Janet Ha",
+      "status": "active"
+    },
+    {
+      "user_id": "DUHQAO34YLHU80CEO8VI",
+      "username": "olena.kutsenko",
+      "email": "olena.kutsenko@visiquate.com",
+      "realname": "Olena Kutsenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUNMDRZYQKBYDZPBF8FG",
+      "username": "summer.humphreys",
+      "email": "summer.humphreys@visiquate.com",
+      "realname": "Summer Humphreys",
+      "status": "active"
+    },
+    {
+      "user_id": "DU073D8G3UVZJSS5FHNE",
+      "username": "ezra.gebreyesus",
+      "email": "ezra.gebreyesus@visiquate.com",
+      "realname": "Ezra Gebreyesus",
+      "status": "active"
+    },
+    {
+      "user_id": "DU83MB0F4UJET5VY4M9U",
+      "username": "marcos.baeza",
+      "email": "marcos.baeza@visiquate.com",
+      "realname": "Marcos Baeza",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJBXNM1X440RFRLVBUD",
+      "username": "brent.langston",
+      "email": "brent.langston@visiquate.com",
+      "realname": "Brent Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DUNS4OUESJCUX79TFT4H",
+      "username": "jim.dumond",
+      "email": "jim.dumond@visiquate.com",
+      "realname": "Jim Dumond",
+      "status": "active"
+    },
+    {
+      "user_id": "DUZU33ZCOCUFKTHOF4XJ",
+      "username": "jacob.wilkinson",
+      "email": "jacob.wilkinson@visiquate.com",
+      "realname": "Jacob Wilkinson",
+      "status": "active"
+    },
+    {
+      "user_id": "DUX6KSKMR1Q5L7LWVKXE",
+      "username": "chris.haskins",
+      "email": "chris.haskins@visiquate.com",
+      "realname": "Chris Haskins",
+      "status": "active"
+    },
+    {
+      "user_id": "DU7KDKHL0AK9H4ESZTLK",
+      "username": "shane.kearney",
+      "email": "shane.kearney@visiquate.com",
+      "realname": "Shane Kearney",
+      "status": "active"
+    },
+    {
+      "user_id": "DU6467MXAZANSZ6J4EFY",
+      "username": "matt.kelley",
+      "email": "matt.kelley@visiquate.com",
+      "realname": "Matt Kelley",
+      "status": "active"
+    },
+    {
+      "user_id": "DUK5CVJMME881FP39BPJ",
+      "username": "jk.kolmansberger",
+      "email": "jk.kolmansberger@visiquate.com",
+      "realname": "JK Kolmansberger",
+      "status": "active"
+    },
+    {
+      "user_id": "DU5QAZYPFREGS6IBADCL",
+      "username": "asa.britson",
+      "email": "asa.britson@visiquate.com",
+      "realname": "Asa Britson",
+      "status": "active"
+    },
+    {
+      "user_id": "DU4Q5V57QHVZ4VBD7M4Q",
+      "username": "tiffany.walls",
+      "email": "tiffany.walls@visiquate.com",
+      "realname": "Tiffany Walls",
+      "status": "active"
+    },
+    {
+      "user_id": "DU0Y0AJ8KZZ8VE1D171K",
+      "username": "sven.zabka",
+      "email": "sven.zabka@visiquate.com",
+      "realname": "Sven Zabka",
+      "status": "active"
+    },
+    {
+      "user_id": "DUGP41K4L492INFOO0LU",
+      "username": "marcus.rosendahl",
+      "email": "marcus.rosendahl@visiquate.com",
+      "realname": "Marcus Rosendahl",
+      "status": "active"
+    },
+    {
+      "user_id": "DUBKT6SR8IWAN58IX49S",
+      "username": "lauren.davis",
+      "email": "lauren.davis@visiquate.com",
+      "realname": "Lauren Davis",
+      "status": "active"
+    },
+    {
+      "user_id": "DU2ZGO5FVQTHJ5EERIET",
+      "username": "brian.campbell",
+      "email": "brian.campbell@visiquate.com",
+      "realname": "brian campbell",
+      "status": "active"
+    },
+    {
+      "user_id": "DUMPY6Y7ZFLH21UKQCBW",
+      "username": "mat.mahaffey",
+      "email": "mat.mahaffey@visiquate.com",
+      "realname": "Mat Mahaffey",
+      "status": "active"
+    },
+    {
+      "user_id": "DUI0J2EOZX74AS8HO9F3",
+      "username": "robin.gates",
+      "email": "robin.gates@visiquate.com",
+      "realname": "Robin Gates",
+      "status": "active"
+    },
+    {
+      "user_id": "DUXY61ZQC9E9K4XL58BH",
+      "username": "madison.welch",
+      "email": "madison.welch@visiquate.com",
+      "realname": "Madison Welch",
+      "status": "active"
+    },
+    {
+      "user_id": "DUYLBHSXRVMQ6D6A5H7L",
+      "username": "lindsey.stablein",
+      "email": "lindsey.stablein@visiquate.com",
+      "realname": "Lindsey Stablein",
+      "status": "active"
+    },
+    {
+      "user_id": "DUK413UTY039ON5AP7AG",
+      "username": "andrea.paz",
+      "email": "andrea.paz@visiquate.com",
+      "realname": "Andrea Paz",
+      "status": "active"
+    },
+    {
+      "user_id": "DU1ULXBED8JQE2E5SZDY",
+      "username": "lorine.knippenberg",
+      "email": "lorine.knippenberg@visiquate.com",
+      "realname": "Lorine Knippenberg",
+      "status": "active"
+    },
+    {
+      "user_id": "DU6ED34BMS6ZFRJCD9VC",
+      "username": "joe.bufano",
+      "email": "joe.bufano@visiquate.com",
+      "realname": "Joe Bufano",
+      "status": "active"
+    },
+    {
+      "user_id": "DUECRUINBA6QHNR25QXW",
+      "username": "helene.odonnell",
+      "email": "helene.odonnell@visiquate.com",
+      "realname": "Helene O'Donnell",
+      "status": "active"
+    },
+    {
+      "user_id": "DUVD2OJYA7ZIVJ6VQLY5",
+      "username": "abby.curtis",
+      "email": "abby.curtis@visiquate.com",
+      "realname": "Abby Curtis",
+      "status": "active"
+    },
+    {
+      "user_id": "DUYJ1I0C1WSUT6HRCXKG",
+      "username": "erick.mckesson",
+      "email": "erick.mckesson@visiquate.com",
+      "realname": "Erick McKesson",
+      "status": "active"
+    },
+    {
+      "user_id": "DU93OFXRSXBJQIZXXR5S",
+      "username": "michelle.taylor",
+      "email": "michelle.taylor@visiquate.com",
+      "realname": "Michelle Taylor",
+      "status": "active"
+    },
+    {
+      "user_id": "DUMN1KN74OPDFKB7M7AO",
+      "username": "derek.foster",
+      "email": "derek.foster@visiquate.com",
+      "realname": "Derek Foster",
+      "status": "active"
+    },
+    {
+      "user_id": "DUF4265F2HKASS9JZKQ4",
+      "username": "thomas.patterson",
+      "email": "thomas.patterson@visiquate.com",
+      "realname": "Thomas Patterson",
+      "status": "active"
+    }
+  ]
+}

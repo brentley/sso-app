@@ -1,0 +1,15 @@
+{
+  "original_name": "sso_aws_core-vsqt-01-admins (from Microsoft Entra ID sync \"visiquate.com\")",
+  "clean_name": "sso_aws_core-vsqt-01-admins",
+  "group_id": "DGP50GXWO65DX5641GFB",
+  "member_count": 1,
+  "members": [
+    {
+      "user_id": "DUONELD1J0X6I1ZGT0L9",
+      "username": "volodymyr.miroshnychenko",
+      "email": "volodymyr.miroshnychenko@visiquate.com",
+      "realname": "Volodymyr Miroshnychenko",
+      "status": "active"
+    }
+  ]
+}

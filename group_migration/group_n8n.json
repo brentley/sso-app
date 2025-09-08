@@ -1,0 +1,99 @@
+{
+  "original_name": "duo_sso_n8n (from AD sync \"AD-visiquate\")",
+  "clean_name": "n8n",
+  "group_id": "DGWRKEQWPPWL2SRDNB8K",
+  "member_count": 13,
+  "members": [
+    {
+      "user_id": "DUG4UZHSIG6OWCORV2ME",
+      "username": "megan.langston",
+      "email": "megan.langston@visiquate.com",
+      "realname": "Megan Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DU7PMPQYT1X2ODU33E4B",
+      "username": "vitaliy.gavrylenko",
+      "email": "vitaliy.gavrylenko@visiquate.com",
+      "realname": "Vitaliy Gavrylenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DU89NCTLH6GYWR7VEZ72",
+      "username": "natalya.goryayinova",
+      "email": "natalya.goryayinova@visiquate.com",
+      "realname": "Natalya Goryayinova",
+      "status": "active"
+    },
+    {
+      "user_id": "DUUVOC92RRMMVPTPD1XK",
+      "username": "denys.malyshev",
+      "email": "denys.malyshev@visiquate.com",
+      "realname": "Denys Malyshev",
+      "status": "active"
+    },
+    {
+      "user_id": "DULYHMQH26GJK3NZN27O",
+      "username": "oleg.avdyeyev",
+      "email": "oleg.avdyeyev@visiquate.com",
+      "realname": "Oleg Avdyeyev",
+      "status": "active"
+    },
+    {
+      "user_id": "DUL7JQ34DYWGWX85FEP2",
+      "username": "serhii.tkachuk",
+      "email": "serhii.tkachuk@visiquate.com",
+      "realname": "Serhii Tkachuk",
+      "status": "active"
+    },
+    {
+      "user_id": "DUTPE8YF98DXGGNWASGP",
+      "username": "oleksii.voitenko",
+      "email": "oleksii.voitenko@visiquate.com",
+      "realname": "Oleksii Voitenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJBXNM1X440RFRLVBUD",
+      "username": "brent.langston",
+      "email": "brent.langston@visiquate.com",
+      "realname": "Brent Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DU73YA2U5FIB6ETOZOAS",
+      "username": "ben.adeemi",
+      "email": "ben.adeemi@visiquate.com",
+      "realname": "Ben Adeemi",
+      "status": "active"
+    },
+    {
+      "user_id": "DU8M5CTOG611DVNN5E4B",
+      "username": "yuliia.lutai",
+      "email": "yuliia.lutai@visiquate.com",
+      "realname": "Yuliia Lutai",
+      "status": "active"
+    },
+    {
+      "user_id": "DUI9WX79JT9XMV6WRILD",
+      "username": "sergiy.vats",
+      "email": "sergiy.vats@visiquate.com",
+      "realname": "Sergiy Vats",
+      "status": "active"
+    },
+    {
+      "user_id": "DUL4MKUEOOZS1RN8EDM3",
+      "username": "maksym.dilanian",
+      "email": "maksym.dilanian@visiquate.com",
+      "realname": "Maksym Dilanian",
+      "status": "active"
+    },
+    {
+      "user_id": "DUWGO53DITVBLQ2SOZRR",
+      "username": "serhii.chaika",
+      "email": "serhii.chaika@visiquate.com",
+      "realname": "Serhii Chaika",
+      "status": "active"
+    }
+  ]
+}

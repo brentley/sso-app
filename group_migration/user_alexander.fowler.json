@@ -1,0 +1,15 @@
+{
+  "user_id": "DUS9MUK5C236QLZA4B4D",
+  "username": "alexander.fowler",
+  "email": "alexander.fowler@freseniusmedicalcare.com",
+  "realname": "Alexander Fowler",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

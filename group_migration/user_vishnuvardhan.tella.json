@@ -1,0 +1,15 @@
+{
+  "user_id": "DU7VWXI4WNEGSKK5X1S3",
+  "username": "vishnuvardhan.tella",
+  "email": "vishnuvardhan.tella@freseniusmedicalcare.com",
+  "realname": "Vishnu Vardhan Tella",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "original_name": "duo_sso_knowbe4 (from AD sync \"AD-visiquate\")",
+  "clean_name": "knowbe4",
+  "group_id": "DG1RKQQJ1KI1NJ6LTXY9",
+  "member_count": 4,
+  "members": [
+    {
+      "user_id": "DUVJ0EGDEFC8JBKZG135",
+      "username": "raymond.hsu",
+      "email": "raymond.hsu@visiquate.com",
+      "realname": "Raymond Hsu",
+      "status": "active"
+    },
+    {
+      "user_id": "DUY837RHO4AOW8R1BNJI",
+      "username": "jenn.roberts",
+      "email": "jenn.roberts@visiquate.com",
+      "realname": "Jenn Roberts",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJBXNM1X440RFRLVBUD",
+      "username": "brent.langston",
+      "email": "brent.langston@visiquate.com",
+      "realname": "Brent Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DUWYOVCJL41IJ65LVETM",
+      "username": "jean-claire.chamian",
+      "email": "jean-claire.chamian@visiquate.com",
+      "realname": "Jean-Claire Chamian",
+      "status": "active"
+    }
+  ]
+}

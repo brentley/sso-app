@@ -1,0 +1,40 @@
+{
+  "user_id": "DUL7EYLWUVP6R0K6J06D",
+  "username": "brian.robertson",
+  "email": "brian.robertson@visiquate.com",
+  "realname": "Brian Robertson",
+  "status": "active",
+  "group_count": 6,
+  "groups": [
+    {
+      "original_name": "duo-usa (from AD sync \"AD-visiquate\")",
+      "clean_name": "usa",
+      "group_id": "DGB3I9ZX3XECW3XR7H01"
+    },
+    {
+      "original_name": "duo_sso_aws (from AD sync \"AD-visiquate\")",
+      "clean_name": "aws",
+      "group_id": "DGO5AXS77S10DWYQKXY4"
+    },
+    {
+      "original_name": "duo_sso_platform_pro (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_pro",
+      "group_id": "DGJELYEZLRSYQ91CY35M"
+    },
+    {
+      "original_name": "duo_sso_platform_stg (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg",
+      "group_id": "DGI8QJPAQX883YKLWKVO"
+    },
+    {
+      "original_name": "duo_sso_platform_uat (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_uat",
+      "group_id": "DG9EXX8KZ4OEN7TOOLS0"
+    },
+    {
+      "original_name": "duo_sso_salesforce (from AD sync \"AD-visiquate\")",
+      "clean_name": "salesforce",
+      "group_id": "DGFU2KFT99DM5PM60IS0"
+    }
+  ]
+}

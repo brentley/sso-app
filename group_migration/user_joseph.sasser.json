@@ -1,0 +1,15 @@
+{
+  "user_id": "DUZI6COA3836JGIML03A",
+  "username": "joseph.sasser",
+  "email": "joseph.sasser@freseniusmedicalcare.com",
+  "realname": "Joseph.Sasser",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

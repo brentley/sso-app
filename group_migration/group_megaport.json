@@ -1,0 +1,43 @@
+{
+  "original_name": "duo_sso_megaport (from AD sync \"AD-visiquate\")",
+  "clean_name": "megaport",
+  "group_id": "DG0M0UH804H2SKXVBMWE",
+  "member_count": 5,
+  "members": [
+    {
+      "user_id": "DU7PMPQYT1X2ODU33E4B",
+      "username": "vitaliy.gavrylenko",
+      "email": "vitaliy.gavrylenko@visiquate.com",
+      "realname": "Vitaliy Gavrylenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUTPE8YF98DXGGNWASGP",
+      "username": "oleksii.voitenko",
+      "email": "oleksii.voitenko@visiquate.com",
+      "realname": "Oleksii Voitenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJJTXT7U9QGQKDVNLL7",
+      "username": "oleksii.mykhailov",
+      "email": "oleksii.mykhailov@visiquate.com",
+      "realname": "Oleksii Mykhailov",
+      "status": "active"
+    },
+    {
+      "user_id": "DU8M5CTOG611DVNN5E4B",
+      "username": "yuliia.lutai",
+      "email": "yuliia.lutai@visiquate.com",
+      "realname": "Yuliia Lutai",
+      "status": "active"
+    },
+    {
+      "user_id": "DUL4MKUEOOZS1RN8EDM3",
+      "username": "maksym.dilanian",
+      "email": "maksym.dilanian@visiquate.com",
+      "realname": "Maksym Dilanian",
+      "status": "active"
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+  "clean_name": "end-users",
+  "group_id": "DG2O9IIK7OOXL9MYSTMV",
+  "member_count": 30,
+  "members": [
+    {
+      "user_id": "DU82LA7JXA5SGX8J3QA5",
+      "username": "marsha.manoyrine",
+      "email": "marsha.manoyrine@envisionhealth.com",
+      "realname": "Marsha Manoyrine",
+      "status": "active"
+    },
+    {
+      "user_id": "DU5ROVPFR02A9JGBC2D6",
+      "username": "aaron.prose",
+      "email": "aprose@valenzhealth.com",
+      "realname": "Aaron Prose",
+      "status": "active"
+    },
+    {
+      "user_id": "DUCFC5VB13W4STQZB33R",
+      "username": "pro-vlzh-sisense",
+      "email": "pro-vlzh-sisense@valenzhealth.com",
+      "realname": "pro-vlzh-sisense",
+      "status": "active"
+    },
+    {
+      "user_id": "DUHLPBA53SXJW9CBGECS",
+      "username": "john.maffei",
+      "email": "jmaffei@valenzhealth.com",
+      "realname": "John Maffei",
+      "status": "active"
+    },
+    {
+      "user_id": "DUGOKC7N3SFCR29FX0SV",
+      "username": "chris.rodgers",
+      "email": "crogers@kelso.com",
+      "realname": "Chris Rodgers",
+      "status": "active"
+    },
+    {
+      "user_id": "DU5PF3NZT5Y7KO9VV7G9",
+      "username": "jahidul.islam",
+      "email": "jahidul.islam@envisionhealth.com",
+      "realname": "Jahidul Islam",
+      "status": "active"
+    },
+    {
+      "user_id": "DUBKFL8O43IDPQC60A98",
+      "username": "sana.kirchen",
+      "email": "sana.kirchen@envisionhealth.com",
+      "realname": "Sana Kirchen",
+      "status": "active"
+    },
+    {
+      "user_id": "DU181AWLIFGVCOY5JOY7",
+      "username": "bernardo.chabert",
+      "email": "bchabert@kelso.com",
+      "realname": "Bernardo Chabert Bravo",
+      "status": "active"
+    },
+    {
+      "user_id": "DUDVLBW273NP6HK2KU84",
+      "username": "sphillips",
+      "email": "sphillips@gastrohealth.com",
+      "realname": "sphillips",
+      "status": "active"
+    },
+    {
+      "user_id": "DUHZXEVXOGUEW8LKU66O",
+      "username": "brian.fultz",
+      "email": "brian.fultz@freseniusmedicalcare.com",
+      "realname": "Brian Fultz",
+      "status": "active"
+    },
+    {
+      "user_id": "DUEUE5SWBJV2HIB6CTNR",
+      "username": "sravani.mahankali",
+      "email": "sravani.mahankali@envisionhealth.com",
+      "realname": "Sravani Mahankali",
+      "status": "active"
+    },
+    {
+      "user_id": "DUIRVIBTVENVV5ZB0SYW",
+      "username": "ryan.cali",
+      "email": "rcali@valenzhealth.com",
+      "realname": "Ryan Cali",
+      "status": "active"
+    },
+    {
+      "user_id": "DUX5OFDJ5OM7IJAF9HQ9",
+      "username": "graham.block",
+      "email": "graham.block@freseniusmedicalcare.com",
+      "realname": "Graham Block",
+      "status": "active"
+    },
+    {
+      "user_id": "DUM3ZC9NCZQXFP6LARI2",
+      "username": "annmarie.chengazhach",
+      "email": "annmarie.chengazhacherril@freseniusmedicalcare.com",
+      "realname": "Annmarie Chengazhacherril",
+      "status": "active"
+    },
+    {
+      "user_id": "DU28S03XQP1ABABVVV7U",
+      "username": "i.r.kathirvel",
+      "email": "isvarya.ramasamy.kathirvel@freseniusmedicalcare.com",
+      "realname": "Isvarya Ramasamy Kathirvel",
+      "status": "active"
+    },
+    {
+      "user_id": "DUQYI2WBC1WRAIRQ15ZS",
+      "username": "alex.degener",
+      "email": "alex.degener@envisionhealth.com",
+      "realname": "Alex Degener",
+      "status": "active"
+    },
+    {
+      "user_id": "DU0J8K09MK2RNQTR5HO6",
+      "username": "nathan.garten",
+      "email": "nathan.garten@envisionhealth.com",
+      "realname": "Nathan Garten",
+      "status": "active"
+    },
+    {
+      "user_id": "DUZTMK01GR0AAY25N5Y7",
+      "username": "brett.hayes",
+      "email": "brett.hayes@envisionhealth.com",
+      "realname": "Brett Hayes",
+      "status": "active"
+    },
+    {
+      "user_id": "DUNS29QDLQOYXFH2EOGF",
+      "username": "serena.vanhoose",
+      "email": "svanhoose@valenzhealth.com",
+      "realname": "Serena Vanhoose",
+      "status": "active"
+    },
+    {
+      "user_id": "DU7VWXI4WNEGSKK5X1S3",
+      "username": "vishnuvardhan.tella",
+      "email": "vishnuvardhan.tella@freseniusmedicalcare.com",
+      "realname": "Vishnu Vardhan Tella",
+      "status": "active"
+    },
+    {
+      "user_id": "DUZI6COA3836JGIML03A",
+      "username": "joseph.sasser",
+      "email": "joseph.sasser@freseniusmedicalcare.com",
+      "realname": "Joseph.Sasser",
+      "status": "active"
+    },
+    {
+      "user_id": "DUQK73QL040K7ZY9X1Y3",
+      "username": "william.kiernan",
+      "email": "william.kiernan@freseniusmedicalcare.com",
+      "realname": "William Kiernan",
+      "status": "active"
+    },
+    {
+      "user_id": "DUS9MUK5C236QLZA4B4D",
+      "username": "alexander.fowler",
+      "email": "alexander.fowler@freseniusmedicalcare.com",
+      "realname": "Alexander Fowler",
+      "status": "active"
+    },
+    {
+      "user_id": "DU313E95807LZLCSY5GQ",
+      "username": "connie.harper",
+      "email": "charper@valenzhealth.com",
+      "realname": "Connie Harper",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJI3PFJ7V4OSZH57ARL",
+      "username": "ryan.leeka",
+      "email": "ryan.leeka@freseniusmedicalcare.com",
+      "realname": "Ryan Leeka",
+      "status": "active"
+    },
+    {
+      "user_id": "DUXCEQHJQONWNLYSPRJJ",
+      "username": "ana.shpakova",
+      "email": "ana.shpakova@freseniusmedicalcare.com",
+      "realname": "Ana Shpakova",
+      "status": "active"
+    },
+    {
+      "user_id": "DUXVWAGXNR1AN5C46WEW",
+      "username": "jennifer.orth",
+      "email": "jennifer.orth@freseniusmedicalcare.com",
+      "realname": "Jennifer Orth",
+      "status": "active"
+    },
+    {
+      "user_id": "DUKBSHUHWNARY0NKJG9I",
+      "username": "sylvia.neil",
+      "email": "sylvia.neil@envisionhealth.com",
+      "realname": "Sylvia Neil",
+      "status": "active"
+    },
+    {
+      "user_id": "DU490H93JS7YZ37FH40S",
+      "username": "teddy.johnson",
+      "email": "thjohnson@gastrohealth.com",
+      "realname": "Teddy Johnson",
+      "status": "locked out"
+    },
+    {
+      "user_id": "DUVDPKPKTW23TVFYTXE5",
+      "username": "eric.fry_gah",
+      "email": "efry@gastrohealth.com",
+      "realname": "Eric Fry",
+      "status": "locked out"
+    }
+  ]
+}

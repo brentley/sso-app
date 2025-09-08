@@ -1,0 +1,35 @@
+{
+  "user_id": "DUK9FZT0FFKCS64VUF9F",
+  "username": "mariana.hurak",
+  "email": "mariana.hurak@visiquate.com",
+  "realname": "Mariana Hurak",
+  "status": "active",
+  "group_count": 5,
+  "groups": [
+    {
+      "original_name": "duo-ukr (from AD sync \"AD-visiquate\")",
+      "clean_name": "ukr",
+      "group_id": "DGZVKFTD1C5N37VDJISW"
+    },
+    {
+      "original_name": "duo_sso_platform_pro (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_pro",
+      "group_id": "DGJELYEZLRSYQ91CY35M"
+    },
+    {
+      "original_name": "duo_sso_platform_stg (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_stg",
+      "group_id": "DGI8QJPAQX883YKLWKVO"
+    },
+    {
+      "original_name": "duo_sso_platform_uat (from AD sync \"AD-visiquate\")",
+      "clean_name": "platform_uat",
+      "group_id": "DG9EXX8KZ4OEN7TOOLS0"
+    },
+    {
+      "original_name": "duo_sso_ra_team (from AD sync \"AD-visiquate\")",
+      "clean_name": "ra_team",
+      "group_id": "DGPT8EKIQOOXRI5RLBU1"
+    }
+  ]
+}

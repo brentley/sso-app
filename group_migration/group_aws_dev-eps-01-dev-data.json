@@ -1,0 +1,36 @@
+{
+  "original_name": "duo_sso_aws_dev-eps-01-dev-data (from AD sync \"AD-visiquate\")",
+  "clean_name": "aws_dev-eps-01-dev-data",
+  "group_id": "DG7DT98Z4V3KAVCDUA5S",
+  "member_count": 4,
+  "members": [
+    {
+      "user_id": "DU2YXAL8VYHCN2ISEIF7",
+      "username": "roman.vinnichenko",
+      "email": "roman.vinnichenko@visiquate.com",
+      "realname": "Roman Vinnichenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DULYHMQH26GJK3NZN27O",
+      "username": "oleg.avdyeyev",
+      "email": "oleg.avdyeyev@visiquate.com",
+      "realname": "Oleg Avdyeyev",
+      "status": "active"
+    },
+    {
+      "user_id": "DUTPE8YF98DXGGNWASGP",
+      "username": "oleksii.voitenko",
+      "email": "oleksii.voitenko@visiquate.com",
+      "realname": "Oleksii Voitenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJJTXT7U9QGQKDVNLL7",
+      "username": "oleksii.mykhailov",
+      "email": "oleksii.mykhailov@visiquate.com",
+      "realname": "Oleksii Mykhailov",
+      "status": "active"
+    }
+  ]
+}

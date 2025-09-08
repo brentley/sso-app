@@ -1,0 +1,92 @@
+{
+  "original_name": "duo_sso_microsoft_entra_id (from AD sync \"AD-visiquate\")",
+  "clean_name": "microsoft_entra_id",
+  "group_id": "DGYPIK6QAP7MGVCZFYYY",
+  "member_count": 12,
+  "members": [
+    {
+      "user_id": "DU2YXAL8VYHCN2ISEIF7",
+      "username": "roman.vinnichenko",
+      "email": "roman.vinnichenko@visiquate.com",
+      "realname": "Roman Vinnichenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DURVZOFZGX99QS7ONEBK",
+      "username": "andrii.yermakov",
+      "email": "andrii.yermakov@visiquate.com",
+      "realname": "Andrii Yermakov",
+      "status": "active"
+    },
+    {
+      "user_id": "DUTPE8YF98DXGGNWASGP",
+      "username": "oleksii.voitenko",
+      "email": "oleksii.voitenko@visiquate.com",
+      "realname": "Oleksii Voitenko",
+      "status": "active"
+    },
+    {
+      "user_id": "DU9NX3CHKO98V57F0O3U",
+      "username": "mykola.morgun",
+      "email": "mykola.morgun@visiquate.com",
+      "realname": "Mykola Morgun",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJBXNM1X440RFRLVBUD",
+      "username": "brent.langston",
+      "email": "brent.langston@visiquate.com",
+      "realname": "Brent Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DUYDMD3Q7PLA5RIJBAON",
+      "username": "oksana.shekh",
+      "email": "oksana.shekh@visiquate.com",
+      "realname": "Oksana Shekh",
+      "status": "active"
+    },
+    {
+      "user_id": "DU085SL6OONTJRSQZP84",
+      "username": "vitalii.malii",
+      "email": "vitalii.malii@visiquate.com",
+      "realname": "Vitalii Malii",
+      "status": "active"
+    },
+    {
+      "user_id": "DUEMFK03VSZM5NQ3GS5T",
+      "username": "volodymyr.chupikov",
+      "email": "volodymyr.chupikov@visiquate.com",
+      "realname": "Volodymyr Chupikov",
+      "status": "active"
+    },
+    {
+      "user_id": "DUL4MKUEOOZS1RN8EDM3",
+      "username": "maksym.dilanian",
+      "email": "maksym.dilanian@visiquate.com",
+      "realname": "Maksym Dilanian",
+      "status": "active"
+    },
+    {
+      "user_id": "DUUDBFS6HX4Q5RHEK3WK",
+      "username": "oleksii.dobrynin",
+      "email": "oleksii.dobrynin@visiquate.com",
+      "realname": "Oleksii Dobrynin",
+      "status": "active"
+    },
+    {
+      "user_id": "DUWGO53DITVBLQ2SOZRR",
+      "username": "serhii.chaika",
+      "email": "serhii.chaika@visiquate.com",
+      "realname": "Serhii Chaika",
+      "status": "active"
+    },
+    {
+      "user_id": "DUNQBP4OZRFNO8EV66HS",
+      "username": "ihor.serha",
+      "email": "ihor.serha@visiquate.com",
+      "realname": "Ihor Serha",
+      "status": "active"
+    }
+  ]
+}

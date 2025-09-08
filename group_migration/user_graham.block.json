@@ -1,0 +1,15 @@
+{
+  "user_id": "DUX5OFDJ5OM7IJAF9HQ9",
+  "username": "graham.block",
+  "email": "graham.block@freseniusmedicalcare.com",
+  "realname": "Graham Block",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

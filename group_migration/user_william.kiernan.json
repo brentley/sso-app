@@ -1,0 +1,15 @@
+{
+  "user_id": "DUQK73QL040K7ZY9X1Y3",
+  "username": "william.kiernan",
+  "email": "william.kiernan@freseniusmedicalcare.com",
+  "realname": "William Kiernan",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

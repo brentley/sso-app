@@ -1,0 +1,15 @@
+{
+  "original_name": "duo_sso_bi_team (from AD sync \"AD-visiquate\")",
+  "clean_name": "bi_team",
+  "group_id": "DG21H5ICA9TSILODJNLO",
+  "member_count": 1,
+  "members": [
+    {
+      "user_id": "DUE6ODZBC8PKHIDWQQ3Z",
+      "username": "mariya.birykova",
+      "email": "mariya.birykova@visiquate.com",
+      "realname": "Mariya Birykova",
+      "status": "active"
+    }
+  ]
+}

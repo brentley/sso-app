@@ -1,0 +1,15 @@
+{
+  "user_id": "DU181AWLIFGVCOY5JOY7",
+  "username": "bernardo.chabert",
+  "email": "bchabert@kelso.com",
+  "realname": "Bernardo Chabert Bravo",
+  "status": "active",
+  "group_count": 1,
+  "groups": [
+    {
+      "original_name": "duo-end-users (from AD sync \"AD-visiquate\")",
+      "clean_name": "end-users",
+      "group_id": "DG2O9IIK7OOXL9MYSTMV"
+    }
+  ]
+}

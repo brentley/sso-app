@@ -1,0 +1,64 @@
+{
+  "original_name": "duo_sso_dropbox (from AD sync \"AD-visiquate\")",
+  "clean_name": "dropbox",
+  "group_id": "DGMIP8YHLYL5UCUWYIDT",
+  "member_count": 8,
+  "members": [
+    {
+      "user_id": "DUG4UZHSIG6OWCORV2ME",
+      "username": "megan.langston",
+      "email": "megan.langston@visiquate.com",
+      "realname": "Megan Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DUY837RHO4AOW8R1BNJI",
+      "username": "jenn.roberts",
+      "email": "jenn.roberts@visiquate.com",
+      "realname": "Jenn Roberts",
+      "status": "active"
+    },
+    {
+      "user_id": "DUJBXNM1X440RFRLVBUD",
+      "username": "brent.langston",
+      "email": "brent.langston@visiquate.com",
+      "realname": "Brent Langston",
+      "status": "active"
+    },
+    {
+      "user_id": "DUE75KM2HHTDO9KYK1YC",
+      "username": "matthew.nalywaiko",
+      "email": "matthew.nalywaiko@visiquate.com",
+      "realname": "Matthew Nalywaiko",
+      "status": "active"
+    },
+    {
+      "user_id": "DUAE48M980UV8K46AMC4",
+      "username": "dan.sartin",
+      "email": "dan.sartin@visiquate.com",
+      "realname": "Dan Sartin",
+      "status": "active"
+    },
+    {
+      "user_id": "DUK5CVJMME881FP39BPJ",
+      "username": "jk.kolmansberger",
+      "email": "jk.kolmansberger@visiquate.com",
+      "realname": "JK Kolmansberger",
+      "status": "active"
+    },
+    {
+      "user_id": "DUW6S2C6EZIR8STANE2A",
+      "username": "colt.briner",
+      "email": "colt.briner@visiquate.com",
+      "realname": "Colt Briner",
+      "status": "active"
+    },
+    {
+      "user_id": "DU0SPL6UJL9F9U9EMSBP",
+      "username": "natalie.crane",
+      "email": "natalie.crane@visiquate.com",
+      "realname": "Natalie Crane",
+      "status": "active"
+    }
+  ]
+}
