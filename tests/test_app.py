@@ -305,11 +305,13 @@ def test_reconcile_all_passkey_statuses(client):
         from unittest.mock import patch
         
         # Create test users with different scenarios
-        user1 = User(email='user1@example.com', name='User 1', passkey_tested=True)
-        user2 = User(email='user2@example.com', name='User 2', passkey_tested=False)
-        user3 = User(email='user3@example.com', name='User 3', passkey_tested=True)
+        # Users need SAML or OIDC completed to be eligible for reconciliation
+        user1 = User(email='user1@example.com', name='User 1', passkey_tested=True, saml_tested=True)  # Eligible
+        user2 = User(email='user2@example.com', name='User 2', passkey_tested=False, oidc_tested=True)  # Eligible  
+        user3 = User(email='user3@example.com', name='User 3', passkey_tested=True, saml_tested=True)  # Eligible
+        user4 = User(email='user4@example.com', name='User 4', passkey_tested=False)  # Not eligible (0% completion)
         
-        db.session.add_all([user1, user2, user3])
+        db.session.add_all([user1, user2, user3, user4])
         db.session.commit()
         
         # Mock different responses for different users
@@ -324,9 +326,11 @@ def test_reconcile_all_passkey_statuses(client):
         with patch('app.get_user_passkey_status', side_effect=mock_get_passkey_status):
             results = reconcile_all_passkey_statuses()
             
-            assert results['total_users'] == 3
-            assert results['users_checked'] == 3
-            assert results['users_updated'] == 2  # user1 and user2 should be updated
+            assert results['total_users'] == 4
+            assert results['eligible_users'] == 3  # user1, user2, user3 are eligible  
+            assert results['users_checked'] == 3   # Only eligible users are checked
+            assert results['users_skipped'] == 1   # user4 is skipped
+            assert results['users_updated'] == 2   # user1 and user2 should be updated
             assert results['errors'] == 0
             assert len(results['changes']) == 2
             
