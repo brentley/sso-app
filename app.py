@@ -778,16 +778,20 @@ def health():
         health_status['checks']['database'] = f'unhealthy: {str(e)}'
         health_status['status'] = 'unhealthy'
     
-    # Check Authentik connectivity (with shorter timeout for health checks)
-    try:
-        if test_authentik_connectivity():
-            health_status['checks']['authentik'] = 'healthy'
-        else:
-            health_status['checks']['authentik'] = 'unhealthy: connection failed'
-            health_status['status'] = 'degraded'  # API issues shouldn't make entire service unhealthy
-    except Exception as e:
-        health_status['checks']['authentik'] = f'unhealthy: {str(e)}'
-        health_status['status'] = 'degraded'
+    # Check Authentik connectivity (only if token is configured)
+    authentik_token = get_config('authentik_token')
+    if authentik_token:
+        try:
+            if test_authentik_connectivity():
+                health_status['checks']['authentik'] = 'healthy'
+            else:
+                health_status['checks']['authentik'] = 'unhealthy: connection failed'
+                health_status['status'] = 'degraded'  # API issues shouldn't make entire service unhealthy
+        except Exception as e:
+            health_status['checks']['authentik'] = f'unhealthy: {str(e)}'
+            health_status['status'] = 'degraded'
+    else:
+        health_status['checks']['authentik'] = 'not configured'
     
     response = jsonify(health_status)
     response.headers['Content-Type'] = 'application/json'
