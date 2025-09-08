@@ -903,11 +903,14 @@ def test_passkey():
         }
         return_url = f"https://sso-app.visiquate.com/passkey-auth-complete?{urlencode(return_params)}"
         
-        # Direct passkey flow URL with return parameter  
+        # Try using the flow executor API endpoint instead of web interface
+        # Flow UUID: a46fd863-0340-42cc-bea1-8824a208b033
         passkey_flow_params = {
             'next': return_url
         }
-        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
+        
+        # Use API executor endpoint format
+        direct_passkey_url = f"{passkey_server_url}/api/v3/flows/executor/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
         
         logger.info(f"Redirecting directly to passkey flow (no logout): {current_user.email}")
         logger.info(f"Direct passkey URL: {direct_passkey_url}")
