@@ -552,6 +552,24 @@ def health():
 def index():
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
+    
+    # Check if user just completed a passkey test
+    if session.get('passkey_test_in_progress'):
+        test_timestamp = session.get('passkey_test_timestamp', 0)
+        current_time = time.time()
+        
+        # If test was initiated within last 5 minutes, consider it successful
+        if current_time - test_timestamp < 300:  # 5 minutes
+            session.pop('passkey_test_in_progress', None)
+            session.pop('passkey_test_timestamp', None)
+            flash('🎉 Passkey test successful! Your passkeys are working correctly.', 'success')
+            logger.info(f"Passkey test completed successfully for {current_user.email}")
+            return redirect(url_for('passkey_status'))
+        else:
+            # Test expired, clean up session
+            session.pop('passkey_test_in_progress', None)
+            session.pop('passkey_test_timestamp', None)
+    
     return render_template('index.html')
 
 @app.route('/login')
@@ -909,12 +927,18 @@ def test_passkey():
             'next': return_url
         }
         
-        # Try without next parameter to avoid "Invalid next URL" error
-        # After passkey auth, user will land on Authentik's default success page
-        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/"
+        # Store test attempt in session to detect success when user returns
+        session['passkey_test_in_progress'] = True
+        session['passkey_test_timestamp'] = time.time()
+        session.permanent = True  # Make session persistent across redirects
         
-        # Go directly to passkey flow without logout step
-        logger.info(f"Testing passkey authentication directly for {current_user.email}")
+        # Try with a simple next parameter - just redirect to home
+        passkey_flow_params = {
+            'next': 'https://sso-app.visiquate.com/'
+        }
+        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
+        
+        logger.info(f"Testing passkey authentication for {current_user.email}")
         logger.info(f"Direct URL: {direct_passkey_url}")
         return redirect(direct_passkey_url)
         
