@@ -499,7 +499,8 @@ def get_user_passkey_status(user_email):
         
         for passkey in passkeys:
             # Check if this passkey belongs to the requested user
-            if passkey.get('user') == user_id:
+            # The user field is a nested object with pk, not just the ID
+            if passkey.get('user', {}).get('pk') == user_id:
                 user_passkeys.append(passkey)
         
         logger.info(f"Found {len(user_passkeys)} passkeys for user {user_id} after manual filtering")
@@ -509,13 +510,12 @@ def get_user_passkey_status(user_email):
         valid_passkeys = []
         
         for passkey in user_passkeys:
-            # Include passkeys that have actual credential data, regardless of confirmed status
-            if (passkey.get('credential_id') and 
-                passkey.get('name')):
+            # Include passkeys that have a name (credential_id field doesn't exist in API)
+            if passkey.get('name'):
                 valid_passkeys.append(passkey)
-                logger.info(f"Valid passkey for user {user_id}: {passkey.get('name')} (confirmed={passkey.get('confirmed')})")
+                logger.info(f"Valid passkey for user {user_id}: {passkey.get('name')} (pk={passkey.get('pk')})")
             else:
-                logger.info(f"Rejected passkey for user {user_id}: name={passkey.get('name')} credential_id={bool(passkey.get('credential_id'))}")
+                logger.info(f"Rejected passkey for user {user_id}: missing name (pk={passkey.get('pk')})")
         
         # Log the raw data for debugging
         logger.info(f"Found {len(passkeys)} total WebAuthn authenticators for user {user_id}")
