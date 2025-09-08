@@ -903,7 +903,7 @@ def test_passkey():
         
         # Use the logout flow with OAuth context preservation
         from urllib.parse import quote
-        logout_url = f"{passkey_server_url}/api/v3/flows/executor/default-invalidation-flow/?next={quote(auth_url)}"
+        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(auth_url)}"
         
         logger.info(f"Clearing session and redirecting to OAuth: {current_user.email}")
         return redirect(logout_url)
