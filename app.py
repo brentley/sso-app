@@ -127,7 +127,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Force HTTPS URL generation for external URLs (behind reverse proxy)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
-app.config['SERVER_NAME'] = 'sso-app.visiquate.com'
+# SERVER_NAME removed - causes conflicts with development vs production
 
 # OAuth Configuration - VisiQuate OIDC (Authentik)
 app.config['AUTHENTIK_CLIENT_ID'] = os.getenv('AUTHENTIK_CLIENT_ID')
@@ -665,7 +665,8 @@ def debug_oauth_urls():
         passkey_server_url = get_config('passkey_server_url', 'https://id.visiquate.com')
         passkey_client_id = get_config('passkey_client_id')
         
-        callback_url = url_for('passkey_callback', _external=True, _scheme='https')
+        # Force HTTPS callback URL for production OAuth flow
+        callback_url = 'https://sso-app.visiquate.com/passkey-callback'
         
         # Generate the OAuth URL for testing
         import secrets
@@ -824,7 +825,7 @@ def test_passkey():
             'client_id': passkey_client_id,
             'response_type': 'code',
             'scope': 'openid email profile',
-            'redirect_uri': url_for('passkey_callback', _external=True, _scheme='https'),
+            'redirect_uri': 'https://sso-app.visiquate.com/passkey-callback',
             'state': state,
             'nonce': nonce,
             'prompt': 'login',  # Force authentication even if already logged in
@@ -878,7 +879,7 @@ def passkey_callback():
                 token_data = {
                     'grant_type': 'authorization_code',
                     'code': auth_code,
-                    'redirect_uri': url_for('passkey_callback', _external=True, _scheme='https'),
+                    'redirect_uri': 'https://sso-app.visiquate.com/passkey-callback',
                     'client_id': passkey_client_id,
                     'client_secret': passkey_client_secret
                 }
