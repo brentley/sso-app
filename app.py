@@ -913,12 +913,11 @@ def fix_webauthn_config():
                 
                 if response.status_code == 200:
                     data = response.json().get('results', [])
-                    # Filter for WebAuthn stages
+                    # Filter for WebAuthn stages - only authenticator-webauthn components
                     webauthn_stages = [
                         stage for stage in data 
-                        if 'webauthn' in stage.get('component', '').lower() or 
-                           'webauthn' in stage.get('name', '').lower() or
-                           stage.get('component') == 'ak-stage-authenticator-webauthn'
+                        if stage.get('component') == 'ak-stage-authenticator-webauthn-form' or
+                           ('webauthn' in stage.get('component', '').lower() and 'authenticator' in stage.get('component', '').lower())
                     ]
                     if webauthn_stages:
                         stages = webauthn_stages
@@ -962,11 +961,32 @@ def fix_webauthn_config():
                 needs_update = True
             
             if needs_update:
-                # Update the stage configuration
-                update_response = requests.patch(
-                    f'https://id.visiquate.com/api/v3/stages/authenticator_webauthn/{stage_id}/',
+                # Update the stage configuration - use PUT with full config
+                # Get full stage config first, then update it
+                get_response = requests.get(
+                    f'https://id.visiquate.com/api/v3/stages/all/{stage_id}/',
                     headers=headers,
-                    json=updated_config,
+                    timeout=10
+                )
+                
+                if get_response.status_code != 200:
+                    fixes_applied.append({
+                        'stage_name': stage.get('name', f'Stage {stage_id}'),
+                        'stage_id': stage_id,
+                        'changes': updated_config,
+                        'status': f'failed to get config: {get_response.status_code}'
+                    })
+                    continue
+                
+                # Get full config and update the WebAuthn specific fields
+                full_config = get_response.json()
+                full_config.update(updated_config)
+                
+                # Update the stage configuration using PUT
+                update_response = requests.put(
+                    f'https://id.visiquate.com/api/v3/stages/all/{stage_id}/',
+                    headers=headers,
+                    json=full_config,
                     timeout=10
                 )
                 
@@ -982,7 +1002,8 @@ def fix_webauthn_config():
                         'stage_name': stage.get('name', f'Stage {stage_id}'),
                         'stage_id': stage_id,
                         'changes': updated_config,
-                        'status': f'failed: {update_response.status_code}'
+                        'status': f'failed: {update_response.status_code}',
+                        'response': update_response.text
                     })
             else:
                 fixes_applied.append({
