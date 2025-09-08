@@ -895,15 +895,49 @@ def fix_webauthn_config():
             'Content-Type': 'application/json'
         }
         
-        # Find all WebAuthn authenticator setup stages
-        stages_response = requests.get(
+        # Find all WebAuthn authenticator setup stages - try different endpoint paths
+        stage_endpoints = [
             'https://id.visiquate.com/api/v3/stages/authenticator_webauthn/',
-            headers=headers,
-            timeout=10
-        )
+            'https://id.visiquate.com/api/v3/stages/all/',
+            'https://id.visiquate.com/api/v3/stages/instances/'
+        ]
         
-        if stages_response.status_code != 200:
-            return jsonify({'error': f'Could not fetch WebAuthn stages: {stages_response.status_code}'}), 500
+        stages_response = None
+        stages = []
+        debug_info = []
+        
+        for endpoint in stage_endpoints:
+            try:
+                response = requests.get(endpoint, headers=headers, timeout=10)
+                debug_info.append(f"{endpoint}: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json().get('results', [])
+                    # Filter for WebAuthn stages
+                    webauthn_stages = [
+                        stage for stage in data 
+                        if 'webauthn' in stage.get('component', '').lower() or 
+                           'webauthn' in stage.get('name', '').lower() or
+                           stage.get('component') == 'ak-stage-authenticator-webauthn'
+                    ]
+                    if webauthn_stages:
+                        stages = webauthn_stages
+                        stages_response = response
+                        break
+                    elif endpoint == stage_endpoints[-1]:  # Last endpoint, use first 5 stages for debugging
+                        stages_response = response
+                        stages = data[:5]
+                        break
+            except Exception as e:
+                debug_info.append(f"{endpoint}: error - {str(e)}")
+                continue
+        
+        if not stages_response or stages_response.status_code != 200:
+            return jsonify({
+                'error': f'Could not fetch stages from any endpoint',
+                'debug_info': debug_info,
+                'tried_endpoints': stage_endpoints
+            }), 500
         
         stages = stages_response.json().get('results', [])
         fixes_applied = []
@@ -961,6 +995,14 @@ def fix_webauthn_config():
             'message': 'WebAuthn configuration fix applied based on GitHub issue workaround',
             'stages_checked': len(stages),
             'fixes_applied': fixes_applied,
+            'debug_info': debug_info,
+            'stage_details': [
+                {
+                    'name': stage.get('name'),
+                    'component': stage.get('component'),
+                    'pk': stage.get('pk')
+                } for stage in stages
+            ],
             'note': 'Users may need to re-register their passkeys after this change'
         })
         
