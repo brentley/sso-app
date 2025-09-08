@@ -893,14 +893,19 @@ def test_passkey():
             'state': state,
             'nonce': nonce,
             'prompt': 'login',  # Force authentication even if already logged in
+            'max_age': '0',  # Force fresh authentication
             'acr_values': 'urn:oasis:names:tc:SAML:2.0:ac:classes:AuthenticatorPresentedKey'  # Request WebAuthn
         }
         
         from urllib.parse import urlencode
         auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
         
-        logger.info(f"Redirecting user {current_user.email} to passkey test: {auth_url}")
-        return redirect(auth_url)
+        # First, logout from Authentik to clear any existing sessions
+        from urllib.parse import quote
+        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(auth_url)}"
+        
+        logger.info(f"Clearing Authentik session for {current_user.email}, then redirecting to passkey test")
+        return redirect(logout_url)
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
