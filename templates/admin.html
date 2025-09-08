@@ -36,6 +36,7 @@
                                 <th>SCIM Provisioned</th>
                                 <th>SAML</th>
                                 <th>OIDC</th>
+                                <th>Passkey</th>
                                 <th>Created</th>
                                 <th>Actions</th>
                             </tr>
@@ -78,6 +79,13 @@
                                     <span class="badge {{ 'bg-success' if user.oidc_tested else 'bg-secondary' }}">
                                         {{ 'Tested' if user.oidc_tested else 'Not Tested' }}
                                     </span>
+                                </td>
+                                <td>
+                                    {% if user.passkey_tested %}
+                                        <span class="badge bg-success">Tested</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Not Tested</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <small class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</small>

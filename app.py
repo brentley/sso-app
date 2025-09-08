@@ -804,8 +804,43 @@ def passkey_status():
             if current_time - test_timestamp < 600:  # 10 minutes (longer window)
                 session.pop('passkey_test_in_progress', None)
                 session.pop('passkey_test_timestamp', None)
+                
+                # Mark passkey as tested in database
+                current_user.passkey_tested = True
+                
+                # Store passkey test metadata with timestamp
+                import json
+                passkey_metadata = {
+                    'tested_at': datetime.utcnow().isoformat(),
+                    'test_method': 'oauth_flow',
+                    'success': True
+                }
+                current_user.passkey_metadata = json.dumps(passkey_metadata)
+                
+                # Log the successful passkey authentication
+                auth_log = AuthLog(
+                    user_id=current_user.id,
+                    auth_method='passkey',
+                    success=True,
+                    transaction_data=json.dumps({
+                        'test_type': 'oauth_flow',
+                        'user_agent': request.headers.get('User-Agent', 'Unknown'),
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'source': 'sso_app_test'
+                    }),
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent', 'Unknown')[:500]
+                )
+                db.session.add(auth_log)
+                
+                try:
+                    db.session.commit()
+                    logger.info(f"Passkey test completed successfully for {current_user.email}, database updated and logged")
+                except Exception as e:
+                    logger.error(f"Failed to update passkey test status: {e}")
+                    db.session.rollback()
+                
                 flash('🎉 Passkey test successful! Your passkeys are working correctly.', 'success')
-                logger.info(f"Passkey test completed successfully for {current_user.email}")
             else:
                 # Test expired, clean up session
                 session.pop('passkey_test_in_progress', None)

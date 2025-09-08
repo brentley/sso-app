@@ -32,7 +32,7 @@
                                     <span class="badge bg-primary me-2">{{ passkey.device_type }}</span>
                                     <strong>{{ passkey.name }}</strong>
                                     {% if passkey.created_on %}
-                                    <small class="text-muted ms-2">Added: {{ passkey.created_on[:10] }}</small>
+                                    <small class="text-muted ms-2">Added: <span class="timestamp" data-timestamp="{{ passkey.created_on }}">{{ passkey.created_on[:10] }}</span></small>
                                     {% endif %}
                                 </div>
                                 
@@ -42,7 +42,7 @@
                                     <div class="d-flex align-items-center">
                                         <span class="badge bg-success me-2">✅ Tested</span>
                                         {% if passkey.last_test_date %}
-                                        <small class="text-muted">Last used: {{ passkey.last_test_date[:10] }}</small>
+                                        <small class="text-muted">Last used: <span class="timestamp-full" data-timestamp="{{ passkey.last_test_date }}">{{ passkey.last_test_date }}</span></small>
                                         {% endif %}
                                         {% if passkey.test_flow %}
                                         <small class="text-muted ms-2">Flow: {{ passkey.test_flow }}</small>
@@ -161,6 +161,47 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', function() {
             // Optional: Add analytics or logging here
         });
+    });
+    
+    // Convert timestamps to local timezone
+    const timestamps = document.querySelectorAll('.timestamp');
+    timestamps.forEach(span => {
+        const isoTimestamp = span.getAttribute('data-timestamp');
+        if (isoTimestamp) {
+            try {
+                const date = new Date(isoTimestamp);
+                // Format as date only for "Added" timestamps
+                span.textContent = date.toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            } catch (e) {
+                console.warn('Invalid timestamp:', isoTimestamp);
+            }
+        }
+    });
+    
+    // Convert full timestamps to local timezone with time
+    const fullTimestamps = document.querySelectorAll('.timestamp-full');
+    fullTimestamps.forEach(span => {
+        const isoTimestamp = span.getAttribute('data-timestamp');
+        if (isoTimestamp) {
+            try {
+                const date = new Date(isoTimestamp);
+                // Format with date and time for "Last used" timestamps
+                span.textContent = date.toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZoneName: 'short'
+                });
+            } catch (e) {
+                console.warn('Invalid full timestamp:', isoTimestamp);
+            }
+        }
     });
 });
 </script>
