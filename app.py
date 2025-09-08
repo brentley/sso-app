@@ -488,22 +488,16 @@ def get_user_passkey_status(user_email):
         
         passkeys = passkey_response.json().get('results', [])
         
-        # Filter for only valid passkeys
-        # Remove duplicates and keep only the most recent entry per device type
+        # Filter for only confirmed/valid passkeys
+        # Only include passkeys that are confirmed and have proper credential data
         valid_passkeys = []
-        seen_devices = {}
         
-        # Sort by creation date (newest first)
-        sorted_passkeys = sorted(passkeys, key=lambda x: x.get('created_on', ''), reverse=True)
-        
-        for passkey in sorted_passkeys:
-            device_desc = passkey.get('device_type', {}).get('description', 'Unknown')
-            device_key = f"{device_desc}_{passkey.get('name', '')}"
-            
-            # Keep only the most recent entry for each device/name combination
-            if device_key not in seen_devices:
+        for passkey in passkeys:
+            # Only include confirmed passkeys that have actual credential data
+            if (passkey.get('confirmed') and 
+                passkey.get('credential_id') and 
+                passkey.get('name')):
                 valid_passkeys.append(passkey)
-                seen_devices[device_key] = passkey.get('created_on')
         
         # Log the raw data for debugging
         logger.info(f"Found {len(passkeys)} total WebAuthn authenticators for user {user_id}")
@@ -526,29 +520,31 @@ def get_user_passkey_status(user_email):
             # Check if this passkey has been used recently with our flow
             auth_check = check_passkey_authentication_logs(user_id, passkey.get('pk'), authentik_token)
             
+            # Use API check results for individual passkey status
+            api_tested = auth_check.get('tested', False)
+            api_test_date = auth_check.get('test_date')
+            api_test_flow = auth_check.get('flow_used')
+            
             # Also check our local database for recent passkey tests
+            # But only apply it if we don't have specific API results for this passkey
             from flask_login import current_user
             local_tested = False
             local_test_date = None
             local_test_flow = None
             
-            if current_user and current_user.is_authenticated:
-                if current_user.passkey_tested:
+            if (current_user and current_user.is_authenticated and 
+                current_user.passkey_tested and not api_tested):
+                # Only use local database info if API didn't find any specific usage
+                passkey_meta = current_user.get_passkey_metadata_dict()
+                if passkey_meta and passkey_meta.get('tested_at'):
                     local_tested = True
-                    # Get metadata from our database
-                    passkey_meta = current_user.get_passkey_metadata_dict()
-                    if passkey_meta and passkey_meta.get('tested_at'):
-                        local_test_date = passkey_meta.get('tested_at')
-                        local_test_flow = passkey_meta.get('test_method', 'oauth_flow')
+                    local_test_date = passkey_meta.get('tested_at')
+                    local_test_flow = passkey_meta.get('test_method', 'oauth_flow')
             
-            # Use local database info if it's more recent or if API check failed
-            api_tested = auth_check.get('tested', False)
-            api_test_date = auth_check.get('test_date')
-            
-            # Prefer local database results if available
-            final_tested = local_tested or api_tested
-            final_test_date = local_test_date or api_test_date
-            final_test_flow = local_test_flow or auth_check.get('flow_used')
+            # Prefer API results, fall back to local database if no API data
+            final_tested = api_tested or local_tested
+            final_test_date = api_test_date or local_test_date
+            final_test_flow = api_test_flow or local_test_flow
             
             passkey_info.update({
                 'tested': final_tested,
