@@ -905,21 +905,52 @@ def test_passkey():
         
         # Direct passkey flow URL with return parameter  
         passkey_flow_params = {
-            'next': return_url,
-            'flow': 'vq8-passkey-only-flow'
+            'next': return_url
         }
         direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
         
-        # Use logout flow to clear session first
-        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(direct_passkey_url)}"
-        
-        logger.info(f"Clearing session and redirecting to passkey flow: {current_user.email}")
-        return redirect(logout_url)
+        logger.info(f"Redirecting directly to passkey flow (no logout): {current_user.email}")
+        logger.info(f"Direct passkey URL: {direct_passkey_url}")
+        return redirect(direct_passkey_url)
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
         flash('Error starting passkey test. Please try again.', 'error')
         return redirect(url_for('passkey_status'))
+
+@app.route('/debug-passkey-flow')
+@login_required
+def debug_passkey_flow():
+    """Debug route to show flow URL construction"""
+    try:
+        passkey_server_url = get_config('passkey_server_url', 'https://id.visiquate.com')
+        
+        # Test direct flow URL
+        test_return_url = "https://sso-app.visiquate.com/test-return"
+        from urllib.parse import urlencode
+        
+        passkey_flow_params = {
+            'next': test_return_url
+        }
+        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
+        
+        debug_info = {
+            'server_url': passkey_server_url,
+            'flow_slug': 'vq8-passkey-only-flow',
+            'return_url': test_return_url,
+            'constructed_url': direct_passkey_url,
+            'flow_params': passkey_flow_params
+        }
+        
+        return f"""
+        <h1>Passkey Flow Debug</h1>
+        <pre>{json.dumps(debug_info, indent=2)}</pre>
+        <p><a href="{direct_passkey_url}" target="_blank">Test Direct Flow URL</a></p>
+        <p><a href="/">Back to Home</a></p>
+        """
+        
+    except Exception as e:
+        return f"Error: {e}"
 
 @app.route('/passkey-auth-complete')
 def passkey_auth_complete():
