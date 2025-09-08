@@ -884,34 +884,91 @@ def test_passkey():
         session['passkey_test_nonce'] = nonce
         session['passkey_test_user'] = current_user.email
         
-        # Create OAuth authorization URL that will trigger WebAuthn
-        auth_params = {
-            'client_id': passkey_client_id,
-            'response_type': 'code',
-            'scope': 'openid email profile',
-            'redirect_uri': 'https://sso-app.visiquate.com/oauth/callback/passkey-test-app',
-            'state': state,
-            'nonce': nonce,
-            'prompt': 'login',  # Force authentication even if already logged in
-            'max_age': '0',  # Force fresh authentication
-            'acr_values': 'urn:oasis:names:tc:SAML:2.0:ac:classes:AuthenticatorPresentedKey',  # Request WebAuthn
-            'login_hint': current_user.email  # Pre-fill email address
+        # WORKAROUND: Since Authentik OAuth routing ignores provider-specific authentication flows,
+        # we'll directly use the passkey flow executor instead of OAuth authorization endpoint
+        
+        # Store OAuth parameters for later use in callback
+        session['oauth_state'] = state  
+        session['oauth_nonce'] = nonce
+        session['oauth_client_id'] = passkey_client_id
+        session['oauth_redirect_uri'] = 'https://sso-app.visiquate.com/oauth/callback/passkey-test-app'
+        session['oauth_scope'] = 'openid email profile'
+        
+        from urllib.parse import urlencode, quote
+        
+        # Create return URL that will complete OAuth flow after passkey auth
+        return_params = {
+            'complete_oauth': 'true',
+            'state': state
         }
+        return_url = f"https://sso-app.visiquate.com/passkey-auth-complete?{urlencode(return_params)}"
         
-        from urllib.parse import urlencode
-        # Use standard OAuth endpoint with new provider
-        auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
+        # Direct passkey flow URL with return parameter  
+        passkey_flow_params = {
+            'next': return_url,
+            'flow': 'vq8-passkey-only-flow'
+        }
+        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
         
-        # Use the logout flow with OAuth context preservation
-        from urllib.parse import quote
-        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(auth_url)}"
+        # Use logout flow to clear session first
+        logout_url = f"{passkey_server_url}/if/flow/default-invalidation-flow/?next={quote(direct_passkey_url)}"
         
-        logger.info(f"Clearing session and redirecting to OAuth: {current_user.email}")
+        logger.info(f"Clearing session and redirecting to passkey flow: {current_user.email}")
         return redirect(logout_url)
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
         flash('Error starting passkey test. Please try again.', 'error')
+        return redirect(url_for('passkey_status'))
+
+@app.route('/passkey-auth-complete')
+def passkey_auth_complete():
+    """Handle return from passkey authentication and complete OAuth flow"""
+    try:
+        # Verify state parameter
+        provided_state = request.args.get('state')
+        stored_state = session.get('oauth_state')
+        
+        if not provided_state or provided_state != stored_state:
+            logger.error("Invalid or missing state in passkey auth completion")
+            flash('Authentication failed: Invalid state', 'error')
+            return redirect(url_for('passkey_status'))
+        
+        # Get stored OAuth parameters
+        client_id = session.get('oauth_client_id')
+        redirect_uri = session.get('oauth_redirect_uri')
+        scope = session.get('oauth_scope')
+        nonce = session.get('oauth_nonce')
+        
+        if not all([client_id, redirect_uri, scope, nonce]):
+            logger.error("Missing OAuth parameters in session")
+            flash('Authentication failed: Missing OAuth parameters', 'error')
+            return redirect(url_for('passkey_status'))
+        
+        # Now initiate OAuth flow with passkey authentication completed
+        # The user should now be authenticated with Authentik via passkey
+        
+        from urllib.parse import urlencode
+        passkey_server_url = get_config('passkey_server_url', 'https://id.visiquate.com')
+        
+        oauth_params = {
+            'client_id': client_id,
+            'response_type': 'code',
+            'scope': scope,
+            'redirect_uri': redirect_uri,
+            'state': provided_state,
+            'nonce': nonce,
+            'prompt': 'none',  # Don't prompt for authentication since we just did passkey auth
+        }
+        
+        oauth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(oauth_params)}"
+        
+        logger.info(f"Passkey auth completed, initiating OAuth flow for user")
+        return redirect(oauth_url)
+        
+    except Exception as e:
+        logger.error(f"Error in passkey auth completion: {e}")
+        flash('Error completing passkey authentication. Please try again.', 'error')
         return redirect(url_for('passkey_status'))
 
 @app.route('/clear-session-and-oauth')
