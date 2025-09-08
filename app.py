@@ -900,13 +900,57 @@ def test_passkey():
         from urllib.parse import urlencode
         auth_url = f"{passkey_server_url}/application/o/authorize/?{urlencode(auth_params)}"
         
-        logger.info(f"Redirecting user {current_user.email} to passkey test: {auth_url}")
-        return redirect(auth_url)
+        # Store the auth URL in session and redirect to cookie clearing page
+        session['pending_oauth_url'] = auth_url
+        logger.info(f"Preparing session clear for passkey test: {current_user.email}")
+        return redirect(url_for('clear_session_and_oauth'))
         
     except Exception as e:
         logger.error(f"Error initiating passkey test for {current_user.email}: {e}")
         flash('Error starting passkey test. Please try again.', 'error')
         return redirect(url_for('passkey_status'))
+
+@app.route('/clear-session-and-oauth')
+@login_required
+def clear_session_and_oauth():
+    """Clear Authentik session cookies and redirect to OAuth"""
+    auth_url = session.get('pending_oauth_url')
+    if not auth_url:
+        flash('No pending OAuth request found', 'error')
+        return redirect(url_for('passkey_status'))
+    
+    # Clear the pending URL from session
+    session.pop('pending_oauth_url', None)
+    
+    # Return a page that clears cookies using JavaScript, then redirects
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Clearing Session...</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <p>Clearing authentication session...</p>
+        <script>
+            // Clear all cookies for id.visiquate.com domain
+            document.cookie.split(";").forEach(function(c) {{ 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/;domain=.visiquate.com"); 
+            }});
+            
+            // Clear cookies for the current domain too
+            document.cookie.split(";").forEach(function(c) {{ 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            }});
+            
+            // Redirect after a short delay
+            setTimeout(function() {{
+                window.location.href = "{auth_url}";
+            }}, 500);
+        </script>
+    </body>
+    </html>
+    '''
 
 @app.route('/passkey-callback')
 def passkey_callback():
