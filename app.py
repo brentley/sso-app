@@ -909,15 +909,9 @@ def test_passkey():
             'next': return_url
         }
         
-        # NEW APPROACH: Create a simple passkey test that doesn't rely on OAuth
-        # Just redirect to passkey flow and handle success differently
-        success_url = f"https://sso-app.visiquate.com/passkey-test-result?state={state}"
-        
-        # Simple passkey flow test
-        passkey_flow_params = {
-            'next': success_url
-        }
-        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/?{urlencode(passkey_flow_params)}"
+        # Try without next parameter to avoid "Invalid next URL" error
+        # After passkey auth, user will land on Authentik's default success page
+        direct_passkey_url = f"{passkey_server_url}/if/flow/vq8-passkey-only-flow/"
         
         # Go directly to passkey flow without logout step
         logger.info(f"Testing passkey authentication directly for {current_user.email}")
